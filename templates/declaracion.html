@@ -77,7 +77,8 @@
   </select>
 </div>
 <button class="btn" type="submit">Ver</button>
-    <a class="btn" style="background:#0b5bd3;border-color:#0b5bd3" href="/sat_report.csv?year={{ year }}&month={{ month }}">Exportar CSV SAT</a>
+    <a class="btn" style="background:#0b5bd3;border-color:#0b5bd3" href="/sat_report.csv?year={{ year }}&month={{ month }}&income_source={{ income_source }}">Exportar CSV SAT</a>
+    <a class="btn" style="background:#6d28d9;border-color:#6d28d9" href="/sat_hoja?year={{ year }}&month={{ month }}&income_source={{ income_source }}">Generar hoja SAT (texto)</a>
 
     <div class="muted" style="margin-left: 10px;">
       Periodo: <b>{{ year }}-{{ "%02d"|format(month) }}</b>

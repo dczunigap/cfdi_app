@@ -553,7 +553,7 @@ def modo_declaracion(request: Request, year: int | None = None, month: int | Non
         iva_retenido = data["plat_iva_ret"]
 
         # IVA trasladado del periodo (plataforma + CFDI)
-        iva_trasladado_total = data["plat_iva_tras"] + data["ingresos_trasl"]
+        _, iva_trasladado_total, _ = _calc_income_and_iva_sources(data, income_source)
         checks = _checklist(db, year, month, data, income_source=income_source, effective_income_source=effective_income_source)
 
         return templates.TemplateResponse(
@@ -578,6 +578,116 @@ def modo_declaracion(request: Request, year: int | None = None, month: int | Non
         db.close()
 
 
+
+def _calc_income_and_iva_sources(data: dict, income_source: str):
+    """Aplica la misma lógica anti-doble-conteo para ISR (ingresos sin IVA) y para IVA trasladado."""
+    income_source = (income_source or "auto").lower().strip()
+
+    plat_income = float(data["plat_ing_siva"] or 0.0)
+    cfdi_income = float(data["ingresos_base"] or 0.0)
+
+    plat_iva_tras = float(data["plat_iva_tras"] or 0.0)
+    cfdi_iva_tras = float(data["ingresos_trasl"] or 0.0)
+
+    effective = "plataforma"
+    if income_source == "plataforma":
+        ingresos_sin_iva = plat_income
+        iva_trasladado = plat_iva_tras
+        effective = "plataforma"
+    elif income_source == "cfdi":
+        ingresos_sin_iva = cfdi_income
+        iva_trasladado = cfdi_iva_tras
+        effective = "cfdi"
+    elif income_source == "ambos":
+        ingresos_sin_iva = plat_income + cfdi_income
+        iva_trasladado = plat_iva_tras + cfdi_iva_tras
+        effective = "ambos"
+    else:
+        # auto: si hay retenciones del mes, usa plataforma (evita doble conteo)
+        if plat_income > 0 or plat_iva_tras > 0:
+            ingresos_sin_iva = plat_income
+            iva_trasladado = plat_iva_tras
+            effective = "plataforma"
+        else:
+            ingresos_sin_iva = cfdi_income
+            iva_trasladado = cfdi_iva_tras
+            effective = "cfdi"
+
+    return ingresos_sin_iva, iva_trasladado, effective
+
+
+def _build_hoja_sat_text(year: int, month: int, income_source: str, data: dict) -> tuple[str, str]:
+    """Devuelve (texto, effective_source)."""
+    ingresos_sin_iva, iva_trasladado, effective = _calc_income_and_iva_sources(data, income_source)
+
+    isr_retenido = float(data["plat_isr_ret"] or 0.0)
+    iva_retenido = float(data["plat_iva_ret"] or 0.0)
+    iva_acreditable = float(data["gastos_trasl"] or 0.0)
+
+    # IVA neto sugerido (control)
+    iva_neto_sugerido = iva_trasladado - iva_acreditable - iva_retenido
+
+    text = "\n".join([
+        f"PERIODO: {year}-{month:02d}",
+        f"FUENTE_INGRESOS: {effective.upper()} (selector: {income_source})",
+        "",
+        "ISR (Pago provisional)",
+        f"- Ingresos del periodo (sin IVA): {ingresos_sin_iva:,.2f} MXN",
+        f"- ISR retenido (plataforma): {isr_retenido:,.2f} MXN",
+        "",
+        "IVA (Mensual)",
+        f"- IVA trasladado del periodo: {iva_trasladado:,.2f} MXN",
+        f"- IVA retenido (plataforma): {iva_retenido:,.2f} MXN",
+        f"- IVA acreditable (gastos CFDI): {iva_acreditable:,.2f} MXN",
+        "",
+        "CONTROLES",
+        f"- IVA neto sugerido (trasladado - acreditable - retenido): {iva_neto_sugerido:,.2f} MXN",
+        f"- XML retenciones detectados: {len(data.get('ret_rows') or [])}",
+        f"- CFDI del mes (por emisión): {len(data.get('docs') or [])}",
+        "",
+        "NOTAS",
+        "- Si estás en Mercado Libre y tus CFDI de ingreso corresponden a las mismas ventas, usa FUENTE_INGRESOS=PLATAFORMA para evitar doble conteo.",
+        "- Si tienes CFDI en moneda distinta a MXN, convierte a MXN según el tipo de cambio aplicable.",
+    ])
+    return text, effective
+
+
+@app.get("/sat_hoja", response_class=HTMLResponse)
+def sat_hoja_view(request: Request, year: int, month: int, income_source: str = "auto") -> HTMLResponse:
+    db = get_db()
+    try:
+        data = _compute_period_data(db, year, month)
+        hoja_text, effective = _build_hoja_sat_text(year, month, income_source, data)
+        return templates.TemplateResponse(
+            "sat_hoja.html",
+            {
+                "request": request,
+                "mi_rfc": MI_RFC,
+                "year": year,
+                "month": month,
+                "income_source": income_source,
+                "effective_income_source": effective,
+                "hoja_text": hoja_text,
+            },
+        )
+    finally:
+        db.close()
+
+
+@app.get("/sat_hoja.txt")
+def sat_hoja_txt(year: int, month: int, income_source: str = "auto"):
+    db = get_db()
+    try:
+        data = _compute_period_data(db, year, month)
+        hoja_text, effective = _build_hoja_sat_text(year, month, income_source, data)
+        return Response(
+            content=hoja_text,
+            media_type="text/plain; charset=utf-8",
+            headers={"Content-Disposition": f"attachment; filename=hoja_sat_{year}_{month:02d}_{effective}.txt"},
+        )
+    finally:
+        db.close()
+
 @app.get("/sat_report.csv")
 def sat_report_csv(year: int, month: int, income_source: str = "auto"):
     """CSV de papel de trabajo mensual (ingresos + retenciones + IVA)"""
@@ -585,18 +695,8 @@ def sat_report_csv(year: int, month: int, income_source: str = "auto"):
     try:
         data = _compute_period_data(db, year, month)
 
-        income_source = (income_source or "auto").lower().strip()
-        plat = float(data["plat_ing_siva"] or 0.0)
-        cfdi_base = float(data["ingresos_base"] or 0.0)
-        if income_source == "plataforma":
-            ingresos_total_sin_iva = plat
-        elif income_source == "cfdi":
-            ingresos_total_sin_iva = cfdi_base
-        elif income_source == "ambos":
-            ingresos_total_sin_iva = plat + cfdi_base
-        else:
-            ingresos_total_sin_iva = plat if plat > 0 else cfdi_base
-        iva_tras_total = data["plat_iva_tras"] + data["ingresos_trasl"]
+        ingresos_total_sin_iva, iva_tras_total, effective_income_source = _calc_income_and_iva_sources(data, income_source)
+        # iva_tras_total ya calculado según income_source (anti-doble-conteo)
 
         iva_causado = iva_tras_total
         iva_acreditable = data["gastos_trasl"]
