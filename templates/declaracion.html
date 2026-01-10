@@ -125,7 +125,28 @@
         {% endfor %}
       </ul>
     </div>
-  </div>
+  </div><div class="card">
+  <div class="muted">Declaración presentada (PDF)</div>
+  {% if declaracion_pdf %}
+    <div class="muted"><b>Archivo:</b> {{ declaracion_pdf.original_name or declaracion_pdf.filename }}</div>
+    <div class="muted"><b>Fecha presentación:</b> {{ declaracion_pdf.fecha_presentacion.date().isoformat() if declaracion_pdf.fecha_presentacion else "" }}</div>
+    <div class="muted"><b>Folio/Operación:</b> {{ declaracion_pdf.folio or "" }}</div>
+    <div class="muted" style="margin-top: 6px;">
+      <a href="/declaraciones/{{ declaracion_pdf.id }}">Ver detalle</a> ·
+      <a href="/declaraciones/{{ declaracion_pdf.id }}/archivo.pdf">Abrir PDF</a>
+    </div>
+    {% if declaracion_pdf.text_excerpt %}
+      <div class="muted" style="margin-top: 8px;"><b>Resumen (texto detectado):</b></div>
+      <div class="muted">{{ declaracion_pdf.text_excerpt[:300] }}{% if declaracion_pdf.text_excerpt|length > 300 %}...{% endif %}</div>
+    {% else %}
+      <div class="muted" style="margin-top: 8px;">No se pudo extraer texto (posible PDF escaneado).</div>
+    {% endif %}
+  {% else %}
+    <div class="muted">No hay PDF importado para este periodo. Puedes importarlo desde la pantalla principal.</div>
+  {% endif %}
+</div>
+
+
 
   <h2 style="margin-top: 18px;">Respaldo / Control</h2>
   <ul>

@@ -146,3 +146,26 @@ class RetencionPlataforma(Base):
     __table_args__ = (
         UniqueConstraint("uuid", name="uq_ret_plat_uuid"),
     )
+
+
+class DeclaracionPDF(Base):
+    __tablename__ = "declaraciones_pdf"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    year: Mapped[int] = mapped_column(Integer, index=True)
+    month: Mapped[int] = mapped_column(Integer, index=True)
+
+    rfc: Mapped[str | None] = mapped_column(String(20), index=True, nullable=True)
+    folio: Mapped[str | None] = mapped_column(String(80), index=True, nullable=True)
+    fecha_presentacion: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    sha256: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    filename: Mapped[str] = mapped_column(String(260))
+    original_name: Mapped[str | None] = mapped_column(String(260), nullable=True)
+    num_pages: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    text_excerpt: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+

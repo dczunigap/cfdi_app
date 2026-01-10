@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 
 from pathlib import Path
 from fastapi import FastAPI, Request, UploadFile, File
@@ -8,9 +9,10 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, desc, and_
 from sqlalchemy.orm import Session
 
-from db import engine, SessionLocal
-from models import Base, Factura, Concepto, Pago, RetencionPlataforma
+from db import engine, SessionLocal, PDF_DIR
+from models import Base, Factura, Concepto, Pago, RetencionPlataforma, DeclaracionPDF
 from parser_xml import detect_xml_kind, parse_cfdi_40, parse_retenciones_plataforma
+from parser_pdf import extract_pdf_text, parse_sat_declaracion_summary
 
 from config import MI_RFC
 
@@ -19,6 +21,26 @@ BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 app = FastAPI(title="Contabilidad CFDI (local)")
+
+
+def _sha256_bytes(b: bytes) -> str:
+    import hashlib
+    return hashlib.sha256(b).hexdigest()
+
+
+def _safe_pdf_filename(sha: str, original: str | None) -> str:
+    return f"{sha}.pdf"
+
+
+def _json_default(o):
+    """Para json.dumps: convierte datetime/date a ISO; fallback a str()."""
+    try:
+        import datetime as _dt
+        if isinstance(o, (_dt.datetime, _dt.date)):
+            return o.isoformat()
+    except Exception:
+        pass
+    return str(o)
 
 
 def money(value, currency: str | None = "MXN") -> str:
@@ -185,6 +207,228 @@ async def importar(files: list[UploadFile] = File(...)):
         f"Errores: {errors}."
     )
     return RedirectResponse(url=f"/?msg={msg}", status_code=303)
+
+@app.post("/importar_pdf")
+async def importar_pdf(files: list[UploadFile] = File(...), year: int | None = None, month: int | None = None):
+    inserted = 0
+    skipped = 0
+    errors = 0
+
+    db = get_db()
+    try:
+        for f in files:
+            try:
+                pdf_bytes = await f.read()
+                sha = _sha256_bytes(pdf_bytes)
+
+                exists = db.scalar(select(DeclaracionPDF.id).where(DeclaracionPDF.sha256 == sha))
+                if exists:
+                    skipped += 1
+                    continue
+
+                filename = _safe_pdf_filename(sha, getattr(f, "filename", None))
+                pdf_path = (PDF_DIR / filename)
+                pdf_path.write_bytes(pdf_bytes)
+
+                text, num_pages = ("", None)
+                try:
+                    text, num_pages = extract_pdf_text(str(pdf_path))
+                except Exception:
+                    text, num_pages = ("", None)
+
+                summary = {}
+                try:
+                    summary = parse_sat_declaracion_summary(text or "")
+                except Exception:
+                    summary = {}
+
+                y = year
+                mth = month
+                per = summary.get("periodo") if isinstance(summary, dict) else None
+                if (not y or not mth) and per and "-" in per:
+                    try:
+                        y = int(per.split("-")[0])
+                        mth = int(per.split("-")[1])
+                    except Exception:
+                        pass
+
+                if not y or not mth:
+                    from datetime import datetime
+                    now = datetime.now()
+                    y = y or now.year
+                    mth = mth or now.month
+
+                rec = DeclaracionPDF(
+                    year=int(y),
+                    month=int(mth),
+                    rfc=summary.get("rfc") if isinstance(summary, dict) else None,
+                    folio=(summary.get("numero_operacion") if isinstance(summary, dict) else None),
+                    fecha_presentacion=summary.get("fecha_presentacion") if isinstance(summary, dict) else None,
+                    sha256=sha,
+                    filename=filename,
+                    original_name=getattr(f, "filename", None),
+                    num_pages=int(num_pages) if num_pages is not None else None,
+                    text_excerpt=(text[:20000] if text else None),
+                )
+                db.add(rec)
+                db.commit()
+                inserted += 1
+            except Exception:
+                db.rollback()
+                errors += 1
+    finally:
+        db.close()
+
+    msg = f"PDF: {inserted} importados, {skipped} duplicados. Errores: {errors}."
+    return RedirectResponse(url=f"/?msg={msg}", status_code=303)
+
+
+@app.get("/declaraciones", response_class=HTMLResponse)
+def listar_declaraciones(request: Request, year: int | None = None, month: int | None = None) -> HTMLResponse:
+    db = get_db()
+    try:
+        q = select(DeclaracionPDF).order_by(desc(DeclaracionPDF.year), desc(DeclaracionPDF.month), desc(DeclaracionPDF.created_at))
+        if year is not None:
+            q = q.where(DeclaracionPDF.year == year)
+        if month is not None:
+            q = q.where(DeclaracionPDF.month == month)
+        rows = db.scalars(q).all()
+        return templates.TemplateResponse("declaraciones.html", {"request": request, "rows": rows, "year": year, "month": month, "mi_rfc": MI_RFC})
+    finally:
+        db.close()
+
+
+@app.get("/declaraciones/{dec_id}", response_class=HTMLResponse)
+def detalle_declaracion(request: Request, dec_id: int) -> HTMLResponse:
+    db = get_db()
+    try:
+        dec = db.get(DeclaracionPDF, dec_id)
+        if not dec:
+            return HTMLResponse("No encontrada", status_code=404)
+
+        resumen: list[str] = []
+        if dec.rfc:
+            resumen.append(f"RFC: {dec.rfc}")
+        if dec.fecha_presentacion:
+            resumen.append(f"Fecha presentación: {dec.fecha_presentacion.date().isoformat()}")
+        if dec.folio:
+            resumen.append(f"Número de operación: {dec.folio}")
+        if dec.num_pages is not None:
+            resumen.append(f"Páginas: {dec.num_pages}")
+        if not dec.text_excerpt:
+            resumen.append("No se pudo extraer texto (posible PDF escaneado).")
+
+        parsed = {}
+        try:
+            parsed = parse_sat_declaracion_summary(dec.text_excerpt or "")
+        except Exception:
+            parsed = {}
+
+        def _dt_iso(v):
+            try:
+                return v.isoformat()
+            except Exception:
+                return None
+
+        payload = {
+            "periodo": (parsed.get("periodo") if isinstance(parsed, dict) else None) or f"{dec.year}-{dec.month:02d}",
+            "rfc": (parsed.get("rfc") if isinstance(parsed, dict) else None) or dec.rfc,
+            "nombre": (parsed.get("nombre") if isinstance(parsed, dict) else None),
+            "tipo_declaracion": (parsed.get("tipo_declaracion") if isinstance(parsed, dict) else None),
+            "periodo_mes": (parsed.get("periodo_mes") if isinstance(parsed, dict) else None),
+            "ejercicio": (parsed.get("ejercicio") if isinstance(parsed, dict) else None),
+
+            "numero_operacion": (parsed.get("numero_operacion") if isinstance(parsed, dict) else None) or (dec.folio or None),
+            "fecha_presentacion": _dt_iso(dec.fecha_presentacion) or _dt_iso((parsed.get("fecha_presentacion") if isinstance(parsed, dict) else None)),
+            "linea_captura": (parsed.get("linea_captura") if isinstance(parsed, dict) else None),
+
+            "secciones": (parsed.get("secciones") if isinstance(parsed, dict) else None) or [],
+            "isr": (parsed.get("isr") if isinstance(parsed, dict) else None),
+            "iva": (parsed.get("iva") if isinstance(parsed, dict) else None),
+
+            "num_pages": dec.num_pages,
+            "archivo": dec.original_name or dec.filename,
+            "sha256": dec.sha256,
+            "tiene_texto_extraible": bool((dec.text_excerpt or "").strip()),
+        }
+
+        resumen_json = json.dumps(payload, ensure_ascii=False, indent=2, default=_json_default)
+
+        return templates.TemplateResponse(
+            "declaracion_pdf_detalle.html",
+            {"request": request, "dec": dec, "resumen": resumen, "resumen_json": resumen_json, "mi_rfc": MI_RFC, "payload": payload},
+        )
+    finally:
+        db.close()
+
+@app.get("/declaraciones/{dec_id}/archivo.pdf")
+def descargar_declaracion_pdf(dec_id: int):
+    db = get_db()
+    try:
+        dec = db.get(DeclaracionPDF, dec_id)
+        if not dec:
+            return Response(content="No encontrada", status_code=404)
+        pdf_path = (PDF_DIR / dec.filename)
+        if not pdf_path.exists():
+            return Response(content="Archivo PDF no encontrado en disco", status_code=404)
+        return Response(
+            content=pdf_path.read_bytes(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"inline; filename={dec.filename}"},
+        )
+    finally:
+        db.close()
+
+
+
+@app.get("/declaraciones/{dec_id}/resumen.json")
+def declaracion_pdf_resumen_json(dec_id: int):
+    db = get_db()
+    try:
+        dec = db.get(DeclaracionPDF, dec_id)
+        if not dec:
+            return Response(content="No encontrada", status_code=404)
+
+        parsed = {}
+        try:
+            parsed = parse_sat_declaracion_summary(dec.text_excerpt or "")
+        except Exception:
+            parsed = {}
+
+        def _dt_iso(v):
+            try:
+                return v.isoformat()
+            except Exception:
+                return None
+
+                payload = {
+            "periodo": (parsed.get("periodo") if isinstance(parsed, dict) else None) or f"{dec.year}-{dec.month:02d}",
+            "rfc": (parsed.get("rfc") if isinstance(parsed, dict) else None) or dec.rfc,
+            "nombre": (parsed.get("nombre") if isinstance(parsed, dict) else None),
+            "tipo_declaracion": (parsed.get("tipo_declaracion") if isinstance(parsed, dict) else None),
+            "periodo_mes": (parsed.get("periodo_mes") if isinstance(parsed, dict) else None),
+            "ejercicio": (parsed.get("ejercicio") if isinstance(parsed, dict) else None),
+
+            "numero_operacion": (parsed.get("numero_operacion") if isinstance(parsed, dict) else None) or (dec.folio or None),
+            "fecha_presentacion": _dt_iso(dec.fecha_presentacion) or _dt_iso((parsed.get("fecha_presentacion") if isinstance(parsed, dict) else None)),
+            "linea_captura": (parsed.get("linea_captura") if isinstance(parsed, dict) else None),
+
+            "secciones": (parsed.get("secciones") if isinstance(parsed, dict) else None) or [],
+            "isr": (parsed.get("isr") if isinstance(parsed, dict) else None),
+            "iva": (parsed.get("iva") if isinstance(parsed, dict) else None),
+
+            "num_pages": dec.num_pages,
+            "archivo": dec.original_name or dec.filename,
+            "sha256": dec.sha256,
+            "tiene_texto_extraible": bool((dec.text_excerpt or "").strip()),
+        }
+        return Response(
+            content=json.dumps(payload, ensure_ascii=False, indent=2, default=_json_default),
+            media_type="application/json; charset=utf-8",
+        )
+    finally:
+        db.close()
+
 
 
 @app.get("/facturas", response_class=HTMLResponse)
@@ -556,6 +800,13 @@ def modo_declaracion(request: Request, year: int | None = None, month: int | Non
         _, iva_trasladado_total, _ = _calc_income_and_iva_sources(data, income_source)
         checks = _checklist(db, year, month, data, income_source=income_source, effective_income_source=effective_income_source)
 
+        declaracion_pdf = db.scalars(
+            select(DeclaracionPDF)
+            .where(DeclaracionPDF.year == year, DeclaracionPDF.month == month)
+            .order_by(desc(DeclaracionPDF.created_at))
+            .limit(1)
+        ).first()
+
         return templates.TemplateResponse(
             "declaracion.html",
             {
@@ -572,6 +823,7 @@ def modo_declaracion(request: Request, year: int | None = None, month: int | Non
                 "income_source": income_source,
                 "effective_income_source": effective_income_source,
                 "checks": checks,
+                "declaracion_pdf": declaracion_pdf,
             },
         )
     finally:

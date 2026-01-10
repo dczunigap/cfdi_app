@@ -8,6 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
+PDF_DIR = DATA_DIR / "pdfs"
+PDF_DIR.mkdir(exist_ok=True)
+
 DB_PATH = DATA_DIR / "contabilidad.sqlite"
 DATABASE_URL = f"sqlite:///{DB_PATH.as_posix()}"
 

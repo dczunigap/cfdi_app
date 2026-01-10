@@ -3,3 +3,4 @@ uvicorn==0.40.0
 jinja2==3.1.6
 python-multipart==0.0.21
 sqlalchemy==2.0.45
+pypdf==5.1.0

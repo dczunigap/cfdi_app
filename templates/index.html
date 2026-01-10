@@ -48,9 +48,35 @@
       <div class="alert">{{ msg }}</div>
     {% endif %}
 
-    <div class="nav">
+    <h3 style="margin-top: 18px;">Importar PDF de declaración mensual (presentada)</h3>
+<div class="muted">
+  Sube el PDF/acuse que descargaste del SAT. La app lo guarda localmente y (si el PDF tiene texto) genera un resumen.
+</div>
+
+<form action="/importar_pdf" method="post" enctype="multipart/form-data" style="margin-top: 8px;">
+  <div class="row">
+    <div>
+      <div class="muted">Año</div>
+      <input name="year" placeholder="2026" />
+    </div>
+    <div>
+      <div class="muted">Mes</div>
+      <input name="month" placeholder="1" />
+    </div>
+  </div>
+  <input type="file" name="files" multiple accept=".pdf,application/pdf" required />
+  <div style="margin-top: 12px;">
+    <button class="btn" type="submit">Importar PDF</button>
+  </div>
+  <div class="muted" style="margin-top: 8px;">
+    Tip: si el PDF es escaneado (imagen), puede que no se extraiga texto y el resumen salga vacío.
+  </div>
+</form>
+
+<div class="nav">
       <a href="/facturas">Ver CFDI</a>
       <a href="/retenciones">Ver Retenciones</a>
+      <a href="/declaraciones">Ver Declaraciones (PDF)</a>
       <a href="/summary">Resumen mensual</a>
       <a href="/declaracion">Modo declaración</a>
     </div>
