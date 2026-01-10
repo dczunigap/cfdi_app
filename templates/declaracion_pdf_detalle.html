@@ -1,21 +1,72 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <title>Detalle declaración PDF</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
-    .muted { color: #666; }
-    .nav { display:flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-    a { color: #0b5bd3; }
-    code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
-    pre { white-space: pre-wrap; border: 1px solid #ddd; padding: 10px; border-radius: 10px; max-height: 360px; overflow: auto; }
-    .btn { padding: 8px 12px; border: 1px solid #222; background: #222; color: white; border-radius: 10px; cursor: pointer; text-decoration: none; display:inline-block;}
-  
-    pre#json { white-space: pre; border: 1px solid #ddd; padding: 10px; border-radius: 10px; background: #fafafa; }
-    details { border: 1px solid #eee; padding: 10px; border-radius: 10px; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin: 24px;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    a {
+      color: #0b5bd3;
+    }
+
+    code {
+      background: #f7f7f7;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 10px;
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    .btn {
+      padding: 8px 12px;
+      border: 1px solid #222;
+      background: #222;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    pre#json {
+      white-space: pre;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+
+    details {
+      border: 1px solid #eee;
+      padding: 10px;
+      border-radius: 10px;
+    }
   </style>
 </head>
+
 <body>
   <div class="nav">
     <a href="/declaraciones">← declaraciones</a>
@@ -33,40 +84,45 @@
   <h2>Resumen breve</h2>
   <ul>
     {% for r in resumen %}
-      <li>{{ r }}</li>
+    <li>{{ r }}</li>
     {% endfor %}
-</ul>
+  </ul>
 
-{% if payload %}
-<div class="muted" style="margin-top: 8px;">
-  <b>Importes por impuesto (según acuse):</b>
-  {% if payload.get("isr") %}
-    <div>ISR — a pagar: {{ payload.get("isr").get("cantidad_a_pagar") }} · a cargo: {{ payload.get("isr").get("cantidad_a_cargo") }} · contribuciones: {{ payload.get("isr").get("total_contribuciones") }}</div>
+  {% if payload %}
+  <div class="muted" style="margin-top: 8px;">
+    <b>Importes por impuesto (según acuse):</b>
+    {% if payload.get("isr") %}
+    <div>ISR — a pagar: {{ payload.get("isr").get("cantidad_a_pagar") }} · a cargo: {{
+      payload.get("isr").get("cantidad_a_cargo") }} · contribuciones: {{ payload.get("isr").get("total_contribuciones")
+      }}</div>
+    {% endif %}
+    {% if payload.get("iva") %}
+    <div>IVA — a pagar: {{ payload.get("iva").get("cantidad_a_pagar") }} · a cargo: {{
+      payload.get("iva").get("cantidad_a_cargo") }} · contribuciones: {{ payload.get("iva").get("total_contribuciones")
+      }}</div>
+    {% endif %}
+  </div>
   {% endif %}
-  {% if payload.get("iva") %}
-    <div>IVA — a pagar: {{ payload.get("iva").get("cantidad_a_pagar") }} · a cargo: {{ payload.get("iva").get("cantidad_a_cargo") }} · contribuciones: {{ payload.get("iva").get("total_contribuciones") }}</div>
-  {% endif %}
-</div>
-{% endif %}
 
-<h2>Datos detectados (JSON)</h2>
+  <h2>Datos detectados (JSON)</h2>
 
-<p class="muted">Listo para copiar/pegar o exportar.</p>
-<p>
-  <a class="btn" style="background:#0b5bd3;border-color:#0b5bd3" href="/declaraciones/{{ dec.id }}/resumen.json">Abrir/descargar JSON</a>
-  <a class="btn" onclick="copyJson()" href="javascript:void(0)">Copiar JSON</a>
-</p>
-<pre id="json">{{ resumen_json }}</pre>
+  <p class="muted">Listo para copiar/pegar o exportar.</p>
+  <p>
+    <a class="btn" style="background:#0b5bd3;border-color:#0b5bd3"
+      href="/declaraciones/{{ dec.id }}/resumen.json">Abrir/descargar JSON</a>
+    <a class="btn" onclick="copyJson()" href="javascript:void(0)">Copiar JSON</a>
+  </p>
+  <pre id="json">{{ resumen_json }}</pre>
 
-<h2>Texto detectado (extracto)</h2>
+  <h2>Texto detectado (extracto)</h2>
 
   {% if dec.text_excerpt %}
-    <details open>
-      <summary class="muted">Ver texto extraído (puede ser largo)</summary>
-      <pre>{{ dec.text_excerpt }}</pre>
-    </details>
+  <details open>
+    <summary class="muted">Ver texto extraído (puede ser largo)</summary>
+    <pre>{{ dec.text_excerpt }}</pre>
+  </details>
   {% else %}
-    <div class="muted">No se pudo extraer texto. Si el PDF es un escaneo, pypdf no puede leerlo sin OCR.</div>
+  <div class="muted">No se pudo extraer texto. Si el PDF es un escaneo, pypdf no puede leerlo sin OCR.</div>
   {% endif %}
   <script>
     function copyJson() {
@@ -76,7 +132,7 @@
       const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-      try { document.execCommand("copy"); } catch (e) {}
+      try { document.execCommand("copy"); } catch (e) { }
       sel.removeAllRanges();
     }
   </script>

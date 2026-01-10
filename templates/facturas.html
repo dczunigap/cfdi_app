@@ -1,22 +1,80 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <title>CFDI</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border-bottom: 1px solid #eee; padding: 8px 6px; text-align: left; vertical-align: top; }
-    th { background: #fafafa; position: sticky; top: 0; }
-    .muted { color: #666; }
-    .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 12px; }
-    .btn { padding: 8px 12px; border: 1px solid #222; background: #222; color: white; border-radius: 8px; cursor: pointer; }
-    input, select { padding: 6px 8px; border: 1px solid #ddd; border-radius: 8px; }
-    a { color: #0b5bd3; }
-    code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
-    .nav { display:flex; gap: 10px; flex-wrap: wrap; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin: 24px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #eee;
+      padding: 8px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #fafafa;
+      position: sticky;
+      top: 0;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      padding: 8px 12px;
+      border: 1px solid #222;
+      background: #222;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    input,
+    select {
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    a {
+      color: #0b5bd3;
+    }
+
+    code {
+      background: #f7f7f7;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
+
 <body>
   <div class="nav muted">
     <a href="/">← importar</a>
@@ -24,44 +82,44 @@
     <a href="/summary">Resumen</a>
     <a href="/declaracion">Modo declaración</a>
   </div>
-  
+
   <h1>CFDI (hasta 500)</h1>
   <p class="muted">RFC config: <code>{{ mi_rfc }}</code></p>
 
   <form class="filters" method="get" action="/facturas">
-  <div>
-    <div class="muted">Año</div>
-    <select name="year">
-      <option value="" {% if year is none %}selected{% endif %}>Todos</option>
-      {% for y in year_options %}
-        <option value="{{ y }}" {% if year == y %}selected{% endif %}>{{ y }}</option>
-      {% endfor %}
-    </select>
-  </div>
+    <div>
+      <div class="muted">Año</div>
+      <select name="year">
+        <option value="" {% if year is none %}selected{% endif %}>Todos</option>
+        {% for y in year_options %}
+        <option value="{{ y }}" {% if year==y %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
-  <div>
-    <div class="muted">Mes</div>
-    <select name="month">
-      <option value="" {% if month is none %}selected{% endif %}>Todos</option>
-      {% for m in months_for_year %}
-        <option value="{{ m }}" {% if month == m %}selected{% endif %}>{{ "%02d"|format(m) }}</option>
-      {% endfor %}
-    </select>
-  </div>
+    <div>
+      <div class="muted">Mes</div>
+      <select name="month">
+        <option value="" {% if month is none %}selected{% endif %}>Todos</option>
+        {% for m in months_for_year %}
+        <option value="{{ m }}" {% if month==m %}selected{% endif %}>{{ "%02d"|format(m) }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
-  <div>
-    <div class="muted">Tipo (I/E/P)</div>
-    <input name="tipo" value="{{ tipo }}" placeholder="I" />
-  </div>
+    <div>
+      <div class="muted">Tipo (I/E/P)</div>
+      <input name="tipo" value="{{ tipo }}" placeholder="I" />
+    </div>
 
-  <div>
-    <div class="muted">Naturaleza</div>
-    <input name="naturaleza" value="{{ naturaleza }}" placeholder="ingreso/gasto/cobro/pago" />
-  </div>
+    <div>
+      <div class="muted">Naturaleza</div>
+      <input name="naturaleza" value="{{ naturaleza }}" placeholder="ingreso/gasto/cobro/pago" />
+    </div>
 
-  <button class="btn" type="submit">Filtrar</button>
-  <a href="/facturas" style="padding:8px 0;">Quitar filtros</a>
-</form>
+    <button class="btn" type="submit">Filtrar</button>
+    <a href="/facturas" style="padding:8px 0;">Quitar filtros</a>
+  </form>
 
 
   <table>
@@ -95,4 +153,5 @@
     </tbody>
   </table>
 </body>
+
 </html>

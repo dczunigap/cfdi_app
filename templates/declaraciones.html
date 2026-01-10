@@ -1,19 +1,57 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <title>Declaraciones (PDF)</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border-bottom: 1px solid #eee; padding: 8px 6px; text-align: left; vertical-align: top; }
-    th { background: #fafafa; position: sticky; top: 0; }
-    .muted { color: #666; }
-    .nav { display:flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-    a { color: #0b5bd3; }
-    code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin: 24px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #eee;
+      padding: 8px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #fafafa;
+      position: sticky;
+      top: 0;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    a {
+      color: #0b5bd3;
+    }
+
+    code {
+      background: #f7f7f7;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
   </style>
 </head>
+
 <body>
   <div class="nav">
     <a href="/">← importar</a>
@@ -26,20 +64,21 @@
   <h1>Declaraciones mensuales presentadas (PDF)</h1>
   <p class="muted">RFC config: <code>{{ mi_rfc }}</code></p>
 
-  <form method="get" action="/declaraciones" style="margin: 12px 0; display:flex; gap: 10px; flex-wrap: wrap; align-items: end;">
+  <form method="get" action="/declaraciones"
+    style="margin: 12px 0; display:flex; gap: 10px; flex-wrap: wrap; align-items: end;">
     <div>
       <div class="muted">Periodo</div>
       <select name="period">
         <option value="">Todos</option>
         {% for p in period_options %}
-          <option value="{{ p }}" {% if selected_period == p %}selected{% endif %}>{{ p }}</option>
+        <option value="{{ p }}" {% if selected_period==p %}selected{% endif %}>{{ p }}</option>
         {% endfor %}
       </select>
     </div>
     <div>
       <button type="submit">Filtrar</button>
       {% if selected_period %}
-        <a style="margin-left: 8px;" href="/declaraciones">Limpiar</a>
+      <a style="margin-left: 8px;" href="/declaraciones">Limpiar</a>
       {% endif %}
     </div>
   </form>
@@ -71,4 +110,5 @@
     </tbody>
   </table>
 </body>
+
 </html>

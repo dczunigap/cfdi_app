@@ -1,20 +1,63 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <title>Detalle CFDI</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border-bottom: 1px solid #eee; padding: 8px 6px; text-align: left; vertical-align: top; }
-    th { background: #fafafa; }
-    .muted { color: #666; }
-    a { color: #0b5bd3; }
-    code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
-    pre { white-space: pre-wrap; border: 1px solid #ddd; padding: 10px; border-radius: 10px; max-height: 360px; overflow: auto; }
-    .nav { display:flex; gap: 10px; flex-wrap: wrap; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin: 24px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #eee;
+      padding: 8px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #fafafa;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    a {
+      color: #0b5bd3;
+    }
+
+    code {
+      background: #f7f7f7;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 10px;
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
+
 <body>
   <div class="nav">
     <a href="/facturas">← CFDI</a>
@@ -43,27 +86,27 @@
   </ul>
 
   {% if factura.pagos|length %}
-    <h2>Complemento de Pagos (P)</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>FechaPago</th>
-          <th>Monto</th>
-          <th>MonedaP</th>
-          <th>FormaDePagoP</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in factura.pagos %}
-        <tr>
-          <td>{{ p.fecha_pago or "" }}</td>
-          <td>{{ p.monto|money(p.moneda_p or "MXN") }}</td>
-          <td>{{ p.moneda_p or "MXN" }}</td>
-          <td>{{ p.forma_pago_p or "" }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <h2>Complemento de Pagos (P)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>FechaPago</th>
+        <th>Monto</th>
+        <th>MonedaP</th>
+        <th>FormaDePagoP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in factura.pagos %}
+      <tr>
+        <td>{{ p.fecha_pago or "" }}</td>
+        <td>{{ p.monto|money(p.moneda_p or "MXN") }}</td>
+        <td>{{ p.moneda_p or "MXN" }}</td>
+        <td>{{ p.forma_pago_p or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
   {% endif %}
 
   <h2>Conceptos</h2>
@@ -95,4 +138,5 @@
   <h2>XML (raw)</h2>
   <pre>{{ factura.xml_text }}</pre>
 </body>
+
 </html>

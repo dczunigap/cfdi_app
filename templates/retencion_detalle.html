@@ -1,17 +1,46 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <title>Detalle Retención</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
-    .muted { color: #666; }
-    a { color: #0b5bd3; }
-    code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
-    pre { white-space: pre-wrap; border: 1px solid #ddd; padding: 10px; border-radius: 10px; max-height: 360px; overflow: auto; }
-    .nav { display:flex; gap: 10px; flex-wrap: wrap; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin: 24px;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    a {
+      color: #0b5bd3;
+    }
+
+    code {
+      background: #f7f7f7;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 10px;
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
+
 <body>
   <div class="nav">
     <a href="/retenciones">← Retenciones</a>
@@ -43,4 +72,5 @@
   <h2>XML (raw)</h2>
   <pre>{{ ret.xml_text }}</pre>
 </body>
+
 </html>

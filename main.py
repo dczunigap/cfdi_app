@@ -442,7 +442,7 @@ def declaracion_pdf_resumen_json(dec_id: int):
             except Exception:
                 return None
 
-                payload = {
+        payload = {
             "periodo": (parsed.get("periodo") if isinstance(parsed, dict) else None) or f"{dec.year}-{dec.month:02d}",
             "rfc": (parsed.get("rfc") if isinstance(parsed, dict) else None) or dec.rfc,
             "nombre": (parsed.get("nombre") if isinstance(parsed, dict) else None),
