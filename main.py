@@ -1,4 +1,5 @@
 from __future__ import annotations
+import re
 import json
 
 from pathlib import Path
@@ -284,16 +285,47 @@ async def importar_pdf(files: list[UploadFile] = File(...), year: int | None = N
 
 
 @app.get("/declaraciones", response_class=HTMLResponse)
-def listar_declaraciones(request: Request, year: int | None = None, month: int | None = None) -> HTMLResponse:
+def listar_declaraciones(request: Request, period: str | None = None, year: int | None = None, month: int | None = None) -> HTMLResponse:
     db = get_db()
     try:
+        # Opciones de periodo (YYYY-MM) disponibles en declaraciones PDF
+        opts_raw = db.execute(
+            select(DeclaracionPDF.year, DeclaracionPDF.month)
+            .where(DeclaracionPDF.year.isnot(None), DeclaracionPDF.month.isnot(None))
+            .group_by(DeclaracionPDF.year, DeclaracionPDF.month)
+        ).all()
+
+        uniq = {(int(y), int(m)) for (y, m) in opts_raw if y and m}
+        period_options = [f"{y}-{m:02d}" for (y, m) in sorted(uniq, reverse=True)]
+
+        # Soporta filtro period=YYYY-MM además de year/month
+        selected_period = (period or "").strip()
+        if selected_period and re.match(r"^\d{4}-\d{2}$", selected_period):
+            try:
+                year = int(selected_period.split("-")[0])
+                month = int(selected_period.split("-")[1])
+            except Exception:
+                pass
+
         q = select(DeclaracionPDF).order_by(desc(DeclaracionPDF.year), desc(DeclaracionPDF.month), desc(DeclaracionPDF.created_at))
         if year is not None:
             q = q.where(DeclaracionPDF.year == year)
         if month is not None:
             q = q.where(DeclaracionPDF.month == month)
+
         rows = db.scalars(q).all()
-        return templates.TemplateResponse("declaraciones.html", {"request": request, "rows": rows, "year": year, "month": month, "mi_rfc": MI_RFC})
+        return templates.TemplateResponse(
+            "declaraciones.html",
+            {
+                "request": request,
+                "rows": rows,
+                "year": year,
+                "month": month,
+                "period_options": period_options,
+                "selected_period": selected_period,
+                "mi_rfc": MI_RFC,
+            },
+        )
     finally:
         db.close()
 
@@ -450,15 +482,37 @@ def declaracion_pdf_resumen_json(dec_id: int):
 
 
 @app.get("/facturas", response_class=HTMLResponse)
-def listar_facturas(request: Request, tipo: str | None = None, naturaleza: str | None = None) -> HTMLResponse:
+def listar_facturas(
+    request: Request,
+    year: str | None = None,
+    month: str | None = None,
+    tipo: str | None = None,
+    naturaleza: str | None = None,
+) -> HTMLResponse:
     db = get_db()
     try:
-        q = select(Factura).order_by(desc(Factura.fecha_emision).nullslast(), desc(Factura.id)).limit(500)
+        month_options = _month_options(db)
+        year_options = sorted({y for (y, _) in month_options}, reverse=True)
+
+        year_i = int(year) if year and year.isdigit() else None
+        month_i = int(month) if month and month.isdigit() else None
+
+        if year_i is not None:
+            months_for_year = sorted({m for (y, m) in month_options if y == year_i})
+        else:
+            months_for_year = sorted({m for (_, m) in month_options})
+
+        q = select(Factura).order_by(desc(Factura.fecha_emision).nullslast(), desc(Factura.id))
+        if year_i is not None:
+            q = q.where(Factura.year_emision == year_i)
+        if month_i is not None:
+            q = q.where(Factura.month_emision == month_i)
         if tipo:
             q = q.where(Factura.tipo_comprobante == tipo.upper())
         if naturaleza:
             q = q.where(Factura.naturaleza == naturaleza.lower())
-        facturas = db.scalars(q).all()
+
+        facturas = db.scalars(q.limit(500)).all()
         return templates.TemplateResponse(
             "facturas.html",
             {
@@ -467,26 +521,78 @@ def listar_facturas(request: Request, tipo: str | None = None, naturaleza: str |
                 "mi_rfc": MI_RFC,
                 "tipo": tipo or "",
                 "naturaleza": naturaleza or "",
+                "year": year_i,
+                "month": month_i,
+                "year_options": year_options,
+                "months_for_year": months_for_year,
             },
         )
     finally:
         db.close()
 
 
+
 @app.get("/retenciones", response_class=HTMLResponse)
-def listar_retenciones(request: Request, year: int | None = None, month: int | None = None) -> HTMLResponse:
+def listar_retenciones(request: Request, period: str | None = None, year: int | None = None, month: int | None = None) -> HTMLResponse:
     db = get_db()
     try:
-        q = select(RetencionPlataforma).order_by(desc(RetencionPlataforma.fecha_exp).nullslast(), desc(RetencionPlataforma.id)).limit(300)
+        # Opciones de periodo (YYYY-MM) disponibles en retenciones
+        opts_raw = db.execute(
+            select(RetencionPlataforma.ejercicio, RetencionPlataforma.mes_ini, RetencionPlataforma.mes_fin)
+            .where(RetencionPlataforma.ejercicio.isnot(None), RetencionPlataforma.mes_fin.isnot(None))
+            .group_by(RetencionPlataforma.ejercicio, RetencionPlataforma.mes_ini, RetencionPlataforma.mes_fin)
+        ).all()
+
+        periods: set[tuple[int, int]] = set()
+        for y, mi, mf in opts_raw:
+            if not y or not mf:
+                continue
+            y_i = int(y)
+            mi_i = int(mi or mf)
+            mf_i = int(mf)
+            if mi_i <= mf_i:
+                for mm in range(mi_i, mf_i + 1):
+                    periods.add((y_i, int(mm)))
+            else:
+                periods.add((y_i, mf_i))
+
+        period_options = [f"{y}-{m:02d}" for (y, m) in sorted(periods, reverse=True)]
+
+        selected_period = (period or "").strip()
+        if selected_period and re.match(r"^\d{4}-\d{2}$", selected_period):
+            try:
+                year = int(selected_period.split("-")[0])
+                month = int(selected_period.split("-")[1])
+            except Exception:
+                pass
+
+        q = (
+            select(RetencionPlataforma)
+            .order_by(
+                desc(RetencionPlataforma.ejercicio),
+                desc(RetencionPlataforma.mes_fin),
+                desc(RetencionPlataforma.fecha_exp).nullslast(),
+                desc(RetencionPlataforma.id),
+            )
+            .limit(300)
+        )
         if year is not None:
             q = q.where(RetencionPlataforma.ejercicio == year)
         if month is not None:
-            # incluye rangos (MesIni..MesFin)
             q = q.where(and_(RetencionPlataforma.mes_ini <= month, RetencionPlataforma.mes_fin >= month))
+
         rows = db.scalars(q).all()
         return templates.TemplateResponse(
             "retenciones.html",
-            {"request": request, "rows": rows, "mi_rfc": MI_RFC, "year": year, "month": month},
+            {
+                "request": request,
+                "rows": rows,
+                "mi_rfc": MI_RFC,
+                "year": year,
+                "month": month,
+                "period_options": period_options,
+                "selected_period": selected_period,
+            },
         )
     finally:
         db.close()
@@ -816,6 +922,8 @@ def resumen_mensual(request: Request, year: int | None = None, month: int | None
             year, month = _pick_default_period(db)
 
         month_options = _month_options(db)
+        year_options = sorted({y for (y, _) in month_options}, reverse=True)
+        months_for_year = sorted({m for (y, m) in month_options if y == year})
         if year is None or month is None:
             return templates.TemplateResponse("empty.html", {"request": request, "mi_rfc": MI_RFC})
 
@@ -835,6 +943,8 @@ def resumen_mensual(request: Request, year: int | None = None, month: int | None
                 "year": year,
                 "month": month,
                 "month_options": month_options,
+                "year_options": year_options,
+                "months_for_year": months_for_year,
                 **data,
                 "iva_causado_sugerido": iva_causado_sugerido,
                 "iva_acreditable_sugerido": iva_acreditable_sugerido,
@@ -855,6 +965,8 @@ def modo_declaracion(request: Request, year: int | None = None, month: int | Non
             year, month = _pick_default_period(db)
 
         month_options = _month_options(db)
+        year_options = sorted({y for (y, _) in month_options}, reverse=True)
+        months_for_year = sorted({m for (y, m) in month_options if y == year})
         if year is None or month is None:
             return templates.TemplateResponse("empty.html", {"request": request, "mi_rfc": MI_RFC})
 
@@ -896,6 +1008,8 @@ def modo_declaracion(request: Request, year: int | None = None, month: int | Non
                 "year": year,
                 "month": month,
                 "month_options": month_options,
+                "year_options": year_options,
+                "months_for_year": months_for_year,
                 "income_source": income_source,
                 "effective_income_source": effective_income_source,
                 **data,

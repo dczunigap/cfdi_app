@@ -1,36 +1,97 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <title>Contabilidad CFDI (local)</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
-    .box { border: 1px solid #ddd; padding: 16px; border-radius: 10px; max-width: 880px; }
-    .muted { color: #666; }
-    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-    .btn { padding: 10px 14px; border: 1px solid #222; background: #222; color: white; border-radius: 8px; cursor: pointer; }
-    a { color: #0b5bd3; }
-    .alert { background: #f2f6ff; border: 1px solid #cfe0ff; padding: 10px; border-radius: 8px; margin-top: 12px; }
-    code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
-    ul { margin-top: 8px; }
-    .nav { display:flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin: 24px;
+    }
+
+    .box {
+      border: 1px solid #ddd;
+      padding: 16px;
+      border-radius: 10px;
+      max-width: 880px;
+      margin-top: 10px;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 10px 14px;
+      border: 1px solid #222;
+      background: #222;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    a {
+      color: #0b5bd3;
+    }
+
+    .alert {
+      background: #f2f6ff;
+      border: 1px solid #cfe0ff;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+
+    code {
+      background: #f7f7f7;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    ul {
+      margin-top: 8px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .title {
+      margin-top: 0;
+      font-size: 1.17em;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
+
 <body>
   <h1>Contabilidad CFDI (local)</h1>
 
-  <div class="box">
-    <div class="row">
-      <div><b>RFC configurado:</b> <code>{{ mi_rfc }}</code></div>
-      <div class="muted">Se usa para clasificar: ingreso / gasto / cobro / pago.</div>
-    </div>
+  <div class="row">
+    <div><b>RFC configurado:</b> <code>{{ mi_rfc }}</code></div>
+    <div class="muted">Se usa para clasificar: ingreso / gasto / cobro / pago.</div>
+  </div>
 
-    <h3 style="margin-top: 16px;">Importar XML</h3>
+  <div class="box">
+    <div class="title">Importar XML</div>
     <div class="muted">
       Puedes importar:
       <ul>
         <li><b>CFDI 4.0</b> (Comprobante): I / E / P</li>
-        <li><b>Retenciones 2.0</b> (Retenciones e Información de Pagos) con complemento <b>Plataformas Tecnológicas</b></li>
+        <li><b>Retenciones 2.0</b> (Retenciones e Información de Pagos) con complemento <b>Plataformas Tecnológicas</b>
+        </li>
       </ul>
     </div>
 
@@ -43,47 +104,52 @@
         Duplicados se omiten por UUID.
       </div>
     </form>
+  </div>
 
-    {% if msg %}
-      <div class="alert">{{ msg }}</div>
-    {% endif %}
+  <div class="box">
+    <div class="title">Importar PDF de declaración mensual (presentada)</div>
 
-    <h3 style="margin-top: 18px;">Importar PDF de declaración mensual (presentada)</h3>
-<div class="muted">
-  Sube el PDF/acuse que descargaste del SAT. La app lo guarda localmente y (si el PDF tiene texto) genera un resumen.
-</div>
-
-<form action="/importar_pdf" method="post" enctype="multipart/form-data" style="margin-top: 8px;">
-  <div class="row">
-    <div>
-      <div class="muted">Año</div>
-      <input name="year" placeholder="2026" />
+    <div class="muted">
+      Sube el PDF/acuse que descargaste del SAT. La app lo guarda localmente y (si el PDF tiene texto) genera un
+      resumen.
     </div>
-    <div>
-      <div class="muted">Mes</div>
-      <input name="month" placeholder="1" />
-    </div>
-  </div>
-  <input type="file" name="files" multiple accept=".pdf,application/pdf" required />
-  <div style="margin-top: 12px;">
-    <button class="btn" type="submit">Importar PDF</button>
-  </div>
-  <div class="muted" style="margin-top: 8px;">
-    Tip: si el PDF es escaneado (imagen), puede que no se extraiga texto y el resumen salga vacío.
-  </div>
-</form>
 
-<div class="nav">
-      <a href="/facturas">Ver CFDI</a>
-      <a href="/retenciones">Ver Retenciones</a>
-      <a href="/declaraciones">Ver Declaraciones (PDF)</a>
-      <a href="/summary">Resumen mensual</a>
-      <a href="/declaracion">Modo declaración</a>
-    </div>
+    <form action="/importar_pdf" method="post" enctype="multipart/form-data" style="margin-top: 8px;">
+      <div class="row">
+        <div>
+          <div class="muted">Año</div>
+          <input name="year" placeholder="2026" />
+        </div>
+        <div>
+          <div class="muted">Mes</div>
+          <input name="month" placeholder="1" />
+        </div>
+      </div>
+      <input type="file" name="files" multiple accept=".pdf,application/pdf" required />
+      <div style="margin-top: 12px;">
+        <button class="btn" type="submit">Importar PDF</button>
+      </div>
+      <div class="muted" style="margin-top: 8px;">
+        Tip: si el PDF es escaneado (imagen), puede que no se extraiga texto y el resumen salga vacío.
+      </div>
+    </form>
   </div>
 
+  {% if msg %}
+  <div class="alert">{{ msg }}</div>
+  {% endif %}
+
+  <div class="nav">
+    <a href="/facturas">Ver CFDI</a>
+    <a href="/retenciones">Ver Retenciones</a>
+    <a href="/declaraciones">Ver Declaraciones (PDF)</a>
+    <a href="/summary">Resumen mensual</a>
+    <a href="/declaracion">Modo declaración</a>
+  </div>
+  
   <p class="muted" style="margin-top: 16px;">
     Para cambiar tu RFC, edita <code>config.py</code> (MI_RFC) y reinicia la app.
   </p>
 </body>
+
 </html>

@@ -1,27 +1,111 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <title>Resumen mensual</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
-    .muted { color: #666; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; background: #fff; }
-    .kpi { font-size: 22px; font-weight: 700; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
-    select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 10px; }
-    .btn { padding: 8px 12px; border: 1px solid #222; background: #222; color: white; border-radius: 10px; cursor: pointer; text-decoration: none; display:inline-block;}
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th, td { border-bottom: 1px solid #eee; padding: 8px 6px; text-align: left; vertical-align: top; }
-    th { background: #fafafa; }
-    a { color: #0b5bd3; }
-    code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
-    .warn { background: #fff8e6; border: 1px solid #ffe3a3; padding: 10px; border-radius: 10px; margin-top: 10px; }
-    .nav { display:flex; gap: 10px; flex-wrap: wrap; }
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin: 24px;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .kpi {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+
+    select {
+      padding: 7px 10px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+    }
+
+    .btn {
+      padding: 8px 12px;
+      border: 1px solid #222;
+      background: #222;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #eee;
+      padding: 8px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #fafafa;
+    }
+
+    a {
+      color: #0b5bd3;
+    }
+
+    code {
+      background: #f7f7f7;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .warn {
+      background: #fff8e6;
+      border: 1px solid #ffe3a3;
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
+
 <body>
   <div class="nav">
     <a href="/">← importar</a>
@@ -37,15 +121,8 @@
     <div>
       <div class="muted">Año</div>
       <select name="year">
-        {% for (y, m) in month_options %}
-          {% if y == year and m == month %}
-            <option value="{{ y }}" selected>{{ y }}</option>
-          {% endif %}
-        {% endfor %}
-        {% for (y, m) in month_options %}
-          {% if not (y == year and m == month) %}
-            <option value="{{ y }}">{{ y }}</option>
-          {% endif %}
+        {% for y in year_options %}
+        <option value="{{ y }}" {% if y==year %}selected{% endif %}>{{ y }}</option>
         {% endfor %}
       </select>
     </div>
@@ -53,22 +130,17 @@
     <div>
       <div class="muted">Mes</div>
       <select name="month">
-        {% for (y, m) in month_options %}
-          {% if y == year and m == month %}
-            <option value="{{ m }}" selected>{{ "%02d"|format(m) }}</option>
-          {% endif %}
-        {% endfor %}
-        {% for (y, m) in month_options %}
-          {% if not (y == year and m == month) %}
-            <option value="{{ m }}">{{ "%02d"|format(m) }}</option>
-          {% endif %}
+        {% for m in months_for_year %}
+        <option value="{{ m }}" {% if m==month %}selected{% endif %}>{{ "%02d"|format(m) }}</option>
         {% endfor %}
       </select>
     </div>
 
     <button class="btn" type="submit">Ver</button>
-    <a class="btn" style="background:#0b5bd3;border-color:#0b5bd3" href="/sat_report.csv?year={{ year }}&month={{ month }}">Exportar CSV SAT</a>
-    <a class="btn" style="background:#2e7d32;border-color:#2e7d32" href="/declaracion?year={{ year }}&month={{ month }}">Ir a modo declaración</a>
+    <a class="btn" style="background:#0b5bd3;border-color:#0b5bd3"
+      href="/sat_report.csv?year={{ year }}&month={{ month }}">Exportar CSV SAT</a>
+    <a class="btn" style="background:#2e7d32;border-color:#2e7d32"
+      href="/declaracion?year={{ year }}&month={{ month }}">Ir a modo declaración</a>
 
     <div class="muted" style="margin-left: 10px;">
       Mostrando: <b>{{ year }}-{{ "%02d"|format(month) }}</b>
@@ -76,8 +148,10 @@
   </form>
 
   <div class="warn">
-    <b>Evita doble conteo:</b> si tus ingresos principales vienen de Mercado Libre, el XML de <b>Retenciones (Plataformas)</b>
-    ya trae los ingresos sin IVA y las retenciones. Tus CFDI I/E pueden existir aparte (por ejemplo, ingresos fuera de plataforma).
+    <b>Evita doble conteo:</b> si tus ingresos principales vienen de Mercado Libre, el XML de <b>Retenciones
+      (Plataformas)</b>
+    ya trae los ingresos sin IVA y las retenciones. Tus CFDI I/E pueden existir aparte (por ejemplo, ingresos fuera de
+    plataforma).
     Aquí se muestran ambos por separado.
   </div>
 
@@ -86,7 +160,8 @@
       <div class="muted">Retenciones de Plataforma (periodo)</div>
       <div class="kpi">Ingresos sin IVA: {{ plat_ing_siva|money("MXN") }}</div>
       <div class="muted">IVA trasladado: {{ plat_iva_tras|money("MXN") }}</div>
-      <div class="muted">IVA retenido: {{ plat_iva_ret|money("MXN") }} · ISR retenido: {{ plat_isr_ret|money("MXN") }}</div>
+      <div class="muted">IVA retenido: {{ plat_iva_ret|money("MXN") }} · ISR retenido: {{ plat_isr_ret|money("MXN") }}
+      </div>
       <div class="muted">Uso de plataforma: {{ plat_comision|money("MXN") }}</div>
     </div>
 
@@ -94,7 +169,8 @@
       <div class="muted">CFDI por emisión (I/E) — excluye P</div>
       <div class="kpi">Ingresos: {{ ingresos_total|money("MXN") }}</div>
       <div class="muted">IVA trasladado (CFDI): {{ ingresos_trasl|money("MXN") }}</div>
-      <div class="muted">Gastos: {{ gastos_total|money("MXN") }} · IVA acreditable aprox.: {{ gastos_trasl|money("MXN") }}</div>
+      <div class="muted">Gastos: {{ gastos_total|money("MXN") }} · IVA acreditable aprox.: {{ gastos_trasl|money("MXN")
+        }}</div>
       <div class="muted">CFDI tipo P emitidos en el mes (conteo): {{ p_count }}</div>
     </div>
 
@@ -110,7 +186,8 @@
       <div class="kpi">{{ iva_causado_sugerido|money("MXN") }}</div>
       <div class="muted"><b>IVA acreditable</b> (gastos CFDI): {{ iva_acreditable_sugerido|money("MXN") }}</div>
       <div class="muted"><b>IVA retenido plataforma</b>: {{ iva_retenido_plat|money("MXN") }}</div>
-      <div class="muted"><b>IVA neto</b> (causado - acreditable - retenido): <b>{{ iva_neto_sugerido|money("MXN") }}</b></div>
+      <div class="muted"><b>IVA neto</b> (causado - acreditable - retenido): <b>{{ iva_neto_sugerido|money("MXN") }}</b>
+      </div>
     </div>
   </div>
 
@@ -164,19 +241,20 @@
     </thead>
     <tbody>
       {% for row in pagos_rows[:200] %}
-        {% set p = row[0] %}
-        {% set nat = row[1] %}
-        <tr>
-          <td>{{ p.fecha_pago or "" }}</td>
-          <td>{{ p.monto|money(p.moneda_p or "MXN") }}</td>
-          <td>{{ p.moneda_p or "MXN" }}</td>
-          <td>{{ p.forma_pago_p or "" }}</td>
-          <td>{{ nat or "" }}</td>
-          <td><a href="/facturas/{{ p.factura_id }}">Ver CFDI</a></td>
-        </tr>
+      {% set p = row[0] %}
+      {% set nat = row[1] %}
+      <tr>
+        <td>{{ p.fecha_pago or "" }}</td>
+        <td>{{ p.monto|money(p.moneda_p or "MXN") }}</td>
+        <td>{{ p.moneda_p or "MXN" }}</td>
+        <td>{{ p.forma_pago_p or "" }}</td>
+        <td>{{ nat or "" }}</td>
+        <td><a href="/facturas/{{ p.factura_id }}">Ver CFDI</a></td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>
 
 </body>
+
 </html>

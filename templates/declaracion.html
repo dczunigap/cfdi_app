@@ -37,33 +37,19 @@
     <div>
       <div class="muted">Año</div>
       <select name="year">
-        {% for (y, m) in month_options %}
-          {% if y == year and m == month %}
-            <option value="{{ y }}" selected>{{ y }}</option>
-          {% endif %}
-        {% endfor %}
-        {% for (y, m) in month_options %}
-          {% if not (y == year and m == month) %}
-            <option value="{{ y }}">{{ y }}</option>
-          {% endif %}
-        {% endfor %}
-      </select>
+  {% for y in year_options %}
+    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+  {% endfor %}
+</select>
     </div>
 
     <div>
       <div class="muted">Mes</div>
       <select name="month">
-        {% for (y, m) in month_options %}
-          {% if y == year and m == month %}
-            <option value="{{ m }}" selected>{{ "%02d"|format(m) }}</option>
-          {% endif %}
-        {% endfor %}
-        {% for (y, m) in month_options %}
-          {% if not (y == year and m == month) %}
-            <option value="{{ m }}">{{ "%02d"|format(m) }}</option>
-          {% endif %}
-        {% endfor %}
-      </select>
+  {% for m in months_for_year %}
+    <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ "%02d"|format(m) }}</option>
+  {% endfor %}
+</select>
     </div>
 
     
@@ -78,7 +64,7 @@
 </div>
 <button class="btn" type="submit">Ver</button>
     <a class="btn" style="background:#0b5bd3;border-color:#0b5bd3" href="/sat_report.csv?year={{ year }}&month={{ month }}&income_source={{ income_source }}">Exportar CSV SAT</a>
-    <a class="btn" style="background:#6d28d9;border-color:#6d28d9" href="/sat_hoja?year={{ year }}&month={{ month }}&income_source={{ income_source }}">Generar hoja SAT (texto)</a>
+    <a class="btn" style="background:#6d28d9;border-color:#6d28d9" href="/sat_hoja?year={{ year }}&month={{ month }}&income_source={{ income_source }}&income_source={{ income_source }}">Generar hoja SAT (texto)</a>
 
     <div class="muted" style="margin-left: 10px;">
       Periodo: <b>{{ year }}-{{ "%02d"|format(month) }}</b>
@@ -126,82 +112,83 @@
       </ul>
     </div>
   
-    <div class="card">
-      <div class="muted">Conciliación con acuse SAT (PDF)</div>
+<div class="card">
+  <div class="muted">Conciliación con acuse SAT (PDF)</div>
 
-      {% if declaracion_pdf %}
-        {% if acuse_checks and acuse_payload %}
-          <div class="muted" style="margin-top: 6px;">
-            <b>Operación:</b> {{
-              (acuse_payload.get("numero_operacion") if acuse_payload else "") or
-              ((acuse_payload.get("isr") or {}).get("numero_operacion") if acuse_payload else "") or
-              ((acuse_payload.get("iva") or {}).get("numero_operacion") if acuse_payload else "")
-            }}
-            {% if (acuse_payload.get("fecha_presentacion") if acuse_payload else None) %}
-              · <b>Presentación:</b> {{ acuse_payload.get("fecha_presentacion") }}
+  {% if declaracion_pdf %}
+    {% if acuse_checks and acuse_payload %}
+      <div class="muted" style="margin-top: 6px;">
+        <b>Operación:</b> {{
+          (acuse_payload.get("numero_operacion") if acuse_payload else "") or
+          ((acuse_payload.get("isr") or {}).get("numero_operacion") if acuse_payload else "") or
+          ((acuse_payload.get("iva") or {}).get("numero_operacion") if acuse_payload else "")
+        }}
+        {% if (acuse_payload.get("fecha_presentacion") if acuse_payload else None) %}
+          · <b>Presentación:</b> {{ acuse_payload.get("fecha_presentacion") }}
+        {% endif %}
+      </div>
+
+      <ul>
+        {% for c in acuse_checks %}
+          <li style="margin-bottom: 8px;">
+            <span class="pill {{ c.status }}">{{ c.status|upper }}</span>
+            <b>{{ c.label }}</b><br/>
+            <span class="muted">
+              {% if c.sat is not none %}SAT: {{ c.sat|money }}{% else %}SAT: —{% endif %}
+              ·
+              {% if c.app is not none %}App: {{ c.app|money }}{% else %}App: —{% endif %}
+              {% if c.diff is not none %}
+                · Dif: {{ c.diff|money }}
+              {% endif %}
+            </span>
+            {% if c.note %}
+              <br/><span class="muted">{{ c.note }}</span>
             {% endif %}
-          </div>
+          </li>
+        {% endfor %}
+      </ul>
 
-          <ul>
-            {% for c in acuse_checks %}
-              <li style="margin-bottom: 8px;">
-                <span class="pill {{ c.status }}">{{ c.status|upper }}</span>
-                <b>{{ c.label }}</b><br/>
-                <span class="muted">
-                  {% if c.sat is not none %}SAT: {{ c.sat|money }}{% else %}SAT: —{% endif %}
-                  ·
-                  {% if c.app is not none %}App: {{ c.app|money }}{% else %}App: —{% endif %}
-                  {% if c.diff is not none %}
-                    · Dif: {{ c.diff|money }}
-                  {% endif %}
-                </span>
-                {% if c.note %}
-                  <br/><span class="muted">{{ c.note }}</span>
-                {% endif %}
-              </li>
-            {% endfor %}
-          </ul>
+      <div class="muted">
+        Si algo sale <span class="pill warn">WARN</span>, revisa el origen de ingresos (Plataforma/CFDI/Ambos) y que el PDF corresponda al mismo periodo.
+      </div>
 
-          <div class="muted">
-            Si algo sale <span class="pill warn">WARN</span>, revisa el origen de ingresos (Plataforma/CFDI/Ambos) y que el PDF corresponda al mismo periodo.
-          </div>
-
-        {% else %}
-          <div class="muted" style="margin-top: 8px;">
-            Hay PDF importado, pero no se pudo extraer texto (o no se detectaron campos). Si es un escaneo, esta conciliación no se puede automatizar.
-          </div>
-          <div class="muted" style="margin-top: 6px;">
-            <a href="/declaraciones/{{ declaracion_pdf.id }}">Ver detalle</a>
-          </div>
-        {% endif %}
-      {% else %}
-        <div class="muted" style="margin-top: 8px;">
-          Importa el PDF del acuse (SAT) para que la app concilie automáticamente los importes.
-        </div>
-      {% endif %}
+    {% else %}
+      <div class="muted" style="margin-top: 8px;">
+        Hay PDF importado, pero no se pudo extraer texto (o no se detectaron campos). Si es un escaneo, esta conciliación no se puede automatizar.
+      </div>
+      <div class="muted" style="margin-top: 6px;">
+        <a href="/declaraciones/{{ declaracion_pdf.id }}">Ver detalle</a>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="muted" style="margin-top: 8px;">
+      Importa el PDF del acuse (SAT) para que la app concilie automáticamente los importes.
     </div>
+  {% endif %}
+</div>
 
-    <div class="card">
-      <div class="muted">Declaración presentada (PDF)</div>
-      {% if declaracion_pdf %}
-        <div class="muted"><b>Archivo:</b> {{ declaracion_pdf.original_name or declaracion_pdf.filename }}</div>
-        <div class="muted"><b>Fecha presentación:</b> {{ declaracion_pdf.fecha_presentacion.date().isoformat() if declaracion_pdf.fecha_presentacion else "" }}</div>
-        <div class="muted"><b>Folio/Operación:</b> {{ declaracion_pdf.folio or "" }}</div>
-        <div class="muted" style="margin-top: 6px;">
-          <a href="/declaraciones/{{ declaracion_pdf.id }}">Ver detalle</a> ·
-          <a href="/declaraciones/{{ declaracion_pdf.id }}/archivo.pdf">Abrir PDF</a>
-        </div>
-        {% if declaracion_pdf.text_excerpt %}
-          <div class="muted" style="margin-top: 8px;"><b>Resumen (texto detectado):</b></div>
-          <div class="muted">{{ declaracion_pdf.text_excerpt[:300] }}{% if declaracion_pdf.text_excerpt|length > 300 %}...{% endif %}</div>
-        {% else %}
-          <div class="muted" style="margin-top: 8px;">No se pudo extraer texto (posible PDF escaneado).</div>
-        {% endif %}
-      {% else %}
-        <div class="muted">No hay PDF importado para este periodo. Puedes importarlo desde la pantalla principal.</div>
-      {% endif %}
+</div><div class="card">
+  <div class="muted">Declaración presentada (PDF)</div>
+  {% if declaracion_pdf %}
+    <div class="muted"><b>Archivo:</b> {{ declaracion_pdf.original_name or declaracion_pdf.filename }}</div>
+    <div class="muted"><b>Fecha presentación:</b> {{ declaracion_pdf.fecha_presentacion.date().isoformat() if declaracion_pdf.fecha_presentacion else "" }}</div>
+    <div class="muted"><b>Folio/Operación:</b> {{ declaracion_pdf.folio or "" }}</div>
+    <div class="muted" style="margin-top: 6px;">
+      <a href="/declaraciones/{{ declaracion_pdf.id }}">Ver detalle</a> ·
+      <a href="/declaraciones/{{ declaracion_pdf.id }}/archivo.pdf">Abrir PDF</a>
     </div>
-  </div>
+    {% if declaracion_pdf.text_excerpt %}
+      <div class="muted" style="margin-top: 8px;"><b>Resumen (texto detectado):</b></div>
+      <div class="muted">{{ declaracion_pdf.text_excerpt[:300] }}{% if declaracion_pdf.text_excerpt|length > 300 %}...{% endif %}</div>
+    {% else %}
+      <div class="muted" style="margin-top: 8px;">No se pudo extraer texto (posible PDF escaneado).</div>
+    {% endif %}
+  {% else %}
+    <div class="muted">No hay PDF importado para este periodo. Puedes importarlo desde la pantalla principal.</div>
+  {% endif %}
+</div>
+
+
 
   <h2 style="margin-top: 18px;">Respaldo / Control</h2>
   <ul>
