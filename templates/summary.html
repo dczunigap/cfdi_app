@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Resumen mensual</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
+    .muted { color: #666; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; background: #fff; }
+    .kpi { font-size: 22px; font-weight: 700; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+    select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 10px; }
+    .btn { padding: 8px 12px; border: 1px solid #222; background: #222; color: white; border-radius: 10px; cursor: pointer; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border-bottom: 1px solid #eee; padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { background: #fafafa; }
+    a { color: #0b5bd3; }
+    code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <p><a href="/">← importar</a> · <a href="/facturas">Facturas</a></p>
+  <h1>Resumen mensual</h1>
+  <p class="muted">RFC: <code>{{ mi_rfc }}</code></p>
+
+  <form class="row" method="get" action="/summary">
+    <div>
+      <div class="muted">Mes</div>
+      <select name="year">
+        {% for (y, m) in month_options %}
+          {% if y == year and m == month %}
+            <option value="{{ y }}" selected>{{ y }}</option>
+          {% endif %}
+        {% endfor %}
+        {% for (y, m) in month_options %}
+          {% if not (y == year and m == month) %}
+            <option value="{{ y }}">{{ y }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <div class="muted">Mes</div>
+      <select name="month">
+        {% for (y, m) in month_options %}
+          {% if y == year and m == month %}
+            <option value="{{ m }}" selected>{{ "%02d"|format(m) }}</option>
+          {% endif %}
+        {% endfor %}
+        {% for (y, m) in month_options %}
+          {% if not (y == year and m == month) %}
+            <option value="{{ m }}">{{ "%02d"|format(m) }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+
+    <button class="btn" type="submit">Ver</button>
+    <div class="muted" style="margin-left: 10px;">
+      Mostrando: <b>{{ year }}-{{ "%02d"|format(month) }}</b>
+    </div>
+  </form>
+
+  <div class="grid" style="margin-top: 12px;">
+    <div class="card">
+      <div class="muted">Ingresos (por emisión, excluye P)</div>
+      <div class="kpi">{{ "%.2f"|format(ingresos_total) }}</div>
+      <div class="muted">IVA trasladado: {{ "%.2f"|format(ingresos_trasl) }} · Retenidos: {{ "%.2f"|format(ingresos_ret) }}</div>
+      <div class="muted" style="margin-top: 8px;">Notas: tipo E resta (nota de crédito).</div>
+    </div>
+
+    <div class="card">
+      <div class="muted">Gastos (por emisión, excluye P)</div>
+      <div class="kpi">{{ "%.2f"|format(gastos_total) }}</div>
+      <div class="muted">IVA en compras (trasladados): {{ "%.2f"|format(gastos_trasl) }} · Retenidos: {{ "%.2f"|format(gastos_ret) }}</div>
+      <div class="muted" style="margin-top: 8px;">Este es un papel de trabajo; el acreditamiento real depende de tu caso.</div>
+    </div>
+
+    <div class="card">
+      <div class="muted">Complementos P emitidos (cobros)</div>
+      <div class="kpi">{{ "%.2f"|format(cash_in) }}</div>
+      <div class="muted">{{ pagos_count }} pagos detectados en el mes (por FechaPago).</div>
+    </div>
+
+    <div class="card">
+      <div class="muted">Complementos P recibidos (pagos)</div>
+      <div class="kpi">{{ "%.2f"|format(cash_out) }}</div>
+      <div class="muted">CFDI tipo P en emisión del mes (solo conteo): {{ p_count }}</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top: 18px;">CFDI del mes (por emisión)</h2>
+  <div class="muted">Lista acotada a 200 para la vista. Los tipo P aparecen pero no entran a ingresos/gastos de emisión.</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Tipo</th>
+        <th>Naturaleza</th>
+        <th>UUID</th>
+        <th>Emisor</th>
+        <th>Receptor</th>
+        <th>Total</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in docs %}
+      <tr>
+        <td>{{ d.fecha_emision or "" }}</td>
+        <td>{{ d.tipo_comprobante or "" }}</td>
+        <td>{{ d.naturaleza or "" }}</td>
+        <td>{{ d.uuid or "" }}</td>
+        <td>{{ d.emisor_rfc or "" }}</td>
+        <td>{{ d.receptor_rfc or "" }}</td>
+        <td>{{ d.total or "" }}</td>
+        <td><a href="/facturas/{{ d.id }}">Detalle</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2 style="margin-top: 18px;">Pagos del mes (por FechaPago)</h2>
+  <div class="muted">Se toman de los CFDI tipo P (Complemento de Pagos). Lista acotada a 200.</div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>FechaPago</th>
+        <th>Monto</th>
+        <th>Moneda</th>
+        <th>Forma</th>
+        <th>Naturaleza del CFDI P</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in pagos_rows %}
+        {% set p = row[0] %}
+        {% set nat = row[1] %}
+        <tr>
+          <td>{{ p.fecha_pago or "" }}</td>
+          <td>{{ p.monto or "" }}</td>
+          <td>{{ p.moneda_p or "" }}</td>
+          <td>{{ p.forma_pago_p or "" }}</td>
+          <td>{{ nat or "" }}</td>
+          <td><a href="/facturas/{{ p.factura_id }}">Ver CFDI</a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>

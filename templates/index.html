@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Contabilidad CFDI (local)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
+    .box { border: 1px solid #ddd; padding: 16px; border-radius: 10px; max-width: 720px; }
+    .muted { color: #666; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .btn { padding: 10px 14px; border: 1px solid #222; background: #222; color: white; border-radius: 8px; cursor: pointer; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    a { color: #0b5bd3; }
+    .alert { background: #f2f6ff; border: 1px solid #cfe0ff; padding: 10px; border-radius: 8px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Contabilidad CFDI (local)</h1>
+
+  <div class="box">
+    <div class="row">
+      <div><b>RFC configurado:</b> <code>{{ mi_rfc }}</code></div>
+      <div class="muted">Se usa para clasificar automáticamente: ingreso / gasto / cobro / pago.</div>
+    </div>
+
+    <h3 style="margin-top: 16px;">Importar CFDI (I/E/P)</h3>
+    <form action="/importar" method="post" enctype="multipart/form-data">
+      <input type="file" name="files" multiple accept=".xml" required />
+      <div style="margin-top: 12px;">
+        <button class="btn" type="submit">Importar XML</button>
+      </div>
+      <div class="muted" style="margin-top: 8px;">
+        Duplicados se omiten por UUID.
+      </div>
+    </form>
+
+    {% if msg %}
+      <div class="alert">{{ msg }}</div>
+    {% endif %}
+
+    <p style="margin-top: 14px;">
+      <a href="/facturas">Ver facturas</a> ·
+      <a href="/summary">Resumen mensual</a>
+    </p>
+  </div>
+
+  <p class="muted" style="margin-top: 16px;">
+    Para cambiar tu RFC, edita <code>config.py</code> (MI_RFC) y reinicia la app.
+  </p>
+</body>
+</html>
