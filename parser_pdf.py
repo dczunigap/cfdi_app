@@ -280,6 +280,30 @@ def parse_sat_declaracion_summary(text: str) -> dict[str, Any]:
     out["fecha_presentacion"] = pick("fecha_presentacion")
     out["linea_captura"] = pick("linea_captura")
 
+
+    # Campos de cálculo "dentro" del acuse (si aparecen)
+    # Nota: estos suelen estar en la primera hoja antes del encabezado, y ayudan a conciliar contra tu cálculo.
+    joined = " ".join(_norm(raw).split())
+    joined_u = joined.upper()
+
+def _extract_after(label: str) -> float | None:
+    lab_u = _norm(label).upper()
+    idx = joined_u.find(lab_u)
+    if idx == -1:
+        return None
+    sub = joined_u[idx + len(lab_u) : idx + len(lab_u) + 120]
+    m = re.search(r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)", sub)
+    return _parse_amount(m.group(1)) if m else None
+
+
+    out["ingresos_totales_mes"] = _extract_after("INGRESOS TOTALES DEL MES")
+    out["isr_causado"] = _extract_after("ISR CAUSADO")
+    out["retenciones_plataformas"] = _extract_after("RETENCIONES POR PLATAFORMAS TECNOLOGICAS")
+
+    out["iva_tasa"] = _extract_after("TASA %")
+    out["iva_a_cargo_16"] = _extract_after("IVA A CARGO A LA TASA DEL 16%")
+    out["iva_acreditable"] = _extract_after("IVA ACREDITABLE")
+    out["iva_retenido"] = _extract_after("IVA RETENIDO")
     # Shortcuts: isr / iva
     def first_by_prefix(prefix: str) -> dict[str, Any] | None:
         p = _norm(prefix).upper()

@@ -346,6 +346,15 @@ def detalle_declaracion(request: Request, dec_id: int) -> HTMLResponse:
             "isr": (parsed.get("isr") if isinstance(parsed, dict) else None),
             "iva": (parsed.get("iva") if isinstance(parsed, dict) else None),
 
+            "ingresos_totales_mes": (parsed.get("ingresos_totales_mes") if isinstance(parsed, dict) else None),
+            "isr_causado": (parsed.get("isr_causado") if isinstance(parsed, dict) else None),
+            "retenciones_plataformas": (parsed.get("retenciones_plataformas") if isinstance(parsed, dict) else None),
+
+            "iva_tasa": (parsed.get("iva_tasa") if isinstance(parsed, dict) else None),
+            "iva_a_cargo_16": (parsed.get("iva_a_cargo_16") if isinstance(parsed, dict) else None),
+            "iva_acreditable": (parsed.get("iva_acreditable") if isinstance(parsed, dict) else None),
+            "iva_retenido": (parsed.get("iva_retenido") if isinstance(parsed, dict) else None),
+
             "num_pages": dec.num_pages,
             "archivo": dec.original_name or dec.filename,
             "sha256": dec.sha256,
@@ -416,6 +425,15 @@ def declaracion_pdf_resumen_json(dec_id: int):
             "secciones": (parsed.get("secciones") if isinstance(parsed, dict) else None) or [],
             "isr": (parsed.get("isr") if isinstance(parsed, dict) else None),
             "iva": (parsed.get("iva") if isinstance(parsed, dict) else None),
+
+            "ingresos_totales_mes": (parsed.get("ingresos_totales_mes") if isinstance(parsed, dict) else None),
+            "isr_causado": (parsed.get("isr_causado") if isinstance(parsed, dict) else None),
+            "retenciones_plataformas": (parsed.get("retenciones_plataformas") if isinstance(parsed, dict) else None),
+
+            "iva_tasa": (parsed.get("iva_tasa") if isinstance(parsed, dict) else None),
+            "iva_a_cargo_16": (parsed.get("iva_a_cargo_16") if isinstance(parsed, dict) else None),
+            "iva_acreditable": (parsed.get("iva_acreditable") if isinstance(parsed, dict) else None),
+            "iva_retenido": (parsed.get("iva_retenido") if isinstance(parsed, dict) else None),
 
             "num_pages": dec.num_pages,
             "archivo": dec.original_name or dec.filename,
@@ -639,6 +657,83 @@ def _compute_period_data(db: Session, year: int, month: int):
     }
 
 
+def _calc_income_and_iva_sources(data: dict, income_source: str):
+    """Aplica la lógica anti-doble-conteo para:
+    - ISR ingresos sin IVA (plataforma vs CFDI)
+    - IVA trasladado (plataforma vs CFDI)
+    Devuelve: (ingresos_sin_iva, iva_trasladado, effective_source)
+    """
+    income_source = (income_source or "auto").lower().strip()
+
+    plat_income = float(data.get("plat_ing_siva") or 0.0)
+    cfdi_income = float(data.get("ingresos_base") or 0.0)
+
+    plat_iva_tras = float(data.get("plat_iva_tras") or 0.0)
+    cfdi_iva_tras = float(data.get("ingresos_trasl") or 0.0)
+
+    effective = "plataforma"
+    if income_source == "plataforma":
+        ingresos_sin_iva = plat_income
+        iva_trasladado = plat_iva_tras
+        effective = "plataforma"
+    elif income_source == "cfdi":
+        ingresos_sin_iva = cfdi_income
+        iva_trasladado = cfdi_iva_tras
+        effective = "cfdi"
+    elif income_source == "ambos":
+        ingresos_sin_iva = plat_income + cfdi_income
+        iva_trasladado = plat_iva_tras + cfdi_iva_tras
+        effective = "ambos"
+    else:
+        # auto: si hay retenciones/plataforma del mes, usa plataforma (evita doble conteo)
+        if plat_income > 0 or plat_iva_tras > 0:
+            ingresos_sin_iva = plat_income
+            iva_trasladado = plat_iva_tras
+            effective = "plataforma"
+        else:
+            ingresos_sin_iva = cfdi_income
+            iva_trasladado = cfdi_iva_tras
+            effective = "cfdi"
+
+    return ingresos_sin_iva, iva_trasladado, effective
+
+
+def _build_hoja_sat_text(year: int, month: int, income_source: str, data: dict) -> tuple[str, str]:
+    """Devuelve (texto, effective_source) para copiar/pegar al SAT."""
+    ingresos_sin_iva, iva_trasladado, effective = _calc_income_and_iva_sources(data, income_source)
+
+    isr_retenido = float(data.get("plat_isr_ret") or 0.0)
+    iva_retenido = float(data.get("plat_iva_ret") or 0.0)
+    iva_acreditable = float(data.get("gastos_trasl") or 0.0)
+
+    iva_neto_sugerido = iva_trasladado - iva_acreditable - iva_retenido
+
+    def fmt(x: float) -> str:
+        return f"{x:,.2f} MXN"
+
+    text = "\n".join([
+        f"PERIODO: {year}-{month:02d}",
+        f"FUENTE_INGRESOS: {effective.upper()} (selector: {income_source})",
+        "",
+        "ISR (Pago provisional)",
+        f"- Ingresos del periodo (sin IVA): {fmt(ingresos_sin_iva)}",
+        f"- ISR retenido (plataforma): {fmt(isr_retenido)}",
+        "",
+        "IVA (Mensual)",
+        f"- IVA trasladado del periodo: {fmt(iva_trasladado)}",
+        f"- IVA retenido (plataforma): {fmt(iva_retenido)}",
+        f"- IVA acreditable (gastos CFDI): {fmt(iva_acreditable)}",
+        "",
+        "CONTROLES",
+        f"- IVA neto sugerido (trasladado - acreditable - retenido): {fmt(iva_neto_sugerido)}",
+        "",
+        "NOTAS",
+        "- Si tus CFDI de ingreso corresponden a las mismas ventas reportadas por plataforma, evita sumar ambas fuentes.",
+    ])
+    return text, effective
+
+
+
 def _checklist(db: Session, year: int, month: int, data: dict, income_source: str, effective_income_source: str):
     checks = []
 
@@ -765,39 +860,13 @@ def modo_declaracion(request: Request, year: int | None = None, month: int | Non
 
         data = _compute_period_data(db, year, month)
 
-        # “Ingresos para capturar” (sin IVA)
-        # En tu caso (Mercado Libre), es común que:
-        # - Retenciones (Plataformas) y CFDI de ingreso representen las MISMAS ventas.
-        # Para evitar doble conteo, aquí eliges la fuente.
-        income_source = (income_source or "auto").lower().strip()
-        plat = float(data["plat_ing_siva"] or 0.0)
-        cfdi_base = float(data["ingresos_base"] or 0.0)
+        # Ingresos para capturar (sin IVA) + IVA trasladado, evitando doble conteo (Plataforma vs CFDI)
+        ingresos_total_sin_iva, iva_trasladado_total, effective_income_source = _calc_income_and_iva_sources(data, income_source)
 
-        effective_income_source = "plataforma"
-        if income_source == "plataforma":
-            ingresos_total_sin_iva = plat
-            effective_income_source = "plataforma"
-        elif income_source == "cfdi":
-            ingresos_total_sin_iva = cfdi_base
-            effective_income_source = "cfdi"
-        elif income_source == "ambos":
-            ingresos_total_sin_iva = plat + cfdi_base
-            effective_income_source = "ambos"
-        else:
-            # auto: si hay retenciones del mes, usa plataforma (evita doble conteo).
-            if plat > 0:
-                ingresos_total_sin_iva = plat
-                effective_income_source = "plataforma"
-            else:
-                ingresos_total_sin_iva = cfdi_base
-                effective_income_source = "cfdi"
+        # Retenciones para acreditar (principalmente plataforma)
+        isr_retenido = float(data.get("plat_isr_ret") or 0.0)
+        iva_retenido = float(data.get("plat_iva_ret") or 0.0)
 
-# Retenciones para acreditar (principalmente plataforma)
-        isr_retenido = data["plat_isr_ret"]
-        iva_retenido = data["plat_iva_ret"]
-
-        # IVA trasladado del periodo (plataforma + CFDI)
-        _, iva_trasladado_total, _ = _calc_income_and_iva_sources(data, income_source)
         checks = _checklist(db, year, month, data, income_source=income_source, effective_income_source=effective_income_source)
 
         declaracion_pdf = db.scalars(
@@ -807,6 +876,18 @@ def modo_declaracion(request: Request, year: int | None = None, month: int | Non
             .limit(1)
         ).first()
 
+        acuse_payload = None
+        acuse_checks: list[dict] = []
+        if declaracion_pdf and (declaracion_pdf.text_excerpt or "").strip():
+            try:
+                acuse_payload = parse_sat_declaracion_summary(declaracion_pdf.text_excerpt or "")
+            except Exception:
+                acuse_payload = None
+            try:
+                acuse_checks = _reconcile_with_acuse(data, income_source, acuse_payload if isinstance(acuse_payload, dict) else None)
+            except Exception:
+                acuse_checks = []
+
         return templates.TemplateResponse(
             "declaracion.html",
             {
@@ -815,95 +896,34 @@ def modo_declaracion(request: Request, year: int | None = None, month: int | Non
                 "year": year,
                 "month": month,
                 "month_options": month_options,
+                "income_source": income_source,
+                "effective_income_source": effective_income_source,
                 **data,
                 "ingresos_total_sin_iva": ingresos_total_sin_iva,
                 "isr_retenido": isr_retenido,
                 "iva_retenido": iva_retenido,
                 "iva_trasladado_total": iva_trasladado_total,
-                "income_source": income_source,
-                "effective_income_source": effective_income_source,
                 "checks": checks,
                 "declaracion_pdf": declaracion_pdf,
+                "acuse_payload": acuse_payload,
+                "acuse_checks": acuse_checks,
             },
         )
     finally:
         db.close()
-
-
-
-def _calc_income_and_iva_sources(data: dict, income_source: str):
-    """Aplica la misma lógica anti-doble-conteo para ISR (ingresos sin IVA) y para IVA trasladado."""
-    income_source = (income_source or "auto").lower().strip()
-
-    plat_income = float(data["plat_ing_siva"] or 0.0)
-    cfdi_income = float(data["ingresos_base"] or 0.0)
-
-    plat_iva_tras = float(data["plat_iva_tras"] or 0.0)
-    cfdi_iva_tras = float(data["ingresos_trasl"] or 0.0)
-
-    effective = "plataforma"
-    if income_source == "plataforma":
-        ingresos_sin_iva = plat_income
-        iva_trasladado = plat_iva_tras
-        effective = "plataforma"
-    elif income_source == "cfdi":
-        ingresos_sin_iva = cfdi_income
-        iva_trasladado = cfdi_iva_tras
-        effective = "cfdi"
-    elif income_source == "ambos":
-        ingresos_sin_iva = plat_income + cfdi_income
-        iva_trasladado = plat_iva_tras + cfdi_iva_tras
-        effective = "ambos"
-    else:
-        # auto: si hay retenciones del mes, usa plataforma (evita doble conteo)
-        if plat_income > 0 or plat_iva_tras > 0:
-            ingresos_sin_iva = plat_income
-            iva_trasladado = plat_iva_tras
-            effective = "plataforma"
-        else:
-            ingresos_sin_iva = cfdi_income
-            iva_trasladado = cfdi_iva_tras
-            effective = "cfdi"
-
-    return ingresos_sin_iva, iva_trasladado, effective
-
-
-def _build_hoja_sat_text(year: int, month: int, income_source: str, data: dict) -> tuple[str, str]:
-    """Devuelve (texto, effective_source)."""
-    ingresos_sin_iva, iva_trasladado, effective = _calc_income_and_iva_sources(data, income_source)
-
-    isr_retenido = float(data["plat_isr_ret"] or 0.0)
-    iva_retenido = float(data["plat_iva_ret"] or 0.0)
-    iva_acreditable = float(data["gastos_trasl"] or 0.0)
-
-    # IVA neto sugerido (control)
-    iva_neto_sugerido = iva_trasladado - iva_acreditable - iva_retenido
-
-    text = "\n".join([
-        f"PERIODO: {year}-{month:02d}",
-        f"FUENTE_INGRESOS: {effective.upper()} (selector: {income_source})",
-        "",
-        "ISR (Pago provisional)",
-        f"- Ingresos del periodo (sin IVA): {ingresos_sin_iva:,.2f} MXN",
-        f"- ISR retenido (plataforma): {isr_retenido:,.2f} MXN",
-        "",
-        "IVA (Mensual)",
-        f"- IVA trasladado del periodo: {iva_trasladado:,.2f} MXN",
-        f"- IVA retenido (plataforma): {iva_retenido:,.2f} MXN",
-        f"- IVA acreditable (gastos CFDI): {iva_acreditable:,.2f} MXN",
-        "",
-        "CONTROLES",
-        f"- IVA neto sugerido (trasladado - acreditable - retenido): {iva_neto_sugerido:,.2f} MXN",
-        f"- XML retenciones detectados: {len(data.get('ret_rows') or [])}",
-        f"- CFDI del mes (por emisión): {len(data.get('docs') or [])}",
-        "",
-        "NOTAS",
-        "- Si estás en Mercado Libre y tus CFDI de ingreso corresponden a las mismas ventas, usa FUENTE_INGRESOS=PLATAFORMA para evitar doble conteo.",
-        "- Si tienes CFDI en moneda distinta a MXN, convierte a MXN según el tipo de cambio aplicable.",
-    ])
-    return text, effective
-
-
+@app.get("/sat_hoja.txt")
+def sat_hoja_txt(year: int, month: int, income_source: str = "auto"):
+    db = get_db()
+    try:
+        data = _compute_period_data(db, year, month)
+        hoja_text, effective = _build_hoja_sat_text(year, month, income_source, data)
+        return Response(
+            content=hoja_text,
+            media_type="text/plain; charset=utf-8",
+            headers={"Content-Disposition": f"attachment; filename=hoja_sat_{year}_{month:02d}_{effective}.txt"},
+        )
+    finally:
+        db.close()
 @app.get("/sat_hoja", response_class=HTMLResponse)
 def sat_hoja_view(request: Request, year: int, month: int, income_source: str = "auto") -> HTMLResponse:
     db = get_db()
@@ -924,8 +944,6 @@ def sat_hoja_view(request: Request, year: int, month: int, income_source: str = 
         )
     finally:
         db.close()
-
-
 @app.get("/sat_hoja.txt")
 def sat_hoja_txt(year: int, month: int, income_source: str = "auto"):
     db = get_db()
@@ -939,6 +957,7 @@ def sat_hoja_txt(year: int, month: int, income_source: str = "auto"):
         )
     finally:
         db.close()
+
 
 @app.get("/sat_report.csv")
 def sat_report_csv(year: int, month: int, income_source: str = "auto"):
