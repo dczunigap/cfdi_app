@@ -11,11 +11,18 @@
     .muted { color: #666; }
     a { color: #0b5bd3; }
     code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
+    .nav { display:flex; gap: 10px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
   <h1>Retenciones (Plataformas) (hasta 300)</h1>
-  <p class="muted">RFC: <code>{{ mi_rfc }}</code> · <a href="/">Importar</a> · <a href="/summary">Resumen</a> · <a href="/facturas">CFDI</a></p>
+  <div class="nav muted">
+    <span>RFC: <code>{{ mi_rfc }}</code></span>
+    <a href="/">Importar</a>
+    <a href="/summary">Resumen</a>
+    <a href="/declaracion">Modo declaración</a>
+    <a href="/facturas">CFDI</a>
+  </div>
 
   <table>
     <thead>
@@ -36,10 +43,10 @@
         <td>{{ r.ejercicio }}-{{ "%02d"|format(r.mes_ini or 0) }}</td>
         <td>{{ r.uuid or "" }}</td>
         <td>{{ r.emisor_rfc or "" }}</td>
-        <td>{{ r.mon_tot_serv_siva or "" }}</td>
-        <td>{{ r.total_iva_trasladado or "" }}</td>
-        <td>{{ r.total_iva_retenido or "" }}</td>
-        <td>{{ r.total_isr_retenido or "" }}</td>
+        <td>{{ r.mon_tot_serv_siva|money("MXN") }}</td>
+        <td>{{ r.total_iva_trasladado|money("MXN") }}</td>
+        <td>{{ r.total_iva_retenido|money("MXN") }}</td>
+        <td>{{ r.total_isr_retenido|money("MXN") }}</td>
         <td><a href="/retenciones/{{ r.id }}">Detalle</a></td>
       </tr>
       {% endfor %}

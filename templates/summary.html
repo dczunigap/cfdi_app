@@ -11,18 +11,25 @@
     .kpi { font-size: 22px; font-weight: 700; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
     select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 10px; }
-    .btn { padding: 8px 12px; border: 1px solid #222; background: #222; color: white; border-radius: 10px; cursor: pointer; }
+    .btn { padding: 8px 12px; border: 1px solid #222; background: #222; color: white; border-radius: 10px; cursor: pointer; text-decoration: none; display:inline-block;}
     table { border-collapse: collapse; width: 100%; margin-top: 10px; }
     th, td { border-bottom: 1px solid #eee; padding: 8px 6px; text-align: left; vertical-align: top; }
     th { background: #fafafa; }
     a { color: #0b5bd3; }
     code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
     .warn { background: #fff8e6; border: 1px solid #ffe3a3; padding: 10px; border-radius: 10px; margin-top: 10px; }
+    .nav { display:flex; gap: 10px; flex-wrap: wrap; }
     @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <p><a href="/">← importar</a> · <a href="/facturas">CFDI</a> · <a href="/retenciones">Retenciones</a></p>
+  <div class="nav">
+    <a href="/">← importar</a>
+    <a href="/facturas">CFDI</a>
+    <a href="/retenciones">Retenciones</a>
+    <a href="/declaracion">Modo declaración</a>
+  </div>
+
   <h1>Resumen mensual</h1>
   <p class="muted">RFC: <code>{{ mi_rfc }}</code></p>
 
@@ -60,90 +67,54 @@
     </div>
 
     <button class="btn" type="submit">Ver</button>
-    <a class="btn" style="text-decoration:none;background:#0b5bd3;border-color:#0b5bd3" href="/sat_report.csv?year={{ year }}&month={{ month }}">Exportar CSV SAT</a>
+    <a class="btn" style="background:#0b5bd3;border-color:#0b5bd3" href="/sat_report.csv?year={{ year }}&month={{ month }}">Exportar CSV SAT</a>
+    <a class="btn" style="background:#2e7d32;border-color:#2e7d32" href="/declaracion?year={{ year }}&month={{ month }}">Ir a modo declaración</a>
+
     <div class="muted" style="margin-left: 10px;">
       Mostrando: <b>{{ year }}-{{ "%02d"|format(month) }}</b>
     </div>
   </form>
 
   <div class="warn">
-    <b>Evita doble conteo:</b> si tus ingresos principales vienen de Mercado Libre, normalmente el XML de <b>Retenciones (Plataformas)</b>
-    ya trae los ingresos sin IVA y las retenciones (ISR/IVA). Tus CFDI I/E pueden existir aparte (por ejemplo, facturas emitidas fuera de la plataforma).
-    Aquí te mostramos ambos por separado.
+    <b>Evita doble conteo:</b> si tus ingresos principales vienen de Mercado Libre, el XML de <b>Retenciones (Plataformas)</b>
+    ya trae los ingresos sin IVA y las retenciones. Tus CFDI I/E pueden existir aparte (por ejemplo, ingresos fuera de plataforma).
+    Aquí se muestran ambos por separado.
   </div>
 
   <div class="grid" style="margin-top: 12px;">
     <div class="card">
       <div class="muted">Retenciones de Plataforma (periodo)</div>
-      <div class="kpi">Ingresos sin IVA: {{ "%.2f"|format(plat_ing_siva) }}</div>
-      <div class="muted">IVA trasladado: {{ "%.2f"|format(plat_iva_tras) }}</div>
-      <div class="muted">IVA retenido: {{ "%.2f"|format(plat_iva_ret) }} · ISR retenido: {{ "%.2f"|format(plat_isr_ret) }}</div>
-      <div class="muted">Uso de plataforma (MonTotalporUsoPlataforma): {{ "%.2f"|format(plat_comision) }}</div>
+      <div class="kpi">Ingresos sin IVA: {{ plat_ing_siva|money("MXN") }}</div>
+      <div class="muted">IVA trasladado: {{ plat_iva_tras|money("MXN") }}</div>
+      <div class="muted">IVA retenido: {{ plat_iva_ret|money("MXN") }} · ISR retenido: {{ plat_isr_ret|money("MXN") }}</div>
+      <div class="muted">Uso de plataforma: {{ plat_comision|money("MXN") }}</div>
     </div>
 
     <div class="card">
       <div class="muted">CFDI por emisión (I/E) — excluye P</div>
-      <div class="kpi">Ingresos: {{ "%.2f"|format(ingresos_total) }}</div>
-      <div class="muted">IVA trasladado (según CFDI): {{ "%.2f"|format(ingresos_trasl) }}</div>
-      <div class="muted">Gastos: {{ "%.2f"|format(gastos_total) }} · IVA acreditable aprox.: {{ "%.2f"|format(gastos_trasl) }}</div>
-      <div class="muted">CFDI tipo P emitidos en el mes (solo conteo): {{ p_count }}</div>
+      <div class="kpi">Ingresos: {{ ingresos_total|money("MXN") }}</div>
+      <div class="muted">IVA trasladado (CFDI): {{ ingresos_trasl|money("MXN") }}</div>
+      <div class="muted">Gastos: {{ gastos_total|money("MXN") }} · IVA acreditable aprox.: {{ gastos_trasl|money("MXN") }}</div>
+      <div class="muted">CFDI tipo P emitidos en el mes (conteo): {{ p_count }}</div>
     </div>
 
     <div class="card">
       <div class="muted">Flujo por Complementos P (FechaPago)</div>
-      <div class="kpi">Cobros: {{ "%.2f"|format(cash_in) }}</div>
-      <div class="muted">Pagos: {{ "%.2f"|format(cash_out) }} · Renglones de pago detectados: {{ pagos_count }}</div>
+      <div class="kpi">Cobros: {{ cash_in|money("MXN") }}</div>
+      <div class="muted">Pagos: {{ cash_out|money("MXN") }} · Renglones: {{ pagos_count }}</div>
     </div>
 
     <div class="card">
-      <div class="muted">Papel de trabajo (sugerido para SAT)</div>
-      <div class="muted"><b>IVA causado sugerido</b> = IVA trasl. plataforma + IVA trasl. CFDI</div>
-      <div class="kpi">{{ "%.2f"|format(iva_causado_sugerido) }}</div>
-      <div class="muted"><b>IVA acreditable sugerido</b> (gastos CFDI): {{ "%.2f"|format(iva_acreditable_sugerido) }}</div>
-      <div class="muted"><b>IVA retenido por plataforma</b>: {{ "%.2f"|format(iva_retenido_plat) }}</div>
-      <div class="muted"><b>IVA neto sugerido</b> (causado - acreditable - retenido): <b>{{ "%.2f"|format(iva_neto_sugerido) }}</b></div>
-      <div class="muted" style="margin-top: 6px;"><b>ISR retenido por plataforma</b> (para acreditar): {{ "%.2f"|format(isr_retenido_plat) }}</div>
+      <div class="muted">Papel de trabajo (IVA sugerido)</div>
+      <div class="muted"><b>IVA causado</b> = IVA plataforma + IVA CFDI</div>
+      <div class="kpi">{{ iva_causado_sugerido|money("MXN") }}</div>
+      <div class="muted"><b>IVA acreditable</b> (gastos CFDI): {{ iva_acreditable_sugerido|money("MXN") }}</div>
+      <div class="muted"><b>IVA retenido plataforma</b>: {{ iva_retenido_plat|money("MXN") }}</div>
+      <div class="muted"><b>IVA neto</b> (causado - acreditable - retenido): <b>{{ iva_neto_sugerido|money("MXN") }}</b></div>
     </div>
   </div>
 
-  <h2 style="margin-top: 18px;">Recomendaciones para tu declaración mensual (2026)</h2>
-  <ol>
-    <li><b>Verifica que el periodo coincida</b>: el XML de retenciones trae <b>Ejercicio</b> y <b>Mes</b> (no uses la fecha de timbrado si cae en el mes siguiente).</li>
-    <li><b>ISR</b>: usa “Ingresos sin IVA” (MonTotServSIVA) y <b>ISR retenido</b> (TotalISRRetenido) del XML de retenciones como base/retención del mes. Si además tuviste ingresos fuera de plataformas, súmalos desde CFDI I/E (sección de arriba).</li>
-    <li><b>IVA</b>: usa el <b>IVA trasladado</b> y <b>IVA retenido</b del XML de retenciones. Para IVA acreditable, usa los CFDI de gastos del mes (gasolina, teléfono, mantenimiento, etc.) y revisa que cumplan requisitos fiscales.</li>
-    <li><b>Complementos P</b>: si emitiste facturas PPD y timbraste pagos, usa la sección “Flujo por P” como control de cobrado/pagado. (Los P no se suman a ingresos/gastos por emisión.)</li>
-    <li><b>Exporta tu CSV SAT</b> y úsalo como hoja de trabajo para capturar en el portal.</li>
-  </ol>
-
-  <h3>Retenciones encontradas en el periodo</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>UUID</th>
-        <th>Emisor</th>
-        <th>Ingresos sin IVA</th>
-        <th>IVA trasl.</th>
-        <th>IVA ret.</th>
-        <th>ISR ret.</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in ret_rows %}
-      <tr>
-        <td>{{ r.uuid or "" }}</td>
-        <td>{{ r.emisor_rfc or "" }}</td>
-        <td>{{ r.mon_tot_serv_siva or "" }}</td>
-        <td>{{ r.total_iva_trasladado or "" }}</td>
-        <td>{{ r.total_iva_retenido or "" }}</td>
-        <td>{{ r.total_isr_retenido or "" }}</td>
-        <td><a href="/retenciones/{{ r.id }}">Detalle</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <h3 style="margin-top: 18px;">CFDI del mes (por emisión)</h3>
+  <h2 style="margin-top: 18px;">CFDI del mes (por emisión)</h2>
   <div class="muted">Lista acotada a 200. Los tipo P aparecen pero no entran al cálculo de emisión.</div>
 
   <table>
@@ -155,12 +126,13 @@
         <th>UUID</th>
         <th>Emisor</th>
         <th>Receptor</th>
+        <th>Uso CFDI</th>
         <th>Total</th>
         <th></th>
       </tr>
     </thead>
     <tbody>
-      {% for d in docs %}
+      {% for d in docs[:200] %}
       <tr>
         <td>{{ d.fecha_emision or "" }}</td>
         <td>{{ d.tipo_comprobante or "" }}</td>
@@ -168,15 +140,16 @@
         <td>{{ d.uuid or "" }}</td>
         <td>{{ d.emisor_rfc or "" }}</td>
         <td>{{ d.receptor_rfc or "" }}</td>
-        <td>{{ d.total or "" }}</td>
+        <td>{{ d.uso_cfdi or "" }}</td>
+        <td>{{ d.total|money(d.moneda or "MXN") }}</td>
         <td><a href="/facturas/{{ d.id }}">Detalle</a></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 
-  <h3 style="margin-top: 18px;">Pagos del mes (por FechaPago)</h3>
-  <div class="muted">Se toman de los CFDI tipo P (Complemento de Pagos). Lista acotada a 200.</div>
+  <h2 style="margin-top: 18px;">Pagos del mes (por FechaPago)</h2>
+  <div class="muted">Se toman de CFDI tipo P. Lista acotada a 200.</div>
 
   <table>
     <thead>
@@ -190,13 +163,13 @@
       </tr>
     </thead>
     <tbody>
-      {% for row in pagos_rows %}
+      {% for row in pagos_rows[:200] %}
         {% set p = row[0] %}
         {% set nat = row[1] %}
         <tr>
           <td>{{ p.fecha_pago or "" }}</td>
-          <td>{{ p.monto or "" }}</td>
-          <td>{{ p.moneda_p or "" }}</td>
+          <td>{{ p.monto|money(p.moneda_p or "MXN") }}</td>
+          <td>{{ p.moneda_p or "MXN" }}</td>
           <td>{{ p.forma_pago_p or "" }}</td>
           <td>{{ nat or "" }}</td>
           <td><a href="/facturas/{{ p.factura_id }}">Ver CFDI</a></td>

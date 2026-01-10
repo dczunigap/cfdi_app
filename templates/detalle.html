@@ -12,10 +12,16 @@
     a { color: #0b5bd3; }
     code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
     pre { white-space: pre-wrap; border: 1px solid #ddd; padding: 10px; border-radius: 10px; max-height: 360px; overflow: auto; }
+    .nav { display:flex; gap: 10px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
-  <p><a href="/facturas">← CFDI</a> · <a href="/summary">Resumen</a> · <a href="/retenciones">Retenciones</a></p>
+  <div class="nav">
+    <a href="/facturas">← CFDI</a>
+    <a href="/summary">Resumen</a>
+    <a href="/declaracion">Modo declaración</a>
+    <a href="/retenciones">Retenciones</a>
+  </div>
 
   <h1>Detalle CFDI</h1>
   <p class="muted">RFC: <code>{{ mi_rfc }}</code></p>
@@ -25,11 +31,15 @@
     <li><b>Fecha emisión:</b> {{ factura.fecha_emision }}</li>
     <li><b>Tipo:</b> {{ factura.tipo_comprobante }}</li>
     <li><b>Naturaleza:</b> {{ factura.naturaleza }}</li>
+    <li><b>Uso CFDI:</b> {{ factura.uso_cfdi }}</li>
     <li><b>Emisor:</b> {{ factura.emisor_rfc }} — {{ factura.emisor_nombre }}</li>
     <li><b>Receptor:</b> {{ factura.receptor_rfc }} — {{ factura.receptor_nombre }}</li>
-    <li><b>Total:</b> {{ factura.total }}</li>
-    <li><b>Trasladados:</b> {{ factura.total_trasladados }}</li>
-    <li><b>Retenidos:</b> {{ factura.total_retenidos }}</li>
+    <li><b>Moneda:</b> {{ factura.moneda or "MXN" }}</li>
+    <li><b>Subtotal:</b> {{ factura.subtotal|money(factura.moneda or "MXN") }}</li>
+    <li><b>Descuento:</b> {{ factura.descuento|money(factura.moneda or "MXN") }}</li>
+    <li><b>Total:</b> {{ factura.total|money(factura.moneda or "MXN") }}</li>
+    <li><b>IVA trasladado:</b> {{ factura.total_trasladados|money(factura.moneda or "MXN") }}</li>
+    <li><b>Impuestos retenidos:</b> {{ factura.total_retenidos|money(factura.moneda or "MXN") }}</li>
   </ul>
 
   {% if factura.pagos|length %}
@@ -47,8 +57,8 @@
         {% for p in factura.pagos %}
         <tr>
           <td>{{ p.fecha_pago or "" }}</td>
-          <td>{{ p.monto or "" }}</td>
-          <td>{{ p.moneda_p or "" }}</td>
+          <td>{{ p.monto|money(p.moneda_p or "MXN") }}</td>
+          <td>{{ p.moneda_p or "MXN" }}</td>
           <td>{{ p.forma_pago_p or "" }}</td>
         </tr>
         {% endfor %}
@@ -74,8 +84,8 @@
         <td>{{ c.clave_prod_serv }}</td>
         <td>{{ c.descripcion }}</td>
         <td>{{ c.cantidad }}</td>
-        <td>{{ c.valor_unitario }}</td>
-        <td>{{ c.importe }}</td>
+        <td>{{ c.valor_unitario|money(factura.moneda or "MXN") }}</td>
+        <td>{{ c.importe|money(factura.moneda or "MXN") }}</td>
         <td>{{ c.objeto_imp }}</td>
       </tr>
       {% endfor %}

@@ -14,11 +14,18 @@
     input { padding: 6px 8px; border: 1px solid #ddd; border-radius: 8px; }
     a { color: #0b5bd3; }
     code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
+    .nav { display:flex; gap: 10px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
   <h1>CFDI (hasta 500)</h1>
-  <p class="muted">RFC: <code>{{ mi_rfc }}</code> · <a href="/">Importar</a> · <a href="/retenciones">Retenciones</a> · <a href="/summary">Resumen</a></p>
+  <div class="nav muted">
+    <span>RFC: <code>{{ mi_rfc }}</code></span>
+    <a href="/">Importar</a>
+    <a href="/retenciones">Retenciones</a>
+    <a href="/summary">Resumen</a>
+    <a href="/declaracion">Modo declaración</a>
+  </div>
 
   <form class="filters" method="get" action="/facturas">
     <div>
@@ -42,6 +49,7 @@
         <th>UUID</th>
         <th>Emisor</th>
         <th>Receptor</th>
+        <th>Uso CFDI</th>
         <th>Total</th>
         <th></th>
       </tr>
@@ -55,7 +63,8 @@
         <td>{{ f.uuid or "" }}</td>
         <td>{{ f.emisor_rfc or "" }}</td>
         <td>{{ f.receptor_rfc or "" }}</td>
-        <td>{{ f.total or "" }}</td>
+        <td>{{ f.uso_cfdi or "" }}</td>
+        <td>{{ f.total|money(f.moneda or "MXN") }}</td>
         <td><a href="/facturas/{{ f.id }}">Detalle</a></td>
       </tr>
       {% endfor %}

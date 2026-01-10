@@ -14,10 +14,9 @@ TFD_NS = "http://www.sat.gob.mx/TimbreFiscalDigital"
 
 RET_20_NS = "http://www.sat.gob.mx/esquemas/retencionpago/2"
 PLAT_10_NS = "http://www.sat.gob.mx/esquemas/retencionpago/1/PlataformasTecnologicas10"
-PLAT_10_NS_ALT = "http://www.sat.gob.mx/esquemas/retencionpago/1/PlataformasTecnologicas10"  # mismo
 
 PAGOS20_NS = "http://www.sat.gob.mx/Pagos20"
-PAGOS10_NS = "http://www.sat.gob.mx/Pagos"  # por si aparece
+PAGOS10_NS = "http://www.sat.gob.mx/Pagos"
 
 
 def _to_decimal(val: str | None) -> Decimal | None:
@@ -72,11 +71,9 @@ def _collect_namespaces(xml_bytes: bytes) -> dict[str, str]:
 def detect_xml_kind(xml_bytes: bytes) -> str:
     """Devuelve: 'cfdi' | 'retenciones' | 'unknown'"""
     try:
-        root = ET.fromstring(xml_bytes)
+        root = ET.fromstring(xml_bytes.lstrip(b"\xef\xbb\xbf"))
     except Exception:
-        # intenta quitar BOM si existe
-        xml_bytes = xml_bytes.lstrip(b"\xef\xbb\xbf")
-        root = ET.fromstring(xml_bytes)
+        return "unknown"
 
     ns = _ns_from_tag(root.tag) or ""
     local = root.tag.split("}")[-1] if "}" in root.tag else root.tag
@@ -126,7 +123,6 @@ def parse_cfdi_40(xml_bytes: bytes) -> dict:
     - factor: +1 o -1 (para resúmenes: E resta)
     """
     nsmap = _collect_namespaces(xml_bytes)
-
     root = ET.fromstring(xml_bytes.lstrip(b"\xef\xbb\xbf"))
 
     cfdi_ns = _ns_from_tag(root.tag) or nsmap.get("cfdi") or CFDI_40_NS
@@ -305,9 +301,6 @@ def parse_retenciones_plataforma(xml_bytes: bytes) -> dict:
 
         # Complemento Plataformas Tecnológicas
         plat = comp.find(f".//{{{PLAT_10_NS}}}ServiciosPlataformasTecnologicas")
-        if plat is None:
-            plat = comp.find(f".//{{{PLAT_10_NS_ALT}}}ServiciosPlataformasTecnologicas")
-
         if plat is not None:
             out["periodicidad"] = plat.attrib.get("Periodicidad")
             out["num_serv"] = _to_int(plat.attrib.get("NumServ"))

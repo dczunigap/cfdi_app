@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Modo declaración</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
+    .muted { color: #666; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; background: #fff; }
+    .kpi { font-size: 22px; font-weight: 700; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+    select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 10px; }
+    .btn { padding: 8px 12px; border: 1px solid #222; background: #222; color: white; border-radius: 10px; cursor: pointer; text-decoration: none; display:inline-block;}
+    .nav { display:flex; gap: 10px; flex-wrap: wrap; }
+    .pill { display:inline-block; padding: 3px 8px; border-radius: 999px; font-size: 12px; }
+    .ok { background:#e7f6ea; border:1px solid #b6e1c0; }
+    .warn { background:#fff8e6; border:1px solid #ffe3a3; }
+    .error { background:#ffe8e8; border:1px solid #ffb3b3; }
+    .info { background:#eef2ff; border:1px solid #c7d2fe; }
+    ul { margin-top: 8px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <a href="/">← importar</a>
+    <a href="/summary">Resumen</a>
+    <a href="/facturas">CFDI</a>
+    <a href="/retenciones">Retenciones</a>
+  </div>
+
+  <h1>Modo declaración (mensual) — ingresos + retenciones</h1>
+  <p class="muted">RFC: <code>{{ mi_rfc }}</code></p>
+
+  <form class="row" method="get" action="/declaracion">
+    <div>
+      <div class="muted">Año</div>
+      <select name="year">
+        {% for (y, m) in month_options %}
+          {% if y == year and m == month %}
+            <option value="{{ y }}" selected>{{ y }}</option>
+          {% endif %}
+        {% endfor %}
+        {% for (y, m) in month_options %}
+          {% if not (y == year and m == month) %}
+            <option value="{{ y }}">{{ y }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <div class="muted">Mes</div>
+      <select name="month">
+        {% for (y, m) in month_options %}
+          {% if y == year and m == month %}
+            <option value="{{ m }}" selected>{{ "%02d"|format(m) }}</option>
+          {% endif %}
+        {% endfor %}
+        {% for (y, m) in month_options %}
+          {% if not (y == year and m == month) %}
+            <option value="{{ m }}">{{ "%02d"|format(m) }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+
+    
+<div>
+  <div class="muted">Fuente de ingresos (evitar doble conteo)</div>
+  <select name="income_source">
+    <option value="auto" {% if (income_source or "auto") == "auto" %}selected{% endif %}>Auto (usar plataforma si existe)</option>
+    <option value="plataforma" {% if income_source == "plataforma" %}selected{% endif %}>Solo plataforma (Retenciones)</option>
+    <option value="cfdi" {% if income_source == "cfdi" %}selected{% endif %}>Solo CFDI ingreso</option>
+    <option value="ambos" {% if income_source == "ambos" %}selected{% endif %}>Sumar ambos (solo si NO son las mismas ventas)</option>
+  </select>
+</div>
+<button class="btn" type="submit">Ver</button>
+    <a class="btn" style="background:#0b5bd3;border-color:#0b5bd3" href="/sat_report.csv?year={{ year }}&month={{ month }}">Exportar CSV SAT</a>
+
+    <div class="muted" style="margin-left: 10px;">
+      Periodo: <b>{{ year }}-{{ "%02d"|format(month) }}</b>
+    </div>
+  </form>
+
+  <div class="grid" style="margin-top: 12px;">
+    <div class="card">
+      <div class="muted">Ingresos para capturar (sin IVA)</div>
+      <div class="kpi">{{ ingresos_total_sin_iva|money("MXN") }}</div>
+      <div class="muted">Plataforma (MonTotServSIVA): {{ plat_ing_siva|money("MXN") }}</div>
+      <div class="muted">CFDI ingreso (subtotal-descuento aprox.): {{ ingresos_base|money("MXN") }}</div>
+      <div class="muted" style="margin-top:6px;"><b>Fuente usada para el total:</b> {{ effective_income_source|upper }} (selector: {{ income_source }})</div>
+      <div class="muted" style="margin-top: 8px;">
+        Si tus CFDI de ingreso corresponden a las mismas ventas de Mercado Libre, <b>no los sumes</b> (evitar doble conteo).
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="muted">Retenciones para acreditar</div>
+      <div class="kpi">ISR retenido: {{ isr_retenido|money("MXN") }}</div>
+      <div class="muted">IVA retenido: {{ iva_retenido|money("MXN") }}</div>
+      <div class="muted">IVA trasladado del periodo (control): {{ iva_trasladado_total|money("MXN") }}</div>
+    </div>
+
+    <div class="card">
+      <div class="muted">Qué capturar en el portal SAT (guía rápida)</div>
+      <ul>
+        <li><b>ISR</b>: Ingresos del periodo (sin IVA) + ISR retenido por la plataforma (acreditar).</li>
+        <li><b>IVA</b>: IVA trasladado del periodo, IVA retenido por plataforma, IVA acreditable (si aplicas gastos con CFDI).</li>
+      </ul>
+      <div class="muted">Este modo no calcula ISR a cargo (no usas coeficiente/tarifa aquí); te da números y controles.</div>
+    </div>
+
+    <div class="card">
+      <div class="muted">Checklist automático</div>
+      <ul>
+        {% for c in checks %}
+          <li>
+            <span class="pill {{ c.level }}">{{ c.level|upper }}</span>
+            <b>{{ c.title }}</b><br/>
+            <span class="muted">{{ c.detail }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <h2 style="margin-top: 18px;">Respaldo / Control</h2>
+  <ul>
+    <li><b>Retenciones (plataforma):</b> {{ ret_rows|length }} archivo(s) detectados.</li>
+    <li><b>CFDI de ingresos (I/E):</b> {{ docs|length }} CFDI (incluye P; consulta en /summary para ver el detalle).</li>
+    <li><b>Complementos P (por FechaPago en el mes):</b> {{ pagos_count }} renglones.</li>
+  </ul>
+
+</body>
+</html>
