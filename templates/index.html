@@ -5,13 +5,14 @@
   <title>Contabilidad CFDI (local)</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; }
-    .box { border: 1px solid #ddd; padding: 16px; border-radius: 10px; max-width: 720px; }
+    .box { border: 1px solid #ddd; padding: 16px; border-radius: 10px; max-width: 840px; }
     .muted { color: #666; }
     .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
     .btn { padding: 10px 14px; border: 1px solid #222; background: #222; color: white; border-radius: 8px; cursor: pointer; }
-    .btn:disabled { opacity: .6; cursor: not-allowed; }
     a { color: #0b5bd3; }
     .alert { background: #f2f6ff; border: 1px solid #cfe0ff; padding: 10px; border-radius: 8px; margin-top: 12px; }
+    code { background: #f7f7f7; padding: 2px 6px; border-radius: 6px; }
+    ul { margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -20,14 +21,22 @@
   <div class="box">
     <div class="row">
       <div><b>RFC configurado:</b> <code>{{ mi_rfc }}</code></div>
-      <div class="muted">Se usa para clasificar automáticamente: ingreso / gasto / cobro / pago.</div>
+      <div class="muted">Se usa para clasificar: ingreso / gasto / cobro / pago.</div>
     </div>
 
-    <h3 style="margin-top: 16px;">Importar CFDI (I/E/P)</h3>
+    <h3 style="margin-top: 16px;">Importar XML</h3>
+    <div class="muted">
+      Puedes importar:
+      <ul>
+        <li><b>CFDI 4.0</b> (Comprobante): I / E / P</li>
+        <li><b>Retenciones 2.0</b> (Retenciones e Información de Pagos) con complemento <b>Servicios de Plataformas Tecnológicas</b></li>
+      </ul>
+    </div>
+
     <form action="/importar" method="post" enctype="multipart/form-data">
       <input type="file" name="files" multiple accept=".xml" required />
       <div style="margin-top: 12px;">
-        <button class="btn" type="submit">Importar XML</button>
+        <button class="btn" type="submit">Importar</button>
       </div>
       <div class="muted" style="margin-top: 8px;">
         Duplicados se omiten por UUID.
@@ -39,7 +48,8 @@
     {% endif %}
 
     <p style="margin-top: 14px;">
-      <a href="/facturas">Ver facturas</a> ·
+      <a href="/facturas">Ver CFDI</a> ·
+      <a href="/retenciones">Ver Retenciones (plataformas)</a> ·
       <a href="/summary">Resumen mensual</a>
     </p>
   </div>
