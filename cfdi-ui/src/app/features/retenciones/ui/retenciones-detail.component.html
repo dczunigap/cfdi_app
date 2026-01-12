@@ -1,0 +1,87 @@
+<div class="space-y-6" *ngIf="detail$ | async as detail">
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="mb-2 text-xs uppercase tracking-[0.18em] text-muted">
+        <a class="hover:text-text" routerLink="/retenciones">Retenciones</a>
+        <span class="mx-2 text-muted">/</span>
+        <span class="text-text">Detalle</span>
+      </div>
+      <h1 class="font-display text-2xl text-text">Detalle Retencion</h1>
+      <p class="text-sm text-muted">Plataformas</p>
+    </div>
+    <a
+      class="rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+      routerLink="/retenciones"
+    >
+      Volver
+    </a>
+  </div>
+
+  <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="space-y-2 text-sm">
+        <div><span class="text-muted">UUID:</span> {{ detail.uuid || '-' }}</div>
+        <div>
+          <span class="text-muted">Periodo:</span>
+          {{ formatPeriod(detail.ejercicio, detail.mes_ini) }}
+          <span class="text-muted">MesFin</span> {{ detail.mes_fin || '-' }}
+        </div>
+        <div>
+          <span class="text-muted">FechaExp:</span>
+          {{ detail.fecha_exp ? (detail.fecha_exp | date: 'yyyy-MM-dd') : '-' }}
+        </div>
+      </div>
+      <div class="space-y-2 text-sm">
+        <div>
+          <span class="text-muted">Emisor:</span>
+          {{ detail.emisor_rfc || '-' }} - {{ detail.emisor_nombre || '-' }}
+        </div>
+        <div>
+          <span class="text-muted">Receptor:</span>
+          {{ detail.receptor_rfc || '-' }} - {{ detail.receptor_nombre || '-' }}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <h2 class="font-display text-lg text-text">Totales (plataformas)</h2>
+    <div class="mt-4 grid gap-4 md:grid-cols-2">
+      <div class="space-y-2 text-sm">
+        <div>
+          <span class="text-muted">Ingresos sin IVA:</span>
+          {{ detail.mon_tot_serv_siva | number: '1.2-2' }}
+        </div>
+        <div>
+          <span class="text-muted">IVA trasladado:</span>
+          {{ detail.total_iva_trasladado | number: '1.2-2' }}
+        </div>
+      </div>
+      <div class="space-y-2 text-sm">
+        <div>
+          <span class="text-muted">IVA retenido:</span>
+          {{ detail.total_iva_retenido | number: '1.2-2' }}
+        </div>
+        <div>
+          <span class="text-muted">ISR retenido:</span>
+          {{ detail.total_isr_retenido | number: '1.2-2' }}
+        </div>
+        <div>
+          <span class="text-muted">Monto uso plataforma:</span>
+          {{ detail.mon_total_por_uso_plataforma | number: '1.2-2' }}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rounded-2xl border border-border bg-surface shadow-card">
+    <div class="flex items-center justify-between border-b border-border px-5 py-4">
+      <h2 class="font-display text-lg text-text">XML (raw)</h2>
+    </div>
+    <div class="px-5 py-4">
+      <pre class="max-h-[360px] overflow-auto rounded-xl border border-border bg-bg p-4 text-xs text-muted">
+{{ detail.xml_text || '' }}
+      </pre>
+    </div>
+  </section>
+</div>

@@ -18,4 +18,18 @@ export const routes: Routes = [
         (m) => m.FacturasDetailComponent,
       ),
   },
+  {
+    path: 'retenciones',
+    loadComponent: () =>
+      import('./features/retenciones/ui/retenciones-page.component').then(
+        (m) => m.RetencionesPageComponent,
+      ),
+  },
+  {
+    path: 'retenciones/:id',
+    loadComponent: () =>
+      import('./features/retenciones/ui/retenciones-detail.component').then(
+        (m) => m.RetencionesDetailComponent,
+      ),
+  },
 ];
