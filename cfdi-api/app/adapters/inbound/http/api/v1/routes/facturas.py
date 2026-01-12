@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from fastapi import HTTPException
+from starlette.responses import Response
 
 from app.adapters.inbound.http.api.v1.schemas.facturas import (
     ConceptoResponse,
@@ -15,6 +16,7 @@ from app.adapters.inbound.http.api.v1.schemas.facturas import (
 )
 from app.adapters.inbound.http.deps import get_db
 from app.adapters.outbound.db.repositories.facturas import SqlFacturaRepository
+from app.adapters.outbound.db.models import FacturaModel
 from app.adapters.outbound.db.repositories.conceptos import SqlConceptoRepository
 from app.adapters.outbound.db.repositories.pagos import SqlPagoRepository
 from app.application.facturas.use_cases import (
@@ -66,4 +68,19 @@ def detalle_factura(factura_id: int, db: Session = Depends(get_db)) -> FacturaDe
         factura=FacturaListResponse(**result.factura.__dict__),
         conceptos=[ConceptoResponse(**c.__dict__) for c in result.conceptos],
         pagos=[PagoResponse(**p.__dict__) for p in result.pagos],
+    )
+
+
+@router.get(
+    "/{factura_id}/xml",
+    summary="XML de CFDI",
+    description="Devuelve el XML crudo de la factura.",
+)
+def factura_xml(factura_id: int, db: Session = Depends(get_db)) -> Response:
+    row = db.get(FacturaModel, factura_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Factura no encontrada")
+    return Response(
+        content=row.xml_text or "",
+        media_type="application/xml; charset=utf-8",
     )
