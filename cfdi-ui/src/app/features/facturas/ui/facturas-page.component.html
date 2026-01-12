@@ -9,28 +9,104 @@
     </button>
   </div>
 
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="mb-4 text-sm font-medium text-text">Filtros</div>
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Año
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="year"
+        >
+          <option [ngValue]="null">Todos</option>
+          <option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
+        </select>
+      </label>
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Mes
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="month"
+        >
+          <option [ngValue]="null">Todos</option>
+          <option *ngFor="let m of months" [ngValue]="m">{{ m }}</option>
+        </select>
+      </label>
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Tipo
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="tipo"
+        >
+          <option [ngValue]="null">Todos</option>
+          <option *ngFor="let t of tipos" [ngValue]="t">{{ t }}</option>
+        </select>
+      </label>
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Naturaleza
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="naturaleza"
+        >
+          <option [ngValue]="null">Todas</option>
+          <option *ngFor="let n of naturalezas" [ngValue]="n">{{ n }}</option>
+        </select>
+      </label>
+      <div class="flex items-end gap-3">
+        <button
+          class="w-full rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-card"
+          (click)="applyFilters()"
+        >
+          Filtrar
+        </button>
+      </div>
+      <div class="flex items-end">
+        <button
+          class="w-full rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+          (click)="resetFilters()"
+        >
+          Quitar filtros
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="rounded-2xl border border-border bg-surface shadow-card">
     <div class="border-b border-border px-5 py-4">
-      <h2 class="font-display text-lg text-text">Ultimos CFDI</h2>
+      <div class="flex items-center gap-3">
+        <h2 class="font-display text-lg text-text">Ultimos CFDI</h2>
+        <span
+          class="rounded-full bg-accent/20 px-3 py-1 text-xs font-medium text-accent"
+          *ngIf="facturasCount$ | async as total"
+        >
+          {{ total }} registros
+        </span>
+      </div>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-left text-sm">
         <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
           <tr>
-            <th class="px-5 py-3">Fecha</th>
-            <th class="px-5 py-3">RFC Emisor</th>
+            <th class="px-5 py-3">Fecha emision</th>
             <th class="px-5 py-3">Tipo</th>
-            <th class="px-5 py-3 text-right">Total</th>
             <th class="px-5 py-3">Naturaleza</th>
+            <th class="px-5 py-3">UUID</th>
+            <th class="px-5 py-3">Emisor</th>
+            <th class="px-5 py-3">Receptor</th>
+            <th class="px-5 py-3">Uso CFDI</th>
+            <th class="px-5 py-3 text-right">Total</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border" *ngIf="facturas$ | async as facturas; else empty">
           <tr *ngFor="let f of facturas">
             <td class="px-5 py-4">{{ f.fecha_emision ? (f.fecha_emision | date: 'yyyy-MM-dd') : '-' }}</td>
-            <td class="px-5 py-4">{{ f.emisor_rfc || '-' }}</td>
             <td class="px-5 py-4">{{ f.tipo_comprobante || '-' }}</td>
-            <td class="px-5 py-4 text-right">{{ f.total | number: '1.2-2' }}</td>
             <td class="px-5 py-4">{{ f.naturaleza || '-' }}</td>
+            <td class="px-5 py-4">{{ f.uuid || '-' }}</td>
+            <td class="px-5 py-4">{{ f.emisor_rfc || '-' }}</td>
+            <td class="px-5 py-4">{{ f.receptor_rfc || '-' }}</td>
+            <td class="px-5 py-4">{{ f.uso_cfdi || '-' }}</td>
+            <td class="px-5 py-4 text-right">{{ f.total | number: '1.2-2' }}</td>
           </tr>
         </tbody>
       </table>
