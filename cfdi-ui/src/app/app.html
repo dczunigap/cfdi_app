@@ -1,18 +1,99 @@
 <tui-root class="min-h-screen bg-bg block">
   <div class="flex min-h-screen">
-    <aside class="hidden w-64 shrink-0 border-r border-border bg-surface px-6 py-8 lg:block">
-      <div class="mb-10">
-        <div class="text-xs uppercase tracking-[0.2em] text-muted">CFDI</div>
-        <div class="mt-2 font-display text-xl text-text">Basic Administration</div>
+    <aside
+      class="hidden shrink-0 border-r border-border bg-surface py-8 transition-all duration-300 lg:block"
+      [class.w-20]="sidebarCollapsed()"
+      [class.w-64]="!sidebarCollapsed()"
+      [class.px-4]="sidebarCollapsed()"
+      [class.px-6]="!sidebarCollapsed()"
+    >
+      <div class="mb-10 flex items-start justify-between gap-3">
+        <div>
+          <div class="text-xs uppercase tracking-[0.2em] text-muted">CFDI</div>
+          <div class="mt-2 font-display text-xl text-text" *ngIf="!sidebarCollapsed()">
+            Basic Administration
+          </div>
+        </div>
+        <button
+          class="rounded-lg border border-border bg-bg p-2 text-text/70 hover:bg-surface"
+          type="button"
+          (click)="toggleSidebar()"
+          [attr.aria-expanded]="!sidebarCollapsed()"
+          aria-label="Alternar menu lateral"
+        >
+          <svg
+            class="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 18l-6-6 6-6" *ngIf="!sidebarCollapsed()" />
+            <path d="M9 6l6 6-6 6" *ngIf="sidebarCollapsed()" />
+          </svg>
+        </button>
       </div>
       <nav class="space-y-2 text-sm">
-        <a class="block rounded-xl bg-primary/10 px-4 py-3 text-primary" href="#">Dashboard</a>
-        <a class="block rounded-xl px-4 py-3 text-text/80 hover:bg-bg" href="facturas">Facturas</a>
-        <a class="block rounded-xl px-4 py-3 text-text/80 hover:bg-bg" href="#">Retenciones</a>
-        <a class="block rounded-xl px-4 py-3 text-text/80 hover:bg-bg" href="#">Declaraciones</a>
-        <a class="block rounded-xl px-4 py-3 text-text/80 hover:bg-bg" href="#">Reportes</a>
+        <a
+          class="flex items-center gap-3 rounded-xl bg-primary/10 py-3 text-primary"
+          href="#"
+          [class.justify-center]="sidebarCollapsed()"
+          [class.px-2]="sidebarCollapsed()"
+          [class.px-4]="!sidebarCollapsed()"
+          [attr.title]="sidebarCollapsed() ? 'Dashboard' : null"
+        >
+          <span *ngIf="!sidebarCollapsed()">Dashboard</span>
+          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Dash</span>
+        </a>
+        <a
+          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
+          href="facturas"
+          [class.justify-center]="sidebarCollapsed()"
+          [class.px-2]="sidebarCollapsed()"
+          [class.px-4]="!sidebarCollapsed()"
+          [attr.title]="sidebarCollapsed() ? 'Facturas' : null"
+        >
+          <span *ngIf="!sidebarCollapsed()">Facturas</span>
+          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Fact</span>
+        </a>
+        <a
+          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
+          href="#"
+          [class.justify-center]="sidebarCollapsed()"
+          [class.px-2]="sidebarCollapsed()"
+          [class.px-4]="!sidebarCollapsed()"
+          [attr.title]="sidebarCollapsed() ? 'Retenciones' : null"
+        >
+          <span *ngIf="!sidebarCollapsed()">Retenciones</span>
+          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Ret</span>
+        </a>
+        <a
+          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
+          href="#"
+          [class.justify-center]="sidebarCollapsed()"
+          [class.px-2]="sidebarCollapsed()"
+          [class.px-4]="!sidebarCollapsed()"
+          [attr.title]="sidebarCollapsed() ? 'Declaraciones' : null"
+        >
+          <span *ngIf="!sidebarCollapsed()">Declaraciones</span>
+          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Decl</span>
+        </a>
+        <a
+          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
+          href="#"
+          [class.justify-center]="sidebarCollapsed()"
+          [class.px-2]="sidebarCollapsed()"
+          [class.px-4]="!sidebarCollapsed()"
+          [attr.title]="sidebarCollapsed() ? 'Reportes' : null"
+        >
+          <span *ngIf="!sidebarCollapsed()">Reportes</span>
+          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Rep</span>
+        </a>
       </nav>
-      <div class="mt-10 rounded-2xl border border-border bg-bg p-4">
+      <div class="mt-10 rounded-2xl border border-border bg-bg p-4" *ngIf="!sidebarCollapsed()">
         <div class="text-xs uppercase tracking-[0.18em] text-muted">Estado</div>
         <div class="mt-2 text-sm text-text">Sincronizacion local activa</div>
         <div class="mt-3 h-2 rounded-full bg-border">

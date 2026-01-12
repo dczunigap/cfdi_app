@@ -10,10 +10,20 @@
   </div>
 
   <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-    <div class="mb-4 text-sm font-medium text-text">Filtros</div>
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+    <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
+      <span>Filtros</span>
+      <button
+        class="rounded-lg border border-border bg-bg px-3 py-2 text-xs uppercase tracking-[0.18em] text-text/70 hover:bg-surface"
+        type="button"
+        (click)="toggleFilters()"
+        [attr.aria-expanded]="!filtersCollapsed"
+      >
+        {{ filtersCollapsed ? 'Mostrar' : 'Ocultar' }}
+      </button>
+    </div>
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-6" *ngIf="!filtersCollapsed">
       <label class="text-xs uppercase tracking-[0.18em] text-muted">
-        Año
+        Ano
         <select
           class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
           [(ngModel)]="year"
@@ -95,6 +105,7 @@
             <th class="px-5 py-3">Receptor</th>
             <th class="px-5 py-3">Uso CFDI</th>
             <th class="px-5 py-3 text-right">Total</th>
+            <th class="px-5 py-3 text-right">Detalle</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border" *ngIf="facturas$ | async as facturas; else empty">
@@ -107,6 +118,30 @@
             <td class="px-5 py-4">{{ f.receptor_rfc || '-' }}</td>
             <td class="px-5 py-4">{{ f.uso_cfdi || '-' }}</td>
             <td class="px-5 py-4 text-right">{{ f.total | number: '1.2-2' }}</td>
+            <td class="px-5 py-4 text-right">
+              <a
+                class="inline-flex items-center justify-center rounded-lg border border-border px-2 py-2 text-text hover:bg-bg"
+                [routerLink]="['/facturas', f.id]"
+                title="Detalle de CFDI"
+              >
+                <svg
+                  class="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 2v6h6" />
+                  <path d="M10 13h6" />
+                  <path d="M10 17h6" />
+                  <path d="M10 9h2" />
+                </svg>
+              </a>
+            </td>
           </tr>
         </tbody>
       </table>

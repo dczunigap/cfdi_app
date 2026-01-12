@@ -11,4 +11,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/facturas/ui/facturas-page.component').then((m) => m.FacturasPageComponent),
   },
+  {
+    path: 'facturas/:id',
+    loadComponent: () =>
+      import('./features/facturas/ui/facturas-detail.component').then(
+        (m) => m.FacturasDetailComponent,
+      ),
+  },
 ];

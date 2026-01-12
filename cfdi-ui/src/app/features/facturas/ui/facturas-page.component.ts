@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 import { facturas$, facturasCount$ } from '../data/facturas.queries';
@@ -8,7 +9,7 @@ import { FacturasRepository } from '../data/facturas.repository';
 @Component({
   selector: 'app-facturas-page',
   standalone: true,
-  imports: [AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf, FormsModule],
+  imports: [AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink],
   templateUrl: './facturas-page.component.html',
   styleUrl: './facturas-page.component.css',
 })
@@ -19,6 +20,7 @@ export class FacturasPageComponent implements OnInit {
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
   readonly tipos = ['I', 'E', 'P', 'T', 'N'];
   readonly naturalezas = ['ingreso', 'gasto', 'cobro', 'pago', 'otro'];
+  filtersCollapsed = false;
 
   year: number | null = null;
   month: number | null = null;
@@ -51,6 +53,10 @@ export class FacturasPageComponent implements OnInit {
       tipo: null,
       naturaleza: null,
     });
+  }
+
+  toggleFilters(): void {
+    this.filtersCollapsed = !this.filtersCollapsed;
   }
 
   private buildYears(): number[] {

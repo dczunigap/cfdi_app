@@ -1,0 +1,117 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="mb-2 text-xs uppercase tracking-[0.18em] text-muted">
+        <a class="hover:text-text" routerLink="/facturas">Facturas</a>
+        <span class="mx-2 text-muted">/</span>
+        <span class="text-text">Detalle</span>
+      </div>
+      <h1 class="font-display text-2xl text-text">Detalle CFDI</h1>
+      <p class="text-sm text-muted">Visor de factura y XML</p>
+    </div>
+    <a
+      class="rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+      routerLink="/facturas"
+    >
+      Volver
+    </a>
+  </div>
+
+  <ng-container *ngIf="detail$ | async as detail">
+    <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <div class="grid gap-4 md:grid-cols-2">
+        <div class="space-y-2 text-sm">
+          <div><span class="text-muted">UUID:</span> {{ detail.factura.uuid || '-' }}</div>
+          <div>
+            <span class="text-muted">Fecha emision:</span>
+            {{ detail.factura.fecha_emision ? (detail.factura.fecha_emision | date: 'yyyy-MM-dd HH:mm') : '-' }}
+          </div>
+          <div><span class="text-muted">Tipo:</span> {{ detail.factura.tipo_comprobante || '-' }}</div>
+          <div><span class="text-muted">Naturaleza:</span> {{ detail.factura.naturaleza || '-' }}</div>
+          <div><span class="text-muted">Uso CFDI:</span> {{ detail.factura.uso_cfdi || '-' }}</div>
+        </div>
+        <div class="space-y-2 text-sm">
+          <div>
+            <span class="text-muted">Emisor:</span>
+            {{ detail.factura.emisor_rfc || '-' }} - {{ detail.factura.emisor_nombre || '-' }}
+          </div>
+          <div>
+            <span class="text-muted">Receptor:</span>
+            {{ detail.factura.receptor_rfc || '-' }} - {{ detail.factura.receptor_nombre || '-' }}
+          </div>
+          <div><span class="text-muted">Moneda:</span> {{ detail.factura.moneda || 'MXN' }}</div>
+          <div><span class="text-muted">Subtotal:</span> {{ detail.factura.subtotal | number: '1.2-2' }}</div>
+          <div><span class="text-muted">Descuento:</span> {{ detail.factura.descuento | number: '1.2-2' }}</div>
+          <div><span class="text-muted">Total:</span> {{ detail.factura.total | number: '1.2-2' }}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="rounded-2xl border border-border bg-surface shadow-card">
+      <div class="border-b border-border px-5 py-4">
+        <h2 class="font-display text-lg text-text">Conceptos</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
+            <tr>
+              <th class="px-5 py-3">Clave</th>
+              <th class="px-5 py-3">Descripcion</th>
+              <th class="px-5 py-3">Cantidad</th>
+              <th class="px-5 py-3">Valor Unitario</th>
+              <th class="px-5 py-3">Importe</th>
+              <th class="px-5 py-3">ObjetoImp</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <tr *ngFor="let c of detail.conceptos">
+              <td class="px-5 py-4">{{ c.clave_prod_serv || '-' }}</td>
+              <td class="px-5 py-4">{{ c.descripcion || '-' }}</td>
+              <td class="px-5 py-4">{{ c.cantidad ?? '-' }}</td>
+              <td class="px-5 py-4">{{ c.valor_unitario | number: '1.2-2' }}</td>
+              <td class="px-5 py-4">{{ c.importe | number: '1.2-2' }}</td>
+              <td class="px-5 py-4">{{ c.objeto_imp || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rounded-2xl border border-border bg-surface shadow-card">
+      <div class="border-b border-border px-5 py-4">
+        <h2 class="font-display text-lg text-text">Complemento de Pagos</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
+            <tr>
+              <th class="px-5 py-3">FechaPago</th>
+              <th class="px-5 py-3">Monto</th>
+              <th class="px-5 py-3">MonedaP</th>
+              <th class="px-5 py-3">FormaDePagoP</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <tr *ngFor="let p of detail.pagos">
+              <td class="px-5 py-4">{{ p.fecha_pago ? (p.fecha_pago | date: 'yyyy-MM-dd') : '-' }}</td>
+              <td class="px-5 py-4">{{ p.monto | number: '1.2-2' }}</td>
+              <td class="px-5 py-4">{{ p.moneda_p || '-' }}</td>
+              <td class="px-5 py-4">{{ p.forma_pago_p || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+
+  <section class="rounded-2xl border border-border bg-surface shadow-card">
+    <div class="flex items-center justify-between border-b border-border px-5 py-4">
+      <h2 class="font-display text-lg text-text">XML (raw)</h2>
+    </div>
+    <div class="px-5 py-4">
+      <pre class="max-h-[360px] overflow-auto rounded-xl border border-border bg-bg p-4 text-xs text-muted">
+{{ xml$ | async }}
+      </pre>
+    </div>
+  </section>
+</div>
