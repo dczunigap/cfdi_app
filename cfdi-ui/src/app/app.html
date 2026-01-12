@@ -1,0 +1,44 @@
+<tui-root class="min-h-screen bg-bg block">
+  <div class="flex min-h-screen">
+    <aside class="hidden w-64 shrink-0 border-r border-border bg-surface px-6 py-8 lg:block">
+      <div class="mb-10">
+        <div class="text-xs uppercase tracking-[0.2em] text-muted">CFDI</div>
+        <div class="mt-2 font-display text-xl text-text">Ledger Modern</div>
+      </div>
+      <nav class="space-y-2 text-sm">
+        <a class="block rounded-xl bg-primary/10 px-4 py-3 text-primary" href="#">Dashboard</a>
+        <a class="block rounded-xl px-4 py-3 text-text/80 hover:bg-bg" href="#">Facturas</a>
+        <a class="block rounded-xl px-4 py-3 text-text/80 hover:bg-bg" href="#">Retenciones</a>
+        <a class="block rounded-xl px-4 py-3 text-text/80 hover:bg-bg" href="#">Declaraciones</a>
+        <a class="block rounded-xl px-4 py-3 text-text/80 hover:bg-bg" href="#">Reportes</a>
+      </nav>
+      <div class="mt-10 rounded-2xl border border-border bg-bg p-4">
+        <div class="text-xs uppercase tracking-[0.18em] text-muted">Estado</div>
+        <div class="mt-2 text-sm text-text">Sincronizacion local activa</div>
+        <div class="mt-3 h-2 rounded-full bg-border">
+          <div class="h-2 w-2/3 rounded-full bg-primary"></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="flex w-full flex-col">
+      <header class="flex items-center justify-between border-b border-border bg-surface px-6 py-4">
+        <div>
+          <h1 class="font-display text-2xl text-text">CFDI UI</h1>
+          <p class="text-sm text-muted">Panel de control</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="hidden items-center gap-2 rounded-xl border border-border bg-bg px-3 py-2 text-sm text-muted md:flex">
+            <span>Buscar</span>
+            <span class="text-xs text-muted">Ctrl K</span>
+          </div>
+          <button class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-card">Nuevo</button>
+        </div>
+      </header>
+
+      <main class="flex-1 px-6 py-6">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
+  </div>
+</tui-root>

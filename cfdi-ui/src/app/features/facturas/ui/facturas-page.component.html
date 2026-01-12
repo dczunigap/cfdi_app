@@ -1,0 +1,42 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="font-display text-2xl text-text">Facturas</h1>
+      <p class="text-sm text-muted">Listado desde el backend</p>
+    </div>
+    <button class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-card">
+      Importar
+    </button>
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface shadow-card">
+    <div class="border-b border-border px-5 py-4">
+      <h2 class="font-display text-lg text-text">Ultimos CFDI</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
+          <tr>
+            <th class="px-5 py-3">Fecha</th>
+            <th class="px-5 py-3">RFC Emisor</th>
+            <th class="px-5 py-3">Tipo</th>
+            <th class="px-5 py-3 text-right">Total</th>
+            <th class="px-5 py-3">Naturaleza</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border" *ngIf="facturas$ | async as facturas; else empty">
+          <tr *ngFor="let f of facturas">
+            <td class="px-5 py-4">{{ f.fecha_emision ? (f.fecha_emision | date: 'yyyy-MM-dd') : '-' }}</td>
+            <td class="px-5 py-4">{{ f.emisor_rfc || '-' }}</td>
+            <td class="px-5 py-4">{{ f.tipo_comprobante || '-' }}</td>
+            <td class="px-5 py-4 text-right">{{ f.total | number: '1.2-2' }}</td>
+            <td class="px-5 py-4">{{ f.naturaleza || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #empty>
+        <div class="px-5 py-6 text-sm text-muted">Sin facturas para mostrar.</div>
+      </ng-template>
+    </div>
+  </div>
+</div>
