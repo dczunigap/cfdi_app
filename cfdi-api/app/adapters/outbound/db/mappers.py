@@ -38,8 +38,11 @@ def retencion_to_list_item(row: models.RetencionModel) -> RetencionListItem:
         mes_ini=row.mes_ini,
         mes_fin=row.mes_fin,
         emisor_rfc=row.emisor_rfc,
+        emisor_nombre=row.emisor_nombre,
         receptor_rfc=row.receptor_rfc,
-        monto_tot_ret=float(row.monto_tot_ret) if row.monto_tot_ret is not None else None,
+        mon_tot_serv_siva=float(row.mon_tot_serv_siva)
+        if row.mon_tot_serv_siva is not None
+        else None,
         total_iva_trasladado=float(row.total_iva_trasladado)
         if row.total_iva_trasladado is not None
         else None,

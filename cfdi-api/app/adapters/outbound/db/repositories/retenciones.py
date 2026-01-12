@@ -66,3 +66,6 @@ class SqlRetencionRepository(RetencionRepository):
         )
         self._db.add(model)
         self._db.commit()
+
+    def get_by_id(self, retencion_id: int) -> RetencionModel | None:
+        return self._db.get(RetencionModel, retencion_id)

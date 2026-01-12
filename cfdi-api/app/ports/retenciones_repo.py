@@ -18,3 +18,6 @@ class RetencionRepository(Protocol):
 
     def add_retencion(self, retencion) -> None:
         ...
+
+    def get_by_id(self, retencion_id: int):
+        ...
