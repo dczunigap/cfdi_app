@@ -7,6 +7,11 @@ export const routes: Routes = [
     redirectTo: 'importacion',
   },
   {
+    path: 'login',
+    loadComponent: () =>
+      import('./features/auth/ui/login-page.component').then((m) => m.LoginPageComponent),
+  },
+  {
     path: 'importacion',
     loadComponent: () =>
       import('./features/importacion/ui/importacion-page.component').then(

@@ -12,6 +12,6 @@
 [x] Declaraciones: acciones (copiar JSON, abrir PDF/JSON, manejo de error)
 [x] Navegacion activa y ruta para Reportes/Declaracion
 [x] Manejo de errores y loaders globales (toasts, empty states, fallbacks)
-[ ] Autenticacion preparada (mock si aplica)
+[x] Autenticacion preparada (mock si aplica)
 [ ] Add tests and linting
 [ ] CI for build and test
