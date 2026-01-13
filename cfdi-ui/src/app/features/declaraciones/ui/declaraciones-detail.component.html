@@ -1,0 +1,94 @@
+<div class="space-y-6" *ngIf="detail$ | async as detail">
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="mb-2 text-xs uppercase tracking-[0.18em] text-muted">
+        <a class="hover:text-text" routerLink="/declaraciones">Declaraciones</a>
+        <span class="mx-2 text-muted">/</span>
+        <span class="text-text">Detalle</span>
+      </div>
+      <h1 class="font-display text-2xl text-text">Declaracion PDF</h1>
+      <p class="text-sm text-muted">
+        {{ formatPeriod(detail.year, detail.month) }}
+      </p>
+    </div>
+    <a
+      class="rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+      routerLink="/declaraciones"
+    >
+      Volver
+    </a>
+  </div>
+
+  <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="space-y-2 text-sm">
+        <div><span class="text-muted">RFC:</span> {{ detail.rfc || '-' }}</div>
+        <div><span class="text-muted">Folio:</span> {{ detail.folio || '-' }}</div>
+        <div>
+          <span class="text-muted">Fecha presentacion:</span>
+          {{ detail.fecha_presentacion ? (detail.fecha_presentacion | date: 'yyyy-MM-dd') : '-' }}
+        </div>
+      </div>
+      <div class="space-y-2 text-sm">
+        <div><span class="text-muted">Archivo:</span> {{ detail.original_name || detail.filename || '-' }}</div>
+        <div><span class="text-muted">Paginas:</span> {{ detail.num_pages ?? '-' }}</div>
+        <div><span class="text-muted">SHA:</span> {{ detail.sha256 || '-' }}</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="rounded-2xl border border-border bg-surface p-5 shadow-card" *ngIf="summary$ | async as summary">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2 class="font-display text-lg text-text">Resumen breve</h2>
+      <div class="flex flex-wrap gap-2">
+        <a
+          class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-card"
+          [href]="(pdfUrl$ | async) || '#'"
+          target="_blank"
+          rel="noopener"
+        >
+          Abrir PDF
+        </a>
+        <a
+          class="rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+          [href]="(jsonUrl$ | async) || '#'"
+          target="_blank"
+          rel="noopener"
+        >
+          Abrir JSON
+        </a>
+      </div>
+    </div>
+    <ul class="mt-4 space-y-2 text-sm text-text">
+      <li><span class="text-muted">Periodo:</span> {{ summary.periodo || formatPeriod(detail.year, detail.month) }}</li>
+      <li><span class="text-muted">Operacion:</span> {{ summary.numero_operacion || detail.folio || '-' }}</li>
+      <li><span class="text-muted">Emisor:</span> {{ summary.rfc || detail.rfc || '-' }}</li>
+      <li><span class="text-muted">Nombre:</span> {{ summary.nombre || '-' }}</li>
+    </ul>
+  </section>
+
+  <section class="rounded-2xl border border-border bg-surface shadow-card" *ngIf="summary$ | async as summary">
+    <div class="border-b border-border px-5 py-4">
+      <h2 class="font-display text-lg text-text">Datos detectados (JSON)</h2>
+    </div>
+    <div class="px-5 py-4">
+      <pre class="max-h-[360px] overflow-auto rounded-xl border border-border bg-bg p-4 text-xs text-muted">
+{{ summary | json }}
+      </pre>
+    </div>
+  </section>
+
+  <section class="rounded-2xl border border-border bg-surface shadow-card">
+    <div class="border-b border-border px-5 py-4">
+      <h2 class="font-display text-lg text-text">Texto detectado (extracto)</h2>
+    </div>
+    <div class="px-5 py-4">
+      <details class="rounded-xl border border-border bg-bg p-4" [open]="true">
+        <summary class="text-sm text-muted">Ver texto extraido (puede ser largo)</summary>
+        <pre class="mt-3 max-h-[360px] overflow-auto text-xs text-muted">
+{{ detail.text_excerpt || 'No se pudo extraer texto.' }}
+        </pre>
+      </details>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,134 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="font-display text-2xl text-text">Declaraciones</h1>
+      <p class="text-sm text-muted">Listado de declaraciones PDF</p>
+    </div>
+    <button class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-card">
+      Importar
+    </button>
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
+      <span>Filtros</span>
+      <button
+        class="rounded-lg border border-border bg-bg px-3 py-2 text-xs uppercase tracking-[0.18em] text-text/70 hover:bg-surface"
+        type="button"
+        (click)="toggleFilters()"
+        [attr.aria-expanded]="!filtersCollapsed"
+      >
+        {{ filtersCollapsed ? 'Mostrar' : 'Ocultar' }}
+      </button>
+    </div>
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5" *ngIf="!filtersCollapsed">
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Periodo
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="selectedPeriod"
+        >
+          <option [ngValue]="null">Todos</option>
+          <option *ngFor="let period of periods$ | async" [ngValue]="period">
+            {{ period }}
+          </option>
+        </select>
+      </label>
+      <div class="flex items-end gap-3">
+        <button
+          class="w-full rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-card"
+          (click)="applyFilters()"
+        >
+          Filtrar
+        </button>
+      </div>
+      <div class="flex items-end">
+        <button
+          class="w-full rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+          (click)="resetFilters()"
+        >
+          Quitar filtros
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface shadow-card">
+    <div class="border-b border-border px-5 py-4">
+      <div class="flex items-center gap-3">
+        <h2 class="font-display text-lg text-text">Declaraciones recientes</h2>
+        <span
+          class="rounded-full bg-accent/20 px-3 py-1 text-xs font-medium text-accent"
+          *ngIf="declaracionesCount$ | async as total"
+        >
+          {{ total }} registros
+        </span>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
+          <tr>
+            <th class="px-5 py-3">Periodo</th>
+            <th class="px-5 py-3">UUID</th>
+            <th class="px-5 py-3">Emisor</th>
+            <th class="px-5 py-3 text-right">Ingresos sin IVA</th>
+            <th class="px-5 py-3 text-right">IVA Trasl.</th>
+            <th class="px-5 py-3 text-right">IVA ret.</th>
+            <th class="px-5 py-3 text-right">ISR ret.</th>
+            <th class="px-5 py-3 text-right">Detalle</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border" *ngIf="declaraciones$ | async as declaraciones; else empty">
+          <tr *ngFor="let d of declaraciones">
+            <td class="px-5 py-4">{{ formatPeriod(d.year, d.month) }}</td>
+            <td class="px-5 py-4">{{ d.summary?.numero_operacion || d.folio || '-' }}</td>
+            <td class="px-5 py-4">
+              <div class="text-text">{{ d.summary?.rfc || d.rfc || '-' }}</div>
+              <div class="text-xs text-muted">{{ d.summary?.nombre || 'Sin nombre' }}</div>
+            </td>
+            <td class="px-5 py-4 text-right">
+              {{ d.summary?.ingresos_totales_mes != null ? (d.summary?.ingresos_totales_mes | number: '1.2-2') : '-' }}
+            </td>
+            <td class="px-5 py-4 text-right">
+              {{ d.summary?.iva_a_cargo_16 != null ? (d.summary?.iva_a_cargo_16 | number: '1.2-2') : '-' }}
+            </td>
+            <td class="px-5 py-4 text-right">
+              {{ d.summary?.iva_retenido != null ? (d.summary?.iva_retenido | number: '1.2-2') : '-' }}
+            </td>
+            <td class="px-5 py-4 text-right">
+              {{ d.summary?.retenciones_plataformas != null ? (d.summary?.retenciones_plataformas | number: '1.2-2') : '-' }}
+            </td>
+            <td class="px-5 py-4 text-right">
+              <a
+                class="inline-flex items-center justify-center rounded-lg border border-border px-2 py-2 text-text hover:bg-bg"
+                [routerLink]="['/declaraciones', d.id]"
+                title="Detalle de declaracion"
+              >
+                <svg
+                  class="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 2v6h6" />
+                  <path d="M10 13h6" />
+                  <path d="M10 17h6" />
+                  <path d="M10 9h2" />
+                </svg>
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #empty>
+        <div class="px-5 py-6 text-sm text-muted">Sin declaraciones para mostrar.</div>
+      </ng-template>
+    </div>
+  </div>
+</div>

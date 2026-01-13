@@ -32,4 +32,18 @@ export const routes: Routes = [
         (m) => m.RetencionesDetailComponent,
       ),
   },
+  {
+    path: 'declaraciones',
+    loadComponent: () =>
+      import('./features/declaraciones/ui/declaraciones-page.component').then(
+        (m) => m.DeclaracionesPageComponent,
+      ),
+  },
+  {
+    path: 'declaraciones/:id',
+    loadComponent: () =>
+      import('./features/declaraciones/ui/declaraciones-detail.component').then(
+        (m) => m.DeclaracionesDetailComponent,
+      ),
+  },
 ];
