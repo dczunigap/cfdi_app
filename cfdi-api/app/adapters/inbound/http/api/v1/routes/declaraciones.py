@@ -7,13 +7,18 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette.responses import Response
 
-from app.adapters.inbound.http.api.v1.schemas.declaraciones import DeclaracionListResponse
+from app.adapters.inbound.http.api.v1.schemas.declaraciones import (
+    DeclaracionDetailResponse,
+    DeclaracionListResponse,
+)
 from app.adapters.outbound.db.models import DeclaracionModel
 from app.adapters.outbound.db.repositories.declaraciones import SqlDeclaracionRepository
 from app.adapters.inbound.http.deps import get_db
 from app.adapters.outbound.files.pdf_storage import LocalPdfStorage
 from app.adapters.services.parsers.pdf_parser import LocalPdfParser
 from app.application.declaraciones.use_cases import (
+    GetDeclaracionDetailInput,
+    GetDeclaracionDetailUseCase,
     ListDeclaracionesInput,
     ListDeclaracionesUseCase,
 )
@@ -43,26 +48,49 @@ def listar_declaraciones(
 
 
 @router.get(
-    "/{dec_id}/archivo.pdf",
+    "/{dec_id}",
+    response_model=DeclaracionDetailResponse,
+    summary="Detalle de declaracion",
+    description="Devuelve el detalle de la declaracion PDF.",
+)
+def detalle_declaracion(dec_id: int, db: Session = Depends(get_db)) -> DeclaracionDetailResponse:
+    repo = SqlDeclaracionRepository(db)
+    use_case = GetDeclaracionDetailUseCase(repo)
+    result = use_case.execute(GetDeclaracionDetailInput(declaracion_id=dec_id))
+    if result is None:
+        raise HTTPException(status_code=404, detail="No encontrada")
+    return DeclaracionDetailResponse(**result.__dict__)
+
+
+@router.get(
+    "/{dec_id}/archivo/{filename}",
     summary="Descarga PDF de declaracion",
     description="Devuelve el PDF almacenado para la declaracion indicada.",
 )
-def descargar_declaracion_pdf(dec_id: int, db: Session = Depends(get_db)) -> Response:
+def descargar_declaracion_pdf(
+    dec_id: int,
+    filename: str,
+    db: Session = Depends(get_db),
+) -> Response:
     dec = db.get(DeclaracionModel, dec_id)
     if not dec:
         raise HTTPException(status_code=404, detail="No encontrada")
 
     base_dir = Path(__file__).resolve().parents[7]
-    storage = LocalPdfStorage(base_dir / "data" / "pdfs")
+    storage = LocalPdfStorage(base_dir / "database" / "pdfs")
+    if not dec.filename:
+        raise HTTPException(status_code=404, detail="Archivo PDF no encontrado")
+    if filename != dec.filename:
+        raise HTTPException(status_code=404, detail="Archivo PDF no encontrado")
     try:
-        content = storage.read(dec.filename)
+        content = storage.read(filename)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Archivo PDF no encontrado")
 
     return Response(
         content=content,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename={dec.filename}"},
+        headers={"Content-Disposition": f"inline; filename={filename}"},
     )
 
 

@@ -82,7 +82,7 @@ async def importar_pdf(
     stats = {"insertados": 0, "duplicados": 0, "errores": 0}
 
     base_dir = Path(__file__).resolve().parents[7]
-    storage = LocalPdfStorage(base_dir / "data" / "pdfs")
+    storage = LocalPdfStorage(base_dir / "database" / "pdfs")
     parser = LocalPdfParser()
     repo = SqlDeclaracionRepository(db)
 
@@ -99,7 +99,9 @@ async def importar_pdf(
             storage.save(filename, pdf_bytes)
 
             try:
-                text, num_pages = parser.extract_text(str(base_dir / "data" / "pdfs" / filename))
+                text, num_pages = parser.extract_text(
+                    str(base_dir / "database" / "pdfs" / filename)
+                )
             except Exception:
                 text, num_pages = "", None
 

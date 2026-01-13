@@ -55,3 +55,6 @@ class SqlDeclaracionRepository(DeclaracionRepository):
         )
         self._db.add(model)
         self._db.commit()
+
+    def get_by_id(self, declaracion_id: int) -> DeclaracionModel | None:
+        return self._db.get(DeclaracionModel, declaracion_id)

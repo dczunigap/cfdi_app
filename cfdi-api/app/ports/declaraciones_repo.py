@@ -18,3 +18,6 @@ class DeclaracionRepository(Protocol):
 
     def add_declaracion(self, declaracion) -> None:
         ...
+
+    def get_by_id(self, declaracion_id: int):
+        ...
