@@ -21,11 +21,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'reportes',
-    redirectTo: 'summary',
-    pathMatch: 'full',
-  },
-  {
     path: 'declaracion',
     loadComponent: () =>
       import('./features/declaracion/ui/declaracion-page.component').then(

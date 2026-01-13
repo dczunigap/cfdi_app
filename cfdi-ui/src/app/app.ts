@@ -5,9 +5,20 @@ import { TuiRoot } from '@taiga-ui/core';
 import { TuiAlerts } from '@taiga-ui/core/components/alert';
 import { TuiDialogs } from '@taiga-ui/core/components/dialog';
 
+import { LoadingOverlayComponent } from './shared/ui/loading/loading-overlay.component';
+
 @Component({
   selector: 'app-root',
-  imports: [NgIf, RouterLink, RouterLinkActive, RouterOutlet, TuiRoot, TuiAlerts, TuiDialogs],
+  imports: [
+    NgIf,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    TuiRoot,
+    TuiAlerts,
+    TuiDialogs,
+    LoadingOverlayComponent,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
