@@ -6,12 +6,21 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import desc, select
 from starlette.responses import Response
 
 from app.adapters.inbound.http.deps import get_db
 from app.adapters.outbound.db.period_data import compute_period_data, pick_default_period
-from app.application.reportes.periodo import build_hoja_sat_text, calc_income_and_iva_sources
+from app.application.reportes.periodo import (
+    build_checklist,
+    build_hoja_sat_text,
+    calc_income_and_iva_sources,
+)
 from app.utils.money import format_money
+from app.adapters.outbound.db.models import DeclaracionModel
+from app.adapters.services.parsers.pdf_parser import LocalPdfParser
+from app.application.declaraciones.payload import build_declaracion_payload
+from app.domain.declaraciones.entities import DeclaracionPDF
 
 router = APIRouter(tags=["reportes"])
 
@@ -105,6 +114,200 @@ def summary_details(year: Optional[int] = None, month: Optional[int] = None, db:
     return {
         "docs": docs_payload,
         "pagos": pagos_payload,
+    }
+
+
+@router.get(
+    "/declaracion",
+    summary="Modo declaracion mensual",
+    description="Devuelve datos de apoyo para capturar declaracion mensual.",
+)
+def declaracion_mode(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    income_source: Optional[str] = "auto",
+    db: Session = Depends(get_db),
+):
+    if year is None or month is None:
+        year, month = pick_default_period(db)
+    if year is None or month is None:
+        raise HTTPException(status_code=404, detail="No hay datos para resumir")
+
+    data = compute_period_data(db, year, month)
+    ingresos_total_sin_iva, iva_trasladado_sel, effective_income_source = calc_income_and_iva_sources(
+        data, income_source
+    )
+
+    declaracion_pdf = db.execute(
+        select(DeclaracionModel)
+        .where(DeclaracionModel.year == year, DeclaracionModel.month == month)
+        .order_by(desc(DeclaracionModel.fecha_presentacion).nullslast(), desc(DeclaracionModel.id))
+        .limit(1)
+    ).scalar_one_or_none()
+
+    mi_rfc = declaracion_pdf.rfc if declaracion_pdf and declaracion_pdf.rfc else None
+    if not mi_rfc:
+        ret_rows = data.get("ret_rows") or []
+        mi_rfc = (ret_rows[0].receptor_rfc if ret_rows else None) or None
+
+    checks = build_checklist(
+        data=data,
+        mi_rfc=mi_rfc or "",
+        income_source=income_source or "auto",
+        effective_income_source=effective_income_source,
+    )
+
+    iva_trasladado_total = float(data.get("plat_iva_tras") or 0.0) + float(
+        data.get("ingresos_trasl") or 0.0
+    )
+
+    acuse_payload = None
+    acuse_checks: list[dict] = []
+    if declaracion_pdf and (declaracion_pdf.text_excerpt or "").strip():
+        dec_entity = DeclaracionPDF(
+            year=declaracion_pdf.year,
+            month=declaracion_pdf.month,
+            rfc=declaracion_pdf.rfc,
+            folio=declaracion_pdf.folio,
+            fecha_presentacion=declaracion_pdf.fecha_presentacion,
+            sha256=declaracion_pdf.sha256,
+            filename=declaracion_pdf.filename,
+            original_name=declaracion_pdf.original_name,
+            num_pages=declaracion_pdf.num_pages,
+            text_excerpt=declaracion_pdf.text_excerpt,
+            created_at=declaracion_pdf.created_at,
+        )
+        parser = LocalPdfParser()
+        acuse_payload = build_declaracion_payload(dec_entity, parser.parse_sat_summary)
+
+        def to_float(value: object) -> float | None:
+            try:
+                return float(value) if value is not None else None
+            except Exception:
+                return None
+
+        def build_amount_check(label: str, sat_val: object, app_val: object, note: str | None = None):
+            sat = to_float(sat_val)
+            app = to_float(app_val)
+            if sat is None:
+                return {
+                    "status": "warn",
+                    "label": label,
+                    "sat": None,
+                    "app": app,
+                    "diff": None,
+                    "note": note or "SAT sin dato en PDF.",
+                }
+            if app is None:
+                return {
+                    "status": "warn",
+                    "label": label,
+                    "sat": sat,
+                    "app": None,
+                    "diff": None,
+                    "note": note or "App sin dato.",
+                }
+            diff = sat - app
+            status = "ok" if abs(diff) <= 1.0 else "warn"
+            return {
+                "status": status,
+                "label": label,
+                "sat": sat,
+                "app": app,
+                "diff": diff,
+                "note": note,
+            }
+
+        def build_text_check(label: str, sat_val: object, app_val: object, note: str | None = None):
+            sat = (str(sat_val).strip() if sat_val is not None else "") or None
+            app = (str(app_val).strip() if app_val is not None else "") or None
+            if not sat:
+                return {
+                    "status": "warn",
+                    "label": label,
+                    "sat": None,
+                    "app": app,
+                    "diff": None,
+                    "note": note or "SAT sin dato en PDF.",
+                }
+            status = "ok" if sat == app else "warn"
+            return {
+                "status": status,
+                "label": label,
+                "sat": sat,
+                "app": app,
+                "diff": None,
+                "note": note,
+            }
+
+        periodo_app = f"{year}-{month:02d}"
+        acuse_checks = [
+            build_text_check("Periodo", acuse_payload.get("periodo"), periodo_app, "Revisa el periodo del PDF."),
+            build_text_check("RFC", acuse_payload.get("rfc"), mi_rfc, "Revisa el RFC del contribuyente."),
+            build_amount_check(
+                "Ingresos sin IVA (SAT vs App)",
+                acuse_payload.get("ingresos_totales_mes"),
+                ingresos_total_sin_iva,
+                "Revisa la fuente de ingresos seleccionada.",
+            ),
+            build_amount_check(
+                "ISR retenido (SAT vs App)",
+                acuse_payload.get("retenciones_plataformas"),
+                data.get("plat_isr_ret"),
+                "Revisa el XML de retenciones.",
+            ),
+            build_amount_check(
+                "IVA trasladado (SAT vs App)",
+                acuse_payload.get("iva_a_cargo_16"),
+                iva_trasladado_total,
+                "Revisa CFDI de ingresos y plataforma.",
+            ),
+            build_amount_check(
+                "IVA acreditable (SAT vs App)",
+                acuse_payload.get("iva_acreditable"),
+                data.get("gastos_trasl"),
+                "Revisa CFDI de gastos.",
+            ),
+            build_amount_check(
+                "IVA retenido (SAT vs App)",
+                acuse_payload.get("iva_retenido"),
+                data.get("plat_iva_ret"),
+                "Revisa retenciones de plataforma.",
+            ),
+        ]
+
+    return {
+        "year": year,
+        "month": month,
+        "income_source": income_source,
+        "effective_income_source": effective_income_source,
+        "mi_rfc": mi_rfc,
+        "ingresos_total_sin_iva": ingresos_total_sin_iva,
+        "plat_ing_siva": float(data.get("plat_ing_siva") or 0.0),
+        "ingresos_base": float(data.get("ingresos_base") or 0.0),
+        "isr_retenido": float(data.get("plat_isr_ret") or 0.0),
+        "iva_retenido": float(data.get("plat_iva_ret") or 0.0),
+        "iva_trasladado_total": iva_trasladado_total,
+        "iva_trasladado_seleccion": iva_trasladado_sel,
+        "checks": checks,
+        "acuse_payload": acuse_payload,
+        "acuse_checks": acuse_checks,
+        "declaracion_pdf": (
+            {
+                "id": declaracion_pdf.id,
+                "rfc": declaracion_pdf.rfc,
+                "folio": declaracion_pdf.folio,
+                "fecha_presentacion": declaracion_pdf.fecha_presentacion,
+                "filename": declaracion_pdf.filename,
+                "original_name": declaracion_pdf.original_name,
+                "text_excerpt": declaracion_pdf.text_excerpt,
+            }
+            if declaracion_pdf
+            else None
+        ),
+        "retenciones_count": len(data.get("ret_rows") or []),
+        "docs_count": len(data.get("docs") or []),
+        "pagos_count": int(data.get("pagos_count") or 0),
     }
 
 
