@@ -1,4 +1,6 @@
-<div class="space-y-6" *ngIf="detail$ | async as detail">
+<ng-container *ngIf="detail$ | async as detail; else detailErrorTpl">
+  <ng-container *ngIf="detail; else detailErrorTpl">
+    <div class="space-y-6">
   <div class="flex items-center justify-between">
     <div>
       <div class="mb-2 text-xs uppercase tracking-[0.18em] text-muted">
@@ -37,7 +39,7 @@
     </div>
   </section>
 
-  <section class="rounded-2xl border border-border bg-surface p-5 shadow-card" *ngIf="summary$ | async as summary">
+  <section class="rounded-2xl border border-border bg-surface p-5 shadow-card" *ngIf="summary$ | async as summary; else summaryErrorTpl">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <h2 class="font-display text-lg text-text">Resumen breve</h2>
       <div class="flex flex-wrap gap-2">
@@ -57,6 +59,13 @@
         >
           Abrir JSON
         </a>
+        <button
+          class="rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+          type="button"
+          (click)="copySummary(summary)"
+        >
+          Copiar JSON
+        </button>
       </div>
     </div>
     <ul class="mt-4 space-y-2 text-sm text-text">
@@ -67,7 +76,7 @@
     </ul>
   </section>
 
-  <section class="rounded-2xl border border-border bg-surface shadow-card" *ngIf="summary$ | async as summary">
+  <section class="rounded-2xl border border-border bg-surface shadow-card" *ngIf="summary$ | async as summary; else summaryErrorTpl">
     <div class="border-b border-border px-5 py-4">
       <h2 class="font-display text-lg text-text">Datos detectados (JSON)</h2>
     </div>
@@ -91,4 +100,18 @@
       </details>
     </div>
   </section>
-</div>
+    </div>
+  </ng-container>
+</ng-container>
+
+<ng-template #detailErrorTpl>
+  <div class="rounded-2xl border border-border bg-surface p-6 text-sm text-muted shadow-card">
+    {{ detailError || 'No se pudo cargar la declaracion.' }}
+  </div>
+</ng-template>
+
+<ng-template #summaryErrorTpl>
+  <div class="rounded-2xl border border-border bg-surface p-4 text-sm text-muted shadow-card">
+    {{ summaryError || 'No se pudo cargar el resumen.' }}
+  </div>
+</ng-template>
