@@ -9,14 +9,17 @@ from fastapi import HTTPException
 from starlette.responses import Response
 
 from app.adapters.inbound.http.api.v1.schemas.facturas import (
-    ConceptoResponse,
     FacturaDetailResponse,
     FacturaListResponse,
-    PagoResponse,
+)
+from app.adapters.inbound.http.api.v1.mappers import (
+    factura_detail_to_dto,
+    factura_list_to_dto,
 )
 from app.adapters.inbound.http.deps import get_db
 from app.adapters.outbound.db.repositories.facturas import SqlFacturaRepository
 from app.adapters.outbound.db.models import FacturaModel
+from app.adapters.inbound.http.api.v1.routes.utils import get_or_404, xml_response
 from app.adapters.outbound.db.repositories.conceptos import SqlConceptoRepository
 from app.adapters.outbound.db.repositories.pagos import SqlPagoRepository
 from app.application.facturas.use_cases import (
@@ -46,7 +49,7 @@ def listar_facturas(
     use_case = ListFacturasUseCase(repo)
     data = ListFacturasInput(year=year, month=month, tipo=tipo, naturaleza=naturaleza)
     items = use_case.execute(data)
-    return [FacturaListResponse(**item.__dict__) for item in items]
+    return factura_list_to_dto(items)
 
 
 @router.get(
@@ -64,11 +67,7 @@ def detalle_factura(factura_id: int, db: Session = Depends(get_db)) -> FacturaDe
     if result is None:
         raise HTTPException(status_code=404, detail="Factura no encontrada")
 
-    return FacturaDetailResponse(
-        factura=FacturaListResponse(**result.factura.__dict__),
-        conceptos=[ConceptoResponse(**c.__dict__) for c in result.conceptos],
-        pagos=[PagoResponse(**p.__dict__) for p in result.pagos],
-    )
+    return factura_detail_to_dto(result)
 
 
 @router.get(
@@ -77,10 +76,5 @@ def detalle_factura(factura_id: int, db: Session = Depends(get_db)) -> FacturaDe
     description="Devuelve el XML crudo de la factura.",
 )
 def factura_xml(factura_id: int, db: Session = Depends(get_db)) -> Response:
-    row = db.get(FacturaModel, factura_id)
-    if not row:
-        raise HTTPException(status_code=404, detail="Factura no encontrada")
-    return Response(
-        content=row.xml_text or "",
-        media_type="application/xml; charset=utf-8",
-    )
+    row = get_or_404(db, FacturaModel, factura_id, "Factura")
+    return xml_response(row.xml_text or "")

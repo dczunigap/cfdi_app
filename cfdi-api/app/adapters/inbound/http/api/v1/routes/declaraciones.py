@@ -11,7 +11,17 @@ from app.adapters.inbound.http.api.v1.schemas.declaraciones import (
     DeclaracionDetailResponse,
     DeclaracionListResponse,
 )
+from app.adapters.inbound.http.api.v1.mappers import (
+    declaracion_detail_to_dto,
+    declaracion_list_to_dto,
+)
 from app.adapters.outbound.db.models import DeclaracionModel
+from app.adapters.inbound.http.api.v1.routes.utils import (
+    declaracion_model_to_entity,
+    get_or_404,
+    json_response,
+    pdf_inline_response,
+)
 from app.adapters.outbound.db.repositories.declaraciones import SqlDeclaracionRepository
 from app.adapters.inbound.http.deps import get_db
 from app.adapters.outbound.files.pdf_storage import LocalPdfStorage
@@ -23,7 +33,6 @@ from app.application.declaraciones.use_cases import (
     ListDeclaracionesUseCase,
 )
 from app.application.declaraciones.payload import build_declaracion_payload
-from app.domain.declaraciones.entities import DeclaracionPDF
 from app.utils.json import serialize_to_json
 
 router = APIRouter(prefix="/declaraciones", tags=["declaraciones"])
@@ -44,7 +53,7 @@ def listar_declaraciones(
     use_case = ListDeclaracionesUseCase(repo)
     data = ListDeclaracionesInput(year=year, month=month)
     items = use_case.execute(data)
-    return [DeclaracionListResponse(**item.__dict__) for item in items]
+    return declaracion_list_to_dto(items)
 
 
 @router.get(
@@ -59,7 +68,7 @@ def detalle_declaracion(dec_id: int, db: Session = Depends(get_db)) -> Declaraci
     result = use_case.execute(GetDeclaracionDetailInput(declaracion_id=dec_id))
     if result is None:
         raise HTTPException(status_code=404, detail="No encontrada")
-    return DeclaracionDetailResponse(**result.__dict__)
+    return declaracion_detail_to_dto(result)
 
 
 @router.get(
@@ -72,9 +81,7 @@ def descargar_declaracion_pdf(
     filename: str,
     db: Session = Depends(get_db),
 ) -> Response:
-    dec = db.get(DeclaracionModel, dec_id)
-    if not dec:
-        raise HTTPException(status_code=404, detail="No encontrada")
+    dec = get_or_404(db, DeclaracionModel, dec_id, "Declaracion")
 
     base_dir = Path(__file__).resolve().parents[7]
     storage = LocalPdfStorage(base_dir / "database" / "pdfs")
@@ -87,11 +94,7 @@ def descargar_declaracion_pdf(
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Archivo PDF no encontrado")
 
-    return Response(
-        content=content,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename={filename}"},
-    )
+    return pdf_inline_response(content, filename)
 
 
 @router.get(
@@ -100,27 +103,10 @@ def descargar_declaracion_pdf(
     description="Devuelve el payload JSON extraido del PDF de declaracion.",
 )
 def declaracion_pdf_resumen_json(dec_id: int, db: Session = Depends(get_db)) -> Response:
-    dec = db.get(DeclaracionModel, dec_id)
-    if not dec:
-        raise HTTPException(status_code=404, detail="No encontrada")
+    dec = get_or_404(db, DeclaracionModel, dec_id, "Declaracion")
 
-    dec_entity = DeclaracionPDF(
-        year=dec.year,
-        month=dec.month,
-        rfc=dec.rfc,
-        folio=dec.folio,
-        fecha_presentacion=dec.fecha_presentacion,
-        sha256=dec.sha256,
-        filename=dec.filename,
-        original_name=dec.original_name,
-        num_pages=dec.num_pages,
-        text_excerpt=dec.text_excerpt,
-        created_at=dec.created_at,
-    )
+    dec_entity = declaracion_model_to_entity(dec)
 
     parser = LocalPdfParser()
     payload = build_declaracion_payload(dec_entity, parser.parse_sat_summary)
-    return Response(
-        content=serialize_to_json(payload),
-        media_type="application/json; charset=utf-8",
-    )
+    return json_response(serialize_to_json(payload))

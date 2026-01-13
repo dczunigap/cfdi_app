@@ -18,6 +18,10 @@ from app.application.imports.facturas import (
     create_factura_from_parsed,
     create_retencion_from_parsed,
 )
+from app.adapters.inbound.http.api.v1.mappers import (
+    import_pdf_stats,
+    import_xml_stats,
+)
 from app.domain.declaraciones.entities import DeclaracionPDF
 from app.utils.files import safe_pdf_filename, sha256_bytes
 
@@ -26,13 +30,7 @@ router = APIRouter(tags=["import"])
 
 @router.post("/importar")
 async def importar_xml(files: list[UploadFile] = File(...), db: Session = Depends(get_db)):
-    stats = {
-        "cfdi_insertados": 0,
-        "cfdi_duplicados": 0,
-        "retenciones_insertadas": 0,
-        "retenciones_duplicadas": 0,
-        "errores": 0,
-    }
+    stats = import_xml_stats()
 
     factura_repo = SqlFacturaRepository(db)
     ret_repo = SqlRetencionRepository(db)
@@ -79,7 +77,7 @@ async def importar_pdf(
     month: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
-    stats = {"insertados": 0, "duplicados": 0, "errores": 0}
+    stats = import_pdf_stats()
 
     base_dir = Path(__file__).resolve().parents[7]
     storage = LocalPdfStorage(base_dir / "database" / "pdfs")

@@ -2,3 +2,5 @@ fastapi
 sqlalchemy
 uvicorn
 pydantic
+pypdf
+python-multipart

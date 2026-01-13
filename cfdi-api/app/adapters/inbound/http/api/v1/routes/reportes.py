@@ -20,7 +20,17 @@ from app.utils.money import format_money
 from app.adapters.outbound.db.models import DeclaracionModel
 from app.adapters.services.parsers.pdf_parser import LocalPdfParser
 from app.application.declaraciones.payload import build_declaracion_payload
-from app.domain.declaraciones.entities import DeclaracionPDF
+from app.adapters.inbound.http.api.v1.routes.utils import (
+    csv_response,
+    declaracion_model_to_entity,
+    text_response,
+)
+from app.adapters.inbound.http.api.v1.mappers import (
+    declaracion_mode_to_payload,
+    declaracion_pdf_to_payload,
+    summary_details_to_payload,
+    summary_to_payload,
+)
 
 router = APIRouter(tags=["reportes"])
 
@@ -42,30 +52,15 @@ def summary(year: Optional[int] = None, month: Optional[int] = None, db: Session
     iva_retenido_plat = data["plat_iva_ret"]
     iva_neto_sugerido = iva_causado_sugerido - iva_acreditable_sugerido - iva_retenido_plat
 
-    return {
-        "year": year,
-        "month": month,
-        "ingresos_total": data["ingresos_total"],
-        "ingresos_base": data["ingresos_base"],
-        "ingresos_trasl": data["ingresos_trasl"],
-        "ingresos_ret": data["ingresos_ret"],
-        "gastos_total": data["gastos_total"],
-        "gastos_trasl": data["gastos_trasl"],
-        "gastos_ret": data["gastos_ret"],
-        "p_count": data["p_count"],
-        "cash_in": data["cash_in"],
-        "cash_out": data["cash_out"],
-        "pagos_count": data["pagos_count"],
-        "plat_ing_siva": data["plat_ing_siva"],
-        "plat_iva_tras": data["plat_iva_tras"],
-        "plat_iva_ret": data["plat_iva_ret"],
-        "plat_isr_ret": data["plat_isr_ret"],
-        "plat_comision": data["plat_comision"],
-        "iva_causado_sugerido": iva_causado_sugerido,
-        "iva_acreditable_sugerido": iva_acreditable_sugerido,
-        "iva_retenido_plat": iva_retenido_plat,
-        "iva_neto_sugerido": iva_neto_sugerido,
-    }
+    return summary_to_payload(
+        year=year,
+        month=month,
+        data=data,
+        iva_causado_sugerido=iva_causado_sugerido,
+        iva_acreditable_sugerido=iva_acreditable_sugerido,
+        iva_retenido_plat=iva_retenido_plat,
+        iva_neto_sugerido=iva_neto_sugerido,
+    )
 
 
 @router.get(
@@ -83,38 +78,7 @@ def summary_details(year: Optional[int] = None, month: Optional[int] = None, db:
     docs = data["docs"][:200]
     pagos_rows = data["pagos_rows"][:200]
 
-    docs_payload = [
-        {
-            "id": d.id,
-            "fecha_emision": d.fecha_emision,
-            "tipo_comprobante": d.tipo_comprobante,
-            "naturaleza": d.naturaleza,
-            "uuid": d.uuid,
-            "emisor_rfc": d.emisor_rfc,
-            "receptor_rfc": d.receptor_rfc,
-            "uso_cfdi": d.uso_cfdi,
-            "total": d.total,
-            "moneda": d.moneda,
-        }
-        for d in docs
-    ]
-
-    pagos_payload = [
-        {
-            "factura_id": pago.factura_id,
-            "fecha_pago": pago.fecha_pago,
-            "monto": pago.monto,
-            "moneda_p": pago.moneda_p,
-            "forma_pago_p": pago.forma_pago_p,
-            "naturaleza": naturaleza,
-        }
-        for pago, naturaleza in pagos_rows
-    ]
-
-    return {
-        "docs": docs_payload,
-        "pagos": pagos_payload,
-    }
+    return summary_details_to_payload(docs, pagos_rows)
 
 
 @router.get(
@@ -164,19 +128,7 @@ def declaracion_mode(
     acuse_payload = None
     acuse_checks: list[dict] = []
     if declaracion_pdf and (declaracion_pdf.text_excerpt or "").strip():
-        dec_entity = DeclaracionPDF(
-            year=declaracion_pdf.year,
-            month=declaracion_pdf.month,
-            rfc=declaracion_pdf.rfc,
-            folio=declaracion_pdf.folio,
-            fecha_presentacion=declaracion_pdf.fecha_presentacion,
-            sha256=declaracion_pdf.sha256,
-            filename=declaracion_pdf.filename,
-            original_name=declaracion_pdf.original_name,
-            num_pages=declaracion_pdf.num_pages,
-            text_excerpt=declaracion_pdf.text_excerpt,
-            created_at=declaracion_pdf.created_at,
-        )
+        dec_entity = declaracion_model_to_entity(declaracion_pdf)
         parser = LocalPdfParser()
         acuse_payload = build_declaracion_payload(dec_entity, parser.parse_sat_summary)
 
@@ -276,39 +228,27 @@ def declaracion_mode(
             ),
         ]
 
-    return {
-        "year": year,
-        "month": month,
-        "income_source": income_source,
-        "effective_income_source": effective_income_source,
-        "mi_rfc": mi_rfc,
-        "ingresos_total_sin_iva": ingresos_total_sin_iva,
-        "plat_ing_siva": float(data.get("plat_ing_siva") or 0.0),
-        "ingresos_base": float(data.get("ingresos_base") or 0.0),
-        "isr_retenido": float(data.get("plat_isr_ret") or 0.0),
-        "iva_retenido": float(data.get("plat_iva_ret") or 0.0),
-        "iva_trasladado_total": iva_trasladado_total,
-        "iva_trasladado_seleccion": iva_trasladado_sel,
-        "checks": checks,
-        "acuse_payload": acuse_payload,
-        "acuse_checks": acuse_checks,
-        "declaracion_pdf": (
-            {
-                "id": declaracion_pdf.id,
-                "rfc": declaracion_pdf.rfc,
-                "folio": declaracion_pdf.folio,
-                "fecha_presentacion": declaracion_pdf.fecha_presentacion,
-                "filename": declaracion_pdf.filename,
-                "original_name": declaracion_pdf.original_name,
-                "text_excerpt": declaracion_pdf.text_excerpt,
-            }
-            if declaracion_pdf
-            else None
-        ),
-        "retenciones_count": len(data.get("ret_rows") or []),
-        "docs_count": len(data.get("docs") or []),
-        "pagos_count": int(data.get("pagos_count") or 0),
-    }
+    return declaracion_mode_to_payload(
+        year=year,
+        month=month,
+        income_source=income_source,
+        effective_income_source=effective_income_source,
+        mi_rfc=mi_rfc,
+        ingresos_total_sin_iva=ingresos_total_sin_iva,
+        plat_ing_siva=float(data.get("plat_ing_siva") or 0.0),
+        ingresos_base=float(data.get("ingresos_base") or 0.0),
+        isr_retenido=float(data.get("plat_isr_ret") or 0.0),
+        iva_retenido=float(data.get("plat_iva_ret") or 0.0),
+        iva_trasladado_total=iva_trasladado_total,
+        iva_trasladado_seleccion=iva_trasladado_sel,
+        checks=checks,
+        acuse_payload=acuse_payload,
+        acuse_checks=acuse_checks,
+        declaracion_pdf=declaracion_pdf_to_payload(declaracion_pdf),
+        retenciones_count=len(data.get("ret_rows") or []),
+        docs_count=len(data.get("docs") or []),
+        pagos_count=int(data.get("pagos_count") or 0),
+    )
 
 
 @router.get(
@@ -327,10 +267,9 @@ def sat_hoja_txt(
 
     data = compute_period_data(db, year, month)
     hoja_text, effective = build_hoja_sat_text(year, month, income_source, data, format_money)
-    return Response(
-        content=hoja_text,
-        media_type="text/plain; charset=utf-8",
-        headers={"Content-Disposition": f"attachment; filename=hoja_sat_{year}_{month:02d}_{effective}.txt"},
+    return text_response(
+        hoja_text,
+        filename=f"hoja_sat_{year}_{month:02d}_{effective}.txt",
     )
 
 
@@ -390,8 +329,7 @@ def sat_report_csv(
         ]
     )
 
-    return Response(
-        content=out.getvalue(),
-        media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f"attachment; filename=sat_report_{year}_{month:02d}.csv"},
+    return csv_response(
+        out.getvalue(),
+        filename=f"sat_report_{year}_{month:02d}.csv",
     )

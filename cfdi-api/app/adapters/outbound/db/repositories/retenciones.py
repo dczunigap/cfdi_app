@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.outbound.db.mappers import retencion_to_list_item
 from app.adapters.outbound.db.models import RetencionModel
+from app.adapters.outbound.db.repositories.utils import apply_optional_filter, exists_by_field
 from app.ports.retenciones_repo import RetencionRepository
 from app.application.retenciones.dto import RetencionListItem
 from app.domain.retenciones.entities import RetencionPlataforma
@@ -22,21 +23,13 @@ class SqlRetencionRepository(RetencionRepository):
         month: Optional[int] = None,
     ) -> list[RetencionListItem]:
         q = select(RetencionModel)
-        if year is not None:
-            q = q.where(RetencionModel.ejercicio == year)
-        if month is not None:
-            q = q.where(RetencionModel.mes_fin == month)
+        q = apply_optional_filter(q, RetencionModel.ejercicio, year)
+        q = apply_optional_filter(q, RetencionModel.mes_fin, month)
         rows = self._db.execute(q).scalars().all()
         return [retencion_to_list_item(r) for r in rows]
 
     def exists_uuid(self, uuid: str) -> bool:
-        if not uuid:
-            return False
-        return (
-            self._db.execute(select(RetencionModel.id).where(RetencionModel.uuid == uuid))
-            .first()
-            is not None
-        )
+        return exists_by_field(self._db, RetencionModel, RetencionModel.uuid, uuid)
 
     def add_retencion(self, retencion: RetencionPlataforma) -> None:
         model = RetencionModel(

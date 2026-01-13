@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.outbound.db.mappers import factura_to_list_item
 from app.adapters.outbound.db.models import ConceptoModel, FacturaModel, PagoModel
+from app.adapters.outbound.db.repositories.utils import apply_optional_filter, exists_by_field
 from app.ports.facturas_repo import FacturaRepository
 from app.application.facturas.dto import FacturaListItem
 from app.domain.facturas.entities import Factura
@@ -24,25 +25,15 @@ class SqlFacturaRepository(FacturaRepository):
         naturaleza: Optional[str] = None,
     ) -> list[FacturaListItem]:
         q = select(FacturaModel)
-        if year is not None:
-            q = q.where(FacturaModel.year_emision == year)
-        if month is not None:
-            q = q.where(FacturaModel.month_emision == month)
-        if naturaleza:
-            q = q.where(FacturaModel.naturaleza == naturaleza)
-        if tipo:
-            q = q.where(FacturaModel.tipo_comprobante == tipo.upper())
+        q = apply_optional_filter(q, FacturaModel.year_emision, year)
+        q = apply_optional_filter(q, FacturaModel.month_emision, month)
+        q = apply_optional_filter(q, FacturaModel.naturaleza, naturaleza)
+        q = apply_optional_filter(q, FacturaModel.tipo_comprobante, tipo.upper() if tipo else None)
         rows = self._db.execute(q).scalars().all()
         return [factura_to_list_item(r) for r in rows]
 
     def exists_uuid(self, uuid: str) -> bool:
-        if not uuid:
-            return False
-        return (
-            self._db.execute(select(FacturaModel.id).where(FacturaModel.uuid == uuid))
-            .first()
-            is not None
-        )
+        return exists_by_field(self._db, FacturaModel, FacturaModel.uuid, uuid)
 
     def add_factura(self, factura: Factura) -> None:
         model = FacturaModel(

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.outbound.db.mappers import declaracion_to_list_item
 from app.adapters.outbound.db.models import DeclaracionModel
+from app.adapters.outbound.db.repositories.utils import apply_optional_filter, exists_by_field
 from app.ports.declaraciones_repo import DeclaracionRepository
 from app.application.declaraciones.dto import DeclaracionListItem
 from app.domain.declaraciones.entities import DeclaracionPDF
@@ -22,23 +23,13 @@ class SqlDeclaracionRepository(DeclaracionRepository):
         month: Optional[int] = None,
     ) -> list[DeclaracionListItem]:
         q = select(DeclaracionModel)
-        if year is not None:
-            q = q.where(DeclaracionModel.year == year)
-        if month is not None:
-            q = q.where(DeclaracionModel.month == month)
+        q = apply_optional_filter(q, DeclaracionModel.year, year)
+        q = apply_optional_filter(q, DeclaracionModel.month, month)
         rows = self._db.execute(q).scalars().all()
         return [declaracion_to_list_item(r) for r in rows]
 
     def exists_sha256(self, sha256: str) -> bool:
-        if not sha256:
-            return False
-        return (
-            self._db.execute(
-                select(DeclaracionModel.id).where(DeclaracionModel.sha256 == sha256)
-            )
-            .first()
-            is not None
-        )
+        return exists_by_field(self._db, DeclaracionModel, DeclaracionModel.sha256, sha256)
 
     def add_declaracion(self, declaracion: DeclaracionPDF) -> None:
         model = DeclaracionModel(

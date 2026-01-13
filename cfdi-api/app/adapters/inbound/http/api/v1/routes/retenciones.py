@@ -9,6 +9,10 @@ from app.adapters.inbound.http.api.v1.schemas.retenciones import (
     RetencionDetailResponse,
     RetencionListResponse,
 )
+from app.adapters.inbound.http.api.v1.mappers import (
+    retencion_detail_to_dto,
+    retencion_list_to_dto,
+)
 from app.adapters.outbound.db.repositories.retenciones import SqlRetencionRepository
 from app.adapters.inbound.http.deps import get_db
 from app.application.retenciones.use_cases import (
@@ -36,7 +40,7 @@ def listar_retenciones(
     use_case = ListRetencionesUseCase(repo)
     data = ListRetencionesInput(year=year, month=month)
     items = use_case.execute(data)
-    return [RetencionListResponse(**item.__dict__) for item in items]
+    return retencion_list_to_dto(items)
 
 
 @router.get(
@@ -54,4 +58,4 @@ def detalle_retencion(
     result = use_case.execute(GetRetencionDetailInput(retencion_id=retencion_id))
     if result is None:
         raise HTTPException(status_code=404, detail="Retencion no encontrada")
-    return RetencionDetailResponse(**result.__dict__)
+    return retencion_detail_to_dto(result)
