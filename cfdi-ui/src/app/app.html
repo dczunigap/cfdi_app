@@ -95,14 +95,14 @@
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
-          href="#"
+          href="declaracion"
           [class.justify-center]="sidebarCollapsed()"
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
-          [attr.title]="sidebarCollapsed() ? 'Reportes' : null"
+          [attr.title]="sidebarCollapsed() ? 'Modo declaracion' : null"
         >
-          <span *ngIf="!sidebarCollapsed()">Reportes</span>
-          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Rep</span>
+          <span *ngIf="!sidebarCollapsed()">Modo declaracion</span>
+          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Decl</span>
         </a>
       </nav>
       <!-- <div class="mt-10 rounded-2xl border border-border bg-bg p-4" *ngIf="!sidebarCollapsed()">

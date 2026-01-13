@@ -10,10 +10,20 @@
   </div>
 
   <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-    <div class="mb-4 text-sm font-medium text-text">Filtros</div>
-    <div class="grid gap-4 md:grid-cols-4">
+    <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
+      <span>Filtros</span>
+      <button
+        class="rounded-lg border border-border px-3 py-1 text-xs text-text hover:bg-bg"
+        type="button"
+        (click)="toggleFilters()"
+        [attr.aria-expanded]="filtersOpen"
+      >
+        {{ filtersOpen ? 'Ocultar' : 'Mostrar' }}
+      </button>
+    </div>
+    <div class="grid gap-4 md:grid-cols-4" *ngIf="filtersOpen">
       <label class="text-xs uppercase tracking-[0.18em] text-muted">
-        Ano
+        Año
         <select
           class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
           [(ngModel)]="year"

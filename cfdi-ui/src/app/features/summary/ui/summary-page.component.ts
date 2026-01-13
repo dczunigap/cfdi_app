@@ -17,6 +17,7 @@ export class SummaryPageComponent implements OnInit {
   summary: SummaryData | null = null;
   details: SummaryDetails | null = null;
   loading = false;
+  filtersOpen = true;
 
   year: number | null = null;
   month: number | null = null;
@@ -66,6 +67,10 @@ export class SummaryPageComponent implements OnInit {
 
   applyFilters(): void {
     this.fetch();
+  }
+
+  toggleFilters(): void {
+    this.filtersOpen = !this.filtersOpen;
   }
 
   resetFilters(): void {

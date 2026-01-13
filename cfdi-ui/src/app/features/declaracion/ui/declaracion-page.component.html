@@ -1,0 +1,266 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="font-display text-2xl text-text">Modo declaracion (mensual)</h1>
+      <p class="text-sm text-muted">Ingresos + retenciones para captura en SAT</p>
+    </div>
+    <div class="text-sm text-muted" *ngIf="summary">
+      Periodo: <span class="text-text">{{ periodLabel(summary) }}</span>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
+      <span>Filtros</span>
+      <button
+        class="rounded-lg border border-border px-3 py-1 text-xs text-text hover:bg-bg"
+        type="button"
+        (click)="toggleFilters()"
+        [attr.aria-expanded]="filtersOpen"
+      >
+        {{ filtersOpen ? 'Ocultar' : 'Mostrar' }}
+      </button>
+    </div>
+    <div class="grid gap-4 md:grid-cols-4" *ngIf="filtersOpen">
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Año
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="year"
+        >
+          <option [ngValue]="null">Selecciona</option>
+          <option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
+        </select>
+      </label>
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Mes
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="month"
+        >
+          <option [ngValue]="null">Selecciona</option>
+          <option *ngFor="let m of months" [ngValue]="m">{{ m | number: '2.0-0' }}</option>
+        </select>
+      </label>
+      <label class="text-xs uppercase tracking-[0.18em] text-muted md:col-span-2">
+        Fuente de ingresos (evitar doble conteo)
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="incomeSource"
+        >
+          <option *ngFor="let option of incomeSources" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+      <div class="flex items-end">
+        <button
+          class="w-full rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-card"
+          type="button"
+          (click)="load()"
+          [disabled]="loading || !year || !month"
+        >
+          {{ loading ? 'Cargando...' : 'Cargar' }}
+        </button>
+      </div>
+      <div class="flex items-end">
+        <button
+          class="w-full rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+          type="button"
+          (click)="clear()"
+        >
+          Quitar filtros
+        </button>
+      </div>
+      <div class="flex items-end">
+        <a
+          class="w-full rounded-xl border border-border bg-bg px-4 py-2 text-sm text-text hover:bg-surface text-center"
+          [href]="csvUrl"
+          [attr.aria-disabled]="!csvUrl"
+          target="_blank"
+          rel="noopener"
+        >
+          Exportar CSV SAT
+        </a>
+      </div>
+      <div class="flex items-end">
+        <a
+          class="w-full rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg text-center"
+          [href]="hojaUrl"
+          [attr.aria-disabled]="!hojaUrl"
+          target="_blank"
+          rel="noopener"
+        >
+          Generar hoja SAT
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-sm text-muted" *ngIf="summary?.mi_rfc">
+    RFC: <span class="text-text">{{ summary?.mi_rfc }}</span>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2" *ngIf="summary">
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Ingresos para capturar (sin IVA)</div>
+      <div class="mt-2 text-2xl font-semibold text-text">
+        {{ summary.ingresos_total_sin_iva | number: '1.2-2' }}
+      </div>
+      <div class="mt-2 text-sm text-muted">
+        Plataforma (MonTotServSIVA): {{ summary.plat_ing_siva | number: '1.2-2' }}
+      </div>
+      <div class="text-sm text-muted">
+        CFDI ingreso (subtotal-descuento aprox.): {{ summary.ingresos_base | number: '1.2-2' }}
+      </div>
+      <div class="mt-2 text-xs text-muted">
+        Fuente usada: <span class="text-text">{{ summary.effective_income_source | uppercase }}</span>
+        (selector: {{ summary.income_source }})
+      </div>
+      <div class="mt-3 text-xs text-muted">
+        Si tus CFDI de ingreso corresponden a las mismas ventas de plataforma, no los sumes.
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Retenciones para acreditar</div>
+      <div class="mt-2 text-2xl font-semibold text-text">
+        ISR retenido: {{ summary.isr_retenido | number: '1.2-2' }}
+      </div>
+      <div class="mt-2 text-sm text-muted">
+        IVA retenido: {{ summary.iva_retenido | number: '1.2-2' }}
+      </div>
+      <div class="text-sm text-muted">
+        IVA trasladado del periodo (control): {{ summary.iva_trasladado_total | number: '1.2-2' }}
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Que capturar en el portal SAT</div>
+      <ul class="mt-3 list-disc space-y-2 pl-5 text-sm text-text">
+        <li>
+          <strong>ISR:</strong> Ingresos del periodo (sin IVA) + ISR retenido por plataforma (acreditar).
+        </li>
+        <li>
+          <strong>IVA:</strong> IVA trasladado del periodo, IVA retenido por plataforma, IVA acreditable (si aplicas).
+        </li>
+      </ul>
+      <div class="mt-3 text-xs text-muted">
+        Este modo no calcula ISR a cargo; solo muestra numeros y controles.
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Checklist automatico</div>
+      <div class="mt-3 space-y-3">
+        <div
+          class="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-text"
+          *ngFor="let check of summary.checks"
+        >
+          <span
+            class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold"
+            [ngClass]="checkBadgeClass(check)"
+          >
+            {{ check.level | uppercase }}
+          </span>
+          <div class="mt-2 font-semibold">{{ check.title }}</div>
+          <div class="text-xs text-muted">{{ check.detail }}</div>
+        </div>
+      </div>
+    </div>    
+
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card md:col-span-2">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Declaracion presentada (PDF)</div>
+      <ng-container *ngIf="summary.declaracion_pdf; else noPdf">
+        <div class="mt-3 text-sm text-text">
+          Archivo: <span class="text-muted">{{ pdfLabel(summary.declaracion_pdf) }}</span>
+        </div>
+        <div class="text-sm text-text" *ngIf="summary.declaracion_pdf.fecha_presentacion">
+          Fecha presentacion:
+          <span class="text-muted">{{ summary.declaracion_pdf.fecha_presentacion | date: 'yyyy-MM-dd' }}</span>
+        </div>
+        <div class="text-sm text-text">
+          Folio/Operacion: <span class="text-muted">{{ summary.declaracion_pdf.folio || '-' }}</span>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-3 text-sm">
+          <a
+            class="rounded-lg border border-border px-3 py-2 text-xs text-text hover:bg-bg"
+            [routerLink]="['/declaraciones', summary.declaracion_pdf.id]"
+          >
+            Ver detalle
+          </a>
+          <a
+            class="rounded-lg border border-border px-3 py-2 text-xs text-text hover:bg-bg"
+            [href]="pdfUrl(summary.declaracion_pdf)"
+            target="_blank"
+            rel="noopener"
+          >
+            Abrir PDF
+          </a>
+        </div>
+        <div class="mt-4 text-xs text-muted" *ngIf="summary.declaracion_pdf.text_excerpt">
+          <strong>Resumen (texto detectado):</strong>
+          {{ summary.declaracion_pdf.text_excerpt }}
+        </div>
+        <div class="mt-4 text-xs text-muted" *ngIf="!summary.declaracion_pdf.text_excerpt">
+          No se pudo extraer texto (posible PDF escaneado).
+        </div>
+      </ng-container>
+      <ng-template #noPdf>
+        <div class="mt-3 text-sm text-muted">
+          No hay PDF importado para este periodo. Puedes importarlo desde la pantalla principal.
+        </div>
+      </ng-template>
+    </div>
+
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Conciliacion con acuse SAT (PDF)</div>
+      <ng-container *ngIf="summary.acuse_payload; else noAcuse">
+        <div class="mt-3 text-sm text-muted">
+          <strong>Operacion:</strong>
+          <span class="text-text">{{ summary.acuse_payload.numero_operacion || '-' }}</span>
+          <span *ngIf="summary.acuse_payload.fecha_presentacion">
+            · <strong>Presentacion:</strong>
+            {{ summary.acuse_payload.fecha_presentacion | date: 'yyyy-MM-dd' }}
+          </span>
+        </div>
+        <div class="mt-4 space-y-3">
+          <div
+            class="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-text"
+            *ngFor="let item of summary.acuse_checks"
+          >
+            <span
+              class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold"
+              [ngClass]="statusBadgeClass(item.status)"
+            >
+              {{ item.status | uppercase }}
+            </span>
+            <div class="mt-2 font-semibold">{{ item.label }}</div>
+            <div class="text-xs text-muted">
+              SAT: {{ item.sat ?? '-' }} · App: {{ item.app ?? '-' }}
+              <span *ngIf="item.diff !== null">· Dif: {{ item.diff | number: '1.2-2' }}</span>
+            </div>
+            <div class="text-xs text-muted" *ngIf="item.note">{{ item.note }}</div>
+          </div>
+        </div>
+        <div class="mt-3 text-xs text-muted">
+          Si ves WARN, revisa fuente de ingresos y que el PDF sea del mismo periodo.
+        </div>
+      </ng-container>
+      <ng-template #noAcuse>
+        <div class="mt-3 text-sm text-muted">
+          No hay acuse con texto extraible para conciliar.
+        </div>
+      </ng-template>
+    </div>
+
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card" *ngIf="summary">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Respaldo / Control</div>
+      <ul class="mt-3 list-disc space-y-2 pl-5 text-sm text-text">
+        <li><strong>Retenciones (plataforma):</strong> {{ summary.retenciones_count }} archivo(s) detectados.</li>
+        <li><strong>CFDI de ingresos (I/E):</strong> {{ summary.docs_count }} CFDI (incluye P).</li>
+        <li><strong>Complementos P (por FechaPago en el mes):</strong> {{ summary.pagos_count }} renglones.</li>
+      </ul>
+    </div>
+  </div>  
+</div>

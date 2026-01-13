@@ -21,6 +21,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'declaracion',
+    loadComponent: () =>
+      import('./features/declaracion/ui/declaracion-page.component').then(
+        (m) => m.DeclaracionPageComponent,
+      ),
+  },
+  {
     path: 'facturas',
     loadComponent: () =>
       import('./features/facturas/ui/facturas-page.component').then((m) => m.FacturasPageComponent),
