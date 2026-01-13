@@ -14,6 +14,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'summary',
+    loadComponent: () =>
+      import('./features/summary/ui/summary-page.component').then(
+        (m) => m.SummaryPageComponent,
+      ),
+  },
+  {
     path: 'facturas',
     loadComponent: () =>
       import('./features/facturas/ui/facturas-page.component').then((m) => m.FacturasPageComponent),

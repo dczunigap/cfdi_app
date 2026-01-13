@@ -40,11 +40,22 @@
       <nav class="space-y-2 text-sm">
         <a
           class="flex items-center gap-3 rounded-xl bg-primary/10 py-3 text-primary"
+          href="summary"
+          [class.justify-center]="sidebarCollapsed()"
+          [class.px-2]="sidebarCollapsed()"
+          [class.px-4]="!sidebarCollapsed()"
+          [attr.title]="sidebarCollapsed() ? 'Resumen' : null"
+        >
+          <span *ngIf="!sidebarCollapsed()">Resumen</span>
+          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Res</span>
+        </a>
+        <a
+          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
           href="importacion"
           [class.justify-center]="sidebarCollapsed()"
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
-          [attr.title]="sidebarCollapsed() ? 'Dashboard' : null"
+          [attr.title]="sidebarCollapsed() ? 'Importacion' : null"
         >
           <span *ngIf="!sidebarCollapsed()">Importacion</span>
           <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Imp</span>

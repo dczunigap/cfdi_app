@@ -1,0 +1,145 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="font-display text-2xl text-text">Resumen mensual</h1>
+      <p class="text-sm text-muted">KPIs del periodo y alertas de control</p>
+    </div>
+    <div class="text-sm text-muted" *ngIf="summary">
+      Periodo: <span class="text-text">{{ periodLabel(summary) }}</span>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="mb-4 text-sm font-medium text-text">Filtros</div>
+    <div class="grid gap-4 md:grid-cols-4">
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Ano
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="year"
+        >
+          <option [ngValue]="null">Automatico</option>
+          <option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
+        </select>
+      </label>
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Mes
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="month"
+        >
+          <option [ngValue]="null">Automatico</option>
+          <option *ngFor="let m of months" [ngValue]="m">{{ m }}</option>
+        </select>
+      </label>
+      <div class="flex items-end">
+        <button
+          class="w-full rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-card"
+          type="button"
+          (click)="applyFilters()"
+          [disabled]="loading || !year || !month"
+        >
+          {{ loading ? 'Cargando...' : 'Cargar' }}
+        </button>
+      </div>
+      <div class="flex items-end">
+        <button
+          class="w-full rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+          type="button"
+          (click)="resetFilters()"
+        >
+          Quitar filtros
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4" *ngIf="summary">
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Ingresos totales</div>
+      <div class="mt-2 text-2xl font-semibold text-text">{{ summary.ingresos_total | number: '1.2-2' }}</div>
+      <div class="mt-1 text-xs text-muted">Base: {{ summary.ingresos_base | number: '1.2-2' }}</div>
+    </div>
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">IVA trasladado</div>
+      <div class="mt-2 text-2xl font-semibold text-text">{{ summary.ingresos_trasl | number: '1.2-2' }}</div>
+      <div class="mt-1 text-xs text-muted">Retenido: {{ summary.ingresos_ret | number: '1.2-2' }}</div>
+    </div>
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Gastos totales</div>
+      <div class="mt-2 text-2xl font-semibold text-text">{{ summary.gastos_total | number: '1.2-2' }}</div>
+      <div class="mt-1 text-xs text-muted">IVA acreditable: {{ summary.gastos_trasl | number: '1.2-2' }}</div>
+    </div>
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Flujo neto</div>
+      <div class="mt-2 text-2xl font-semibold text-text">
+        {{ summary.cash_in - summary.cash_out | number: '1.2-2' }}
+      </div>
+      <div class="mt-1 text-xs text-muted">Entradas: {{ summary.cash_in | number: '1.2-2' }}</div>
+    </div>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2" *ngIf="summary">
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <h2 class="font-display text-lg text-text">Plataforma</h2>
+      <div class="mt-4 space-y-2 text-sm text-text">
+        <div class="flex items-center justify-between">
+          <span class="text-muted">Ingresos sin IVA</span>
+          <span>{{ summary.plat_ing_siva | number: '1.2-2' }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-muted">IVA trasladado</span>
+          <span>{{ summary.plat_iva_tras | number: '1.2-2' }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-muted">IVA retenido</span>
+          <span>{{ summary.plat_iva_ret | number: '1.2-2' }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-muted">ISR retenido</span>
+          <span>{{ summary.plat_isr_ret | number: '1.2-2' }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-muted">Comision</span>
+          <span>{{ summary.plat_comision | number: '1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <h2 class="font-display text-lg text-text">IVA sugerido</h2>
+      <div class="mt-4 space-y-2 text-sm text-text">
+        <div class="flex items-center justify-between">
+          <span class="text-muted">IVA causado</span>
+          <span>{{ summary.iva_causado_sugerido | number: '1.2-2' }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-muted">IVA acreditable</span>
+          <span>{{ summary.iva_acreditable_sugerido | number: '1.2-2' }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-muted">IVA retenido</span>
+          <span>{{ summary.iva_retenido_plat | number: '1.2-2' }}</span>
+        </div>
+        <div class="mt-4 rounded-xl border border-border bg-bg p-3 text-center text-sm">
+          Neto sugerido: <strong>{{ summary.iva_neto_sugerido | number: '1.2-2' }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card" *ngIf="summary">
+    <h2 class="font-display text-lg text-text">Alertas</h2>
+    <div class="mt-3 space-y-2 text-sm text-text" *ngIf="alertsList.length; else noAlerts">
+      <div
+        class="rounded-xl border border-border bg-bg px-4 py-3"
+        *ngFor="let alert of alertsList"
+      >
+        {{ alert }}
+      </div>
+    </div>
+    <ng-template #noAlerts>
+      <div class="mt-3 text-sm text-muted">Sin alertas para este periodo.</div>
+    </ng-template>
+  </div>
+</div>
