@@ -1,48 +1,11 @@
 # Administracion Contable SAT
-Este proyecto permite realizar una administración contable básica para los usuarios que no realizan grandes cantidades de facturacion y gastos, que solo requieren presentar mensualmente sus declaraciones.
 
-Inicialmente fue diseñado para presentar declaraciones bajo el esquema de Personas Fisicas con Actividad Empresarial por uso de Plataformas Tecnologicas, sin embargo tiene potencial para una administración básica de la contabilidad general.
+Este repositorio contiene el backend y el frontend separados:
 
-Tiene 6 visores 
-- CFDI (Clasificados)
-- Retenciones
-- Declaraciones
-- Resumen Mensual
-- Modo Declaración
-- Declaraciones presentadas
+## Proyectos
+- `cfdi-api/`: API en Python (FastAPI) con arquitectura hexagonal. Maneja la importacion de XML/PDF, el acceso a BD y la logica de reportes. Ver `cfdi-api/README.md`.
+- `cfdi-ui/`: UI en Angular. Consume la API, presenta listados, filtros y dashboards. Ver `cfdi-ui/README.md`.
 
-Tiene 2 Modulos de importacion
-- CFDI (XML's de facturas recibidas y emitidas, ademas de xml de retenciones)
-- PDF de Declaraciones mensuales presentadas
-
----
-
-#### Instalar el environment
-```
-py -m venv .venv
-```
-
-#### Permisos para ejecucion en W11
-```
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-```
-
-#### Activar el environment en W11
-```
-.\.venv\Scripts\Activate.ps1
-```
-
-#### Instalar predependencias
-```
-pip install --upgrade pip setuptools wheel
-```
-
-#### Instalar las dependencias del proyecto
-```
-pip install -r requirements.txt
-```
-
-### Ejecutar el proyecto con recarga automatica
-```
-uvicorn main:app --host 127.0.0.1 --port 8000 --reload
-```
+## Notas
+- Cada proyecto se ejecuta y se configura por separado.
+- Revisa los README internos para instrucciones de instalacion y ejecucion.
