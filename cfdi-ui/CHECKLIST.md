@@ -5,5 +5,13 @@
 [x] Add Elf stores per feature
 [x] Create API client and interceptors
 [x] Build feature shells and routes
+[x] Modo declaracion (pantalla + integracion API)
+[x] Componentes shared para importar XML/PDF (listos para modales)
+[ ] Modales de importacion en Retenciones/Declaraciones (descartado por ahora)
+[ ] Retenciones: acciones reales (importar, abrir XML si aplica)
+[ ] Declaraciones: acciones (copiar JSON, abrir PDF/JSON, manejo de error)
+[ ] Navegacion activa y ruta para Reportes/Declaracion
+[ ] Manejo de errores y loaders globales (toasts, empty states, fallbacks)
+[ ] Autenticacion preparada (mock si aplica)
 [ ] Add tests and linting
 [ ] CI for build and test

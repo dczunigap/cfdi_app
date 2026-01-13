@@ -77,6 +77,14 @@
   <section class="rounded-2xl border border-border bg-surface shadow-card">
     <div class="flex items-center justify-between border-b border-border px-5 py-4">
       <h2 class="font-display text-lg text-text">XML (raw)</h2>
+      <button
+        class="rounded-lg border border-border px-3 py-2 text-xs text-text hover:bg-bg"
+        type="button"
+        (click)="openXml(detail)"
+        [disabled]="!detail.xml_text"
+      >
+        Abrir XML
+      </button>
     </div>
     <div class="px-5 py-4">
       <pre class="max-h-[360px] overflow-auto rounded-xl border border-border bg-bg p-4 text-xs text-muted">
