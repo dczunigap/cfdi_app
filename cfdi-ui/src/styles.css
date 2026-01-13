@@ -2,6 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+@layer base {
+  button:not([tuiButton]):not([tuiIconButton]) {
+    @apply shadow-sm shadow-black/10;
+  }
+
+  input:not([tuiInput]):not([tuiInputFiles]) {
+    @apply shadow-sm shadow-black/10;
+  }
+}
+
 :root {
   --color-bg: #f7f4ef;
   --color-surface: #ffffff;
@@ -13,6 +50,25 @@
   --color-success: #16a34a;
   --color-warn: #d97706;
   --color-danger: #dc2626;
+  --tui-primary: #0f766e;
+  --tui-primary-hover: #0d5c57;
+  --tui-base-01: #ffffff;
+  --tui-base-02: #f7f4ef;
+  --tui-text-01: #1f2933;
+  --tui-text-02: #52606d;
+  --tui-support-01: #16a34a;
+  --tui-support-02: #d97706;
+  --tui-support-03: #dc2626;
+  --tui-radius-m: 12px;
+  --tui-radius-l: 16px;
+  --tui-font-heading: 'Sora', 'Manrope', system-ui, sans-serif;
+  --tui-font-text: 'Manrope', system-ui, sans-serif;
+  --tui-font-offset: 0rem;
+  --tui-shadow-small: 0 4px 14px rgba(15, 23, 42, 0.06);
+  --tui-shadow-small-hover: 0 10px 22px rgba(15, 23, 42, 0.1);
+  --tui-shadow-medium: 0 8px 24px rgba(15, 23, 42, 0.1);
+  --tui-shadow-medium-hover: 0 14px 34px rgba(15, 23, 42, 0.14);
+  --tui-shadow-popup: 0 16px 40px rgba(15, 23, 42, 0.16);
 }
 
 html,

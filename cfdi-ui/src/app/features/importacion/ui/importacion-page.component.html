@@ -15,13 +15,13 @@
         class="block w-full rounded-xl border border-dashed border-border bg-bg px-4 py-6 text-center text-sm text-text"
       >
         <input tuiInputFiles type="file" accept=".xml" multiple [(ngModel)]="xmlFiles" />
-        <div class="text-muted">Arrastra o selecciona archivos XML</div>
+        <!-- <div class="text-muted">Arrastra o selecciona archivos XML</div>
         <div class="mt-1 text-xs text-muted">
           {{ xmlFiles.length || 0 }} archivo(s) seleccionado(s)
-        </div>
+        </div> -->
       </label>
       <button
-        class="rounded-xl bg-primary px-5 py-2 text-sm text-white shadow-card"
+        class="rounded-xl bg-primary px-5 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
         type="button"
         (click)="importXml()"
         [disabled]="xmlLoading"
@@ -103,7 +103,7 @@
         </div>
       </label>
       <button
-        class="rounded-xl bg-primary px-5 py-2 text-sm text-white shadow-card"
+        class="rounded-xl bg-primary px-5 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
         type="button"
         (click)="importPdf()"
         [disabled]="pdfLoading"
