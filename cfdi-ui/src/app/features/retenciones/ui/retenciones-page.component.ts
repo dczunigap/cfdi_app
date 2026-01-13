@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
+import { AsyncPipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
@@ -10,7 +10,7 @@ import { RetencionesRepository } from '../data/retenciones.repository';
 @Component({
   selector: 'app-retenciones-page',
   standalone: true,
-  imports: [AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink],
+  imports: [AsyncPipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink],
   templateUrl: './retenciones-page.component.html',
   styleUrl: './retenciones-page.component.css',
 })

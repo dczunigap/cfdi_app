@@ -4,7 +4,14 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'facturas',
+    redirectTo: 'importacion',
+  },
+  {
+    path: 'importacion',
+    loadComponent: () =>
+      import('./features/importacion/ui/importacion-page.component').then(
+        (m) => m.ImportacionPageComponent,
+      ),
   },
   {
     path: 'facturas',

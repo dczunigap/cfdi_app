@@ -2,10 +2,11 @@ import { Component, signal } from '@angular/core';
 import { NgIf } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { TuiRoot } from '@taiga-ui/core';
+import { TuiAlerts } from '@taiga-ui/core/components/alert';
 
 @Component({
   selector: 'app-root',
-  imports: [NgIf, RouterOutlet, TuiRoot],
+  imports: [NgIf, RouterOutlet, TuiRoot, TuiAlerts],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

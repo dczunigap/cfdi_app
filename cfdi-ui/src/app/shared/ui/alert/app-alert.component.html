@@ -1,0 +1,17 @@
+<tui-notification [appearance]="appearance" size="m" class="block w-full">
+  <div class="flex items-start justify-between gap-3">
+    <div class="space-y-1">
+      <div class="text-sm font-semibold text-text" *ngIf="title">{{ title }}</div>
+      <div class="text-sm text-text">{{ message }}</div>
+    </div>
+    <button
+      *ngIf="dismissible"
+      tuiIconButton
+      type="button"
+      class="text-text/70"
+      [iconStart]="closeIcon"
+      (click)="close.emit()"
+      aria-label="Cerrar"
+    ></button>
+  </div>
+</tui-notification>

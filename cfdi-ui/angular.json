@@ -25,10 +25,8 @@
               }
             ],
             "styles": [
-              "node_modules/@taiga-ui/styles/taiga-ui-global.less",
-              "node_modules/@taiga-ui/styles/basic/main.less",
-              "node_modules/@taiga-ui/styles/basic/keyframes.less",
-              "src/styles.css"
+              "src/styles.css",
+              "node_modules/@taiga-ui/styles/taiga-ui-global.less"
             ]
           },
           "configurations": {

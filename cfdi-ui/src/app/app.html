@@ -1,4 +1,5 @@
 <tui-root class="min-h-screen bg-bg block">
+  <tui-alerts></tui-alerts>
   <div class="flex min-h-screen">
     <aside
       class="hidden shrink-0 border-r border-border bg-surface py-8 transition-all duration-300 lg:block"
@@ -39,14 +40,14 @@
       <nav class="space-y-2 text-sm">
         <a
           class="flex items-center gap-3 rounded-xl bg-primary/10 py-3 text-primary"
-          href="#"
+          href="importacion"
           [class.justify-center]="sidebarCollapsed()"
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
           [attr.title]="sidebarCollapsed() ? 'Dashboard' : null"
         >
-          <span *ngIf="!sidebarCollapsed()">Dashboard</span>
-          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Dash</span>
+          <span *ngIf="!sidebarCollapsed()">Importacion</span>
+          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Imp</span>
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
