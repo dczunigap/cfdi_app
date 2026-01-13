@@ -1,0 +1,40 @@
+name: cfdi-ui-ci
+
+on:
+  push:
+    paths:
+      - 'cfdi-ui/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:
+      - 'cfdi-ui/**'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cfdi-ui
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: cfdi-ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Build
+        run: npm run build
