@@ -10,7 +10,7 @@
 [ ] Modales de importacion en Retenciones/Declaraciones (descartado por ahora)
 [x] Retenciones: acciones reales (importar, abrir XML si aplica)
 [x] Declaraciones: acciones (copiar JSON, abrir PDF/JSON, manejo de error)
-[ ] Navegacion activa y ruta para Reportes/Declaracion
+[x] Navegacion activa y ruta para Reportes/Declaracion
 [ ] Manejo de errores y loaders globales (toasts, empty states, fallbacks)
 [ ] Autenticacion preparada (mock si aplica)
 [ ] Add tests and linting

@@ -39,8 +39,10 @@
       </div>
       <nav class="space-y-2 text-sm">
         <a
-          class="flex items-center gap-3 rounded-xl bg-primary/10 py-3 text-primary"
-          href="summary"
+          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
+          routerLink="/summary"
+          routerLinkActive="bg-primary/10 text-primary"
+          [routerLinkActiveOptions]="{ exact: true }"
           [class.justify-center]="sidebarCollapsed()"
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
@@ -51,7 +53,9 @@
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
-          href="importacion"
+          routerLink="/importacion"
+          routerLinkActive="bg-primary/10 text-primary"
+          [routerLinkActiveOptions]="{ exact: true }"
           [class.justify-center]="sidebarCollapsed()"
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
@@ -62,7 +66,8 @@
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
-          href="facturas"
+          routerLink="/facturas"
+          routerLinkActive="bg-primary/10 text-primary"
           [class.justify-center]="sidebarCollapsed()"
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
@@ -73,7 +78,8 @@
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
-          href="retenciones"
+          routerLink="/retenciones"
+          routerLinkActive="bg-primary/10 text-primary"
           [class.justify-center]="sidebarCollapsed()"
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
@@ -84,7 +90,8 @@
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
-          href="declaraciones"
+          routerLink="/declaraciones"
+          routerLinkActive="bg-primary/10 text-primary"
           [class.justify-center]="sidebarCollapsed()"
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
@@ -95,7 +102,9 @@
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
-          href="declaracion"
+          routerLink="/declaracion"
+          routerLinkActive="bg-primary/10 text-primary"
+          [routerLinkActiveOptions]="{ exact: true }"
           [class.justify-center]="sidebarCollapsed()"
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
