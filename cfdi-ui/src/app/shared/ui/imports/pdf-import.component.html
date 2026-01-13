@@ -1,0 +1,102 @@
+<ng-template #contentTpl>
+  <h2 class="font-display text-lg text-text">Importar PDF de declaracion mensual</h2>
+  <p class="mt-2 text-sm text-muted">
+    Sube el acuse SAT. Si el PDF tiene texto, se genera un resumen.
+  </p>
+
+  <div class="mt-4 grid gap-4 md:grid-cols-4">
+    <label class="text-xs uppercase tracking-[0.18em] text-muted">
+      Año
+      <input
+        type="number"
+        class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+        [(ngModel)]="year"
+      />
+    </label>
+    <label class="text-xs uppercase tracking-[0.18em] text-muted">
+      Mes
+      <input
+        type="number"
+        class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+        [(ngModel)]="month"
+      />
+    </label>
+  </div>
+
+  <div class="mt-4 space-y-3">
+    <label
+      tuiInputFiles
+      class="block w-full rounded-xl border border-dashed border-border bg-bg px-4 py-6 text-center text-sm text-text"
+    >
+      <input tuiInputFiles type="file" accept=".pdf,application/pdf" multiple [(ngModel)]="pdfFiles" />
+      <div class="text-muted">Arrastra o selecciona PDF</div>
+      <div class="mt-1 text-xs text-muted">
+        {{ pdfFiles.length || 0 }} archivo(s) seleccionado(s)
+      </div>
+    </label>
+    <div class="flex flex-wrap gap-3">
+      <button
+        class="rounded-xl bg-primary px-5 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
+        type="button"
+        (click)="importPdf()"
+        [disabled]="pdfLoading"
+      >
+        {{ pdfLoading ? 'Importando...' : 'Importar PDF' }}
+      </button>
+      <button
+        class="rounded-xl border border-border bg-surface px-5 py-2 text-sm text-text shadow-sm shadow-black/10 hover:shadow-md"
+        type="button"
+        (click)="cancelImport()"
+        [disabled]="pdfLoading"
+      >
+        Cancelar
+      </button>
+      <button
+        *ngIf="dialogContext"
+        class="rounded-xl border border-border bg-surface px-5 py-2 text-sm text-text shadow-sm shadow-black/10 hover:shadow-md"
+        type="button"
+        (click)="closeDialog()"
+      >
+        Cerrar
+      </button>
+    </div>
+    <div class="text-xs text-muted">
+      Tip: si el PDF es escaneado, el resumen puede salir vacio.
+    </div>
+  </div>
+
+  <ng-container *ngIf="pdfResult as pdfStats">
+    <div
+      class="mt-4 rounded-xl border border-border bg-bg p-4 text-sm text-text"
+      *ngIf="hasPdfStats(pdfStats)"
+    >
+      <div class="grid gap-3 md:grid-cols-3">
+        <div>
+          <div class="text-xs uppercase tracking-[0.18em] text-muted">Insertados</div>
+          <div class="text-lg">{{ pdfStats.insertados }}</div>
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-[0.18em] text-muted">Duplicados</div>
+          <div class="text-lg">{{ pdfStats.duplicados }}</div>
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-[0.18em] text-muted">Errores</div>
+          <div class="text-lg">{{ pdfStats.errores }}</div>
+        </div>
+      </div>
+      <div class="mt-3 text-xs text-muted" *ngIf="pdfStats.errores > 0">
+        Se detectaron errores durante la importacion. Revisa los PDF.
+      </div>
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-container *ngIf="showCard; else bareTpl">
+  <div class="rounded-2xl border border-border bg-surface p-6 shadow-card">
+    <ng-container *ngTemplateOutlet="contentTpl"></ng-container>
+  </div>
+</ng-container>
+
+<ng-template #bareTpl>
+  <ng-container *ngTemplateOutlet="contentTpl"></ng-container>
+</ng-template>

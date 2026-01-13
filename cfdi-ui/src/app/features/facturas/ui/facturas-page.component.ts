@@ -5,11 +5,12 @@ import { FormsModule } from '@angular/forms';
 
 import { facturas$, facturasCount$ } from '../data/facturas.queries';
 import { FacturasRepository } from '../data/facturas.repository';
+import { XmlImportComponent } from '../../../shared/ui/imports/xml-import.component';
 
 @Component({
   selector: 'app-facturas-page',
   standalone: true,
-  imports: [AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink],
+  imports: [AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink, XmlImportComponent],
   templateUrl: './facturas-page.component.html',
   styleUrl: './facturas-page.component.css',
 })
@@ -21,6 +22,7 @@ export class FacturasPageComponent implements OnInit {
   readonly tipos = ['I', 'E', 'P', 'T', 'N'];
   readonly naturalezas = ['ingreso', 'gasto', 'cobro', 'pago', 'otro'];
   filtersCollapsed = false;
+  showXmlImport = false;
 
   year: number | null = null;
   month: number | null = null;
@@ -58,6 +60,18 @@ export class FacturasPageComponent implements OnInit {
   toggleFilters(): void {
     this.filtersCollapsed = !this.filtersCollapsed;
   }
+
+  openXmlImport(): void {
+    this.showXmlImport = true;
+  }
+
+  handleXmlImportCompleted(success: boolean): void {
+    this.showXmlImport = false;
+    if (success) {
+      this.repo.fetch();
+    }
+  }
+
 
   private buildYears(): number[] {
     const current = new Date().getFullYear();

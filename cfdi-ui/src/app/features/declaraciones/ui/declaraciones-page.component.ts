@@ -9,11 +9,12 @@ import {
   declaracionesPeriods$,
 } from '../data/declaraciones.queries';
 import { DeclaracionesRepository } from '../data/declaraciones.repository';
+import { PdfImportComponent } from '../../../shared/ui/imports/pdf-import.component';
 
 @Component({
   selector: 'app-declaraciones-page',
   standalone: true,
-  imports: [AsyncPipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink],
+  imports: [AsyncPipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink, PdfImportComponent],
   templateUrl: './declaraciones-page.component.html',
   styleUrl: './declaraciones-page.component.css',
 })
@@ -24,6 +25,7 @@ export class DeclaracionesPageComponent implements OnInit {
 
   selectedPeriod: string | null = null;
   filtersCollapsed = false;
+  showPdfImport = false;
 
   constructor(private readonly repo: DeclaracionesRepository) {}
 
@@ -42,6 +44,17 @@ export class DeclaracionesPageComponent implements OnInit {
 
   toggleFilters(): void {
     this.filtersCollapsed = !this.filtersCollapsed;
+  }
+
+  openPdfImport(): void {
+    this.showPdfImport = true;
+  }
+
+  handlePdfImportCompleted(success: boolean): void {
+    this.showPdfImport = false;
+    if (success) {
+      this.repo.fetch();
+    }
   }
 
   formatPeriod(year: number, month: number): string {
