@@ -60,6 +60,55 @@ def summary(year: Optional[int] = None, month: Optional[int] = None, db: Session
 
 
 @router.get(
+    "/summary/details",
+    summary="Resumen mensual (detalle)",
+    description="Devuelve listas acotadas de CFDI y pagos del periodo.",
+)
+def summary_details(year: Optional[int] = None, month: Optional[int] = None, db: Session = Depends(get_db)):
+    if year is None or month is None:
+        year, month = pick_default_period(db)
+    if year is None or month is None:
+        raise HTTPException(status_code=404, detail="No hay datos para resumir")
+
+    data = compute_period_data(db, year, month)
+    docs = data["docs"][:200]
+    pagos_rows = data["pagos_rows"][:200]
+
+    docs_payload = [
+        {
+            "id": d.id,
+            "fecha_emision": d.fecha_emision,
+            "tipo_comprobante": d.tipo_comprobante,
+            "naturaleza": d.naturaleza,
+            "uuid": d.uuid,
+            "emisor_rfc": d.emisor_rfc,
+            "receptor_rfc": d.receptor_rfc,
+            "uso_cfdi": d.uso_cfdi,
+            "total": d.total,
+            "moneda": d.moneda,
+        }
+        for d in docs
+    ]
+
+    pagos_payload = [
+        {
+            "factura_id": pago.factura_id,
+            "fecha_pago": pago.fecha_pago,
+            "monto": pago.monto,
+            "moneda_p": pago.moneda_p,
+            "forma_pago_p": pago.forma_pago_p,
+            "naturaleza": naturaleza,
+        }
+        for pago, naturaleza in pagos_rows
+    ]
+
+    return {
+        "docs": docs_payload,
+        "pagos": pagos_payload,
+    }
+
+
+@router.get(
     "/sat_hoja.txt",
     summary="Hoja SAT",
     description="Devuelve texto plano con hoja SAT del periodo.",
