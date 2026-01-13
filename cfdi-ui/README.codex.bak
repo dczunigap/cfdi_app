@@ -1,6 +1,0 @@
-# cfdi-ui
-Angular frontend with Elf for state management.
-
-## Run (dev)
-- create Angular workspace here
-- connect to /api/v1

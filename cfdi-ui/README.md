@@ -41,7 +41,19 @@ This will compile your project and store the build artifacts in the `dist/` dire
 To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
 
 ```bash
-ng test
+npm run test:unit
+```
+
+To execute the Angular/Karma tests (if needed), use:
+
+```bash
+npm test
+```
+
+To run lint/typecheck, use:
+
+```bash
+npm run lint
 ```
 
 ## Running end-to-end tests

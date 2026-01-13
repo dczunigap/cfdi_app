@@ -13,5 +13,5 @@
 [x] Navegacion activa y ruta para Reportes/Declaracion
 [x] Manejo de errores y loaders globales (toasts, empty states, fallbacks)
 [x] Autenticacion preparada (mock si aplica)
-[ ] Add tests and linting
+[x] Add tests and linting
 [ ] CI for build and test
