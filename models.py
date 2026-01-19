@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from sqlalchemy import String, DateTime, Numeric, Integer, ForeignKey, UniqueConstraint, Text
+from sqlalchemy import String, DateTime, Numeric, Integer, ForeignKey, UniqueConstraint, Text, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db import Base
@@ -168,4 +168,47 @@ class DeclaracionPDF(Base):
     text_excerpt: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class SatCredential(Base):
+    __tablename__ = "sat_credentials"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rfc: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    cert_der: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    key_der: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    key_password: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class SatPackage(Base):
+    __tablename__ = "sat_packages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rfc: Mapped[str] = mapped_column(String(20), index=True)
+    paquete_id: Mapped[str] = mapped_column(String(120), index=True)
+    zip_data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("rfc", "paquete_id", name="uq_sat_packages_rfc_paquete"),
+    )
+
+
+class SatCfdiZip(Base):
+    __tablename__ = "sat_cfdi_zips"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rfc: Mapped[str] = mapped_column(String(20), index=True)
+    year: Mapped[int] = mapped_column(Integer, index=True)
+    month: Mapped[int] = mapped_column(Integer, index=True)
+    tipo: Mapped[str] = mapped_column(String(12), index=True)  # emitidos/recibidos
+    solicitud_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    paquete_id: Mapped[str] = mapped_column(String(120), index=True)
+    zip_filename: Mapped[str] = mapped_column(String(260), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("rfc", "paquete_id", name="uq_sat_cfdi_zips_rfc_paquete"),
+    )
 

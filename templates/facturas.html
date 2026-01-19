@@ -75,7 +75,7 @@
   </style>
 </head>
 
-<body>
+<body data-sat-ready="{{ '1' if sat_ready else '0' }}">
   <div class="nav muted">
     <a href="/">← importar</a>
     <a href="/retenciones">Retenciones</a>
@@ -85,11 +85,14 @@
 
   <h1>CFDI (hasta 500)</h1>
   <p class="muted">RFC config: <code>{{ mi_rfc }}</code></p>
+  {% if msg %}
+  <div class="muted" style="margin-bottom: 12px;">{{ msg }}</div>
+  {% endif %}
 
   <form class="filters" method="get" action="/facturas">
     <div>
       <div class="muted">Año</div>
-      <select name="year">
+      <select name="year" id="sat-year">
         <option value="" {% if year is none %}selected{% endif %}>Todos</option>
         {% for y in year_options %}
         <option value="{{ y }}" {% if year==y %}selected{% endif %}>{{ y }}</option>
@@ -99,7 +102,7 @@
 
     <div>
       <div class="muted">Mes</div>
-      <select name="month">
+      <select name="month" id="sat-month">
         <option value="" {% if month is none %}selected{% endif %}>Todos</option>
         {% for m in months_for_year %}
         <option value="{{ m }}" {% if month==m %}selected{% endif %}>{{ "%02d"|format(m) }}</option>
@@ -120,6 +123,25 @@
     <button class="btn" type="submit">Filtrar</button>
     <a href="/facturas" style="padding:8px 0;">Quitar filtros</a>
   </form>
+
+  <div class="filters" style="margin-top: 0;">
+    <form method="post" action="/facturas/sat_import">
+      <input type="hidden" name="year" id="sat-year-hidden" value="{{ year or '' }}" />
+      <input type="hidden" name="month" id="sat-month-hidden" value="{{ month or '' }}" />
+      <button class="btn" type="submit" id="sat-import-btn" {% if not sat_ready or year is none or month is none %}disabled{% endif %}>
+        Importar desde SAT
+      </button>
+      {% if not sat_ready %}
+      <span class="muted">Configura .cer/.key y password en Admin SAT.</span>
+      {% endif %}
+      {% if year is none or month is none %}
+      <span class="muted">Selecciona año y mes.</span>
+      {% endif %}
+      {% if sat_wait_until %}
+      <span class="muted">Espera hasta {{ sat_wait_until }} para nueva descarga.</span>
+      {% endif %}
+    </form>
+  </div>
 
 
   <table>
@@ -152,6 +174,70 @@
       {% endfor %}
     </tbody>
   </table>
+
+  <div style="margin-top: 16px;">
+    <h3>Descargas SAT (ZIP)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Periodo</th>
+          <th>Tipo</th>
+          <th>Paquete</th>
+          <th>Creado</th>
+          <th>Archivo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for z in sat_zips %}
+        <tr>
+          <td>{{ z.row.year }}-{{ "%02d"|format(z.row.month) }}</td>
+          <td>{{ z.row.tipo }}</td>
+          <td>{{ z.row.paquete_id }}</td>
+          <td>{{ z.row.created_at }}</td>
+          <td><a href="/facturas/sat_zips/{{ z.row.id }}">{{ z.row.zip_filename }}</a></td>
+          <td>
+            {% if z.can_delete %}
+            <form method="post" action="/facturas/sat_zips/{{ z.row.id }}/delete">
+              <button class="btn" type="submit">Eliminar</button>
+            </form>
+            {% else %}
+            <span class="muted">Bloqueado 48h</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <script>
+    (function () {
+      var satReady = document.body.getAttribute("data-sat-ready") === "1";
+      var yearSelect = document.getElementById("sat-year");
+      var monthSelect = document.getElementById("sat-month");
+      var yearHidden = document.getElementById("sat-year-hidden");
+      var monthHidden = document.getElementById("sat-month-hidden");
+      var btn = document.getElementById("sat-import-btn");
+
+      function refresh() {
+        if (!yearSelect || !monthSelect || !btn || !yearHidden || !monthHidden) {
+          return;
+        }
+        yearHidden.value = yearSelect.value || "";
+        monthHidden.value = monthSelect.value || "";
+        var enabled = satReady && yearHidden.value && monthHidden.value;
+        btn.disabled = !enabled;
+      }
+
+      if (yearSelect) {
+        yearSelect.addEventListener("change", refresh);
+      }
+      if (monthSelect) {
+        monthSelect.addEventListener("change", refresh);
+      }
+      refresh();
+    })();
+  </script>
 </body>
 
 </html>

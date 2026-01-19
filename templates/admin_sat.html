@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Admin SAT</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      margin: 24px;
+    }
+
+    .box {
+      border: 1px solid #ddd;
+      padding: 16px;
+      border-radius: 10px;
+      max-width: 960px;
+      margin-top: 12px;
+    }
+
+    .muted {
+      color: #666;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 10px 14px;
+      border: 1px solid #222;
+      background: #222;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn-secondary {
+      background: #fff;
+      color: #222;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 8px 16px;
+      margin-top: 10px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #eee;
+      padding: 8px 6px;
+      text-align: left;
+    }
+
+    code {
+      background: #f7f7f7;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Administracion SAT</h1>
+  <div class="muted">RFC configurado: <code>{{ mi_rfc }}</code></div>
+
+  <div class="box">
+    <h3>Subir credenciales (.cer y .key)</h3>
+    <form action="/sat/credentials" method="post" enctype="multipart/form-data">
+      <div class="grid">
+        <div>RFC</div>
+        <div><code>{{ mi_rfc }}</code></div>
+        <div>Password</div>
+        <div><input name="key_password" placeholder="opcional" /></div>
+        <div>Archivo .cer</div>
+        <div><input type="file" name="cert_file" accept=".cer" required /></div>
+        <div>Archivo .key</div>
+        <div><input type="file" name="key_file" accept=".key" required /></div>
+      </div>
+      <input type="hidden" name="rfc" value="{{ mi_rfc }}" />
+      <div style="margin-top: 12px;">
+        <button class="btn" type="submit">Guardar credenciales</button>
+      </div>
+      <div class="muted" style="margin-top: 8px;">
+        El password se cifra antes de guardarse en la base de datos.
+      </div>
+    </form>
+  </div>
+
+  <div class="box">
+    <h3>Eliminar credenciales por RFC</h3>
+    <form action="/sat/credentials/delete" method="post">
+      <div class="row">
+        <div class="muted">RFC: <code>{{ mi_rfc }}</code></div>
+        <button class="btn btn-secondary" type="submit">Eliminar archivos</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="box">
+    <h3>Descargar y guardar paquete en BD</h3>
+    <form action="/sat/descarga/zip/save" method="post">
+      <div class="grid">
+        <div>RFC</div>
+        <div><input name="rfc" placeholder="{{ mi_rfc }}" /></div>
+        <div>Tipo</div>
+        <div>
+          <select name="kind">
+            <option value="cfdi">cfdi</option>
+            <option value="retenciones">retenciones</option>
+          </select>
+        </div>
+        <div>Id Paquete</div>
+        <div><input name="paquete_id" placeholder="id_paquete" required /></div>
+      </div>
+      <div style="margin-top: 12px;">
+        <button class="btn" type="submit">Descargar y guardar</button>
+      </div>
+      <div class="muted" style="margin-top: 8px;">
+        Guarda el ZIP en la BD y luego puedes descargarlo desde la lista.
+      </div>
+    </form>
+  </div>
+
+  <div class="box">
+    <h3>Credenciales en BD</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>RFC</th>
+          <th>Creado</th>
+          <th>Con password</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in creds %}
+        <tr>
+          <td>{{ c.rfc }}</td>
+          <td>{{ c.created_at }}</td>
+          <td>{{ "si" if c.key_password else "no" }}</td>
+          <td>{{ "vacias" if not c.cert_der or not c.key_der else "ok" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box">
+    <h3>Paquetes guardados</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>RFC</th>
+          <th>Paquete</th>
+          <th>Creado</th>
+          <th>Descarga</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in packages %}
+        <tr>
+          <td>{{ p.rfc }}</td>
+          <td>{{ p.paquete_id }}</td>
+          <td>{{ p.created_at }}</td>
+          <td>
+            <a href="/sat/descarga/zip/stored/{{ p.paquete_id }}?rfc={{ p.rfc }}">Descargar</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+
+</html>

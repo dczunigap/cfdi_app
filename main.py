@@ -2,23 +2,51 @@
 
 from __future__ import annotations
 
+import base64
+import calendar
+import io
 import re
+import time
+import logging
 from pathlib import Path
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
+import zipfile
 
-from fastapi import FastAPI, Request, UploadFile, File
+from fastapi import FastAPI, Request, UploadFile, File, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 
 from sqlalchemy import select, desc, and_
 from sqlalchemy.orm import Session
 
-from db import engine, SessionLocal, PDF_DIR
-from models import Base, Factura, Concepto, Pago, RetencionPlataforma, DeclaracionPDF
+from db import engine, SessionLocal, PDF_DIR, ZIP_DIR
+from models import (
+    Base,
+    Factura,
+    Concepto,
+    Pago,
+    RetencionPlataforma,
+    DeclaracionPDF,
+    SatCredential,
+    SatPackage,
+    SatCfdiZip,
+)
 from parser_xml import detect_xml_kind, parse_cfdi_40, parse_retenciones_plataforma
 from parser_pdf import extract_pdf_text, parse_sat_declaracion_summary
 from config import MI_RFC
+from sat_crypto import decrypt_password, encrypt_password
+from sat_descarga_service import SatDescargaSoapService
+from sat_descarga_workflow import SatDescargaWorkflow
+from sat_descarga_requests import SolicitudDescargaParams
+from sat_actions import (
+    SOAP_CFDI_ACTION_AUTENTICA,
+    SOAP_CFDI_ACTION_SOLICITA_EMITIDOS,
+    SOAP_CFDI_ACTION_SOLICITA_RECIBIDOS,
+)
+from sat_ws_security import load_sat_key_material_from_bytes
+from sat_endpoints import SatEndpoints
 from utils import (
     sha256_bytes,
     safe_pdf_filename,
@@ -33,6 +61,11 @@ BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 app = FastAPI(title="Contabilidad CFDI (local)")
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+)
+logger = logging.getLogger("cfdi_app")
 
 # Registrar filtro personalizado para templates Jinja2
 templates.env.filters["money"] = format_money
@@ -56,6 +89,352 @@ def home(request: Request, msg: Optional[str] = None) -> HTMLResponse:
         "index.html",
         {"request": request, "mi_rfc": MI_RFC, "msg": msg},
     )
+
+
+class SatAuthRequest(BaseModel):
+    kind: str = "cfdi"
+    soap_action: Optional[str] = None
+    to_url: Optional[str] = None
+    action: Optional[str] = None
+
+
+class SatDescargaFlowRequest(BaseModel):
+    kind: str = "cfdi"
+    rfc_solicitante: Optional[str] = None
+    fecha_inicial: str
+    fecha_final: str
+    tipo_solicitud: str = "CFDI"
+    rfc_emisor: Optional[str] = None
+    rfc_receptores: list[str] = []
+    poll_attempts: int = 10
+    poll_seconds: int = 10
+    download: bool = False
+
+
+@app.post("/sat/auth")
+def sat_auth(payload: SatAuthRequest) -> dict:
+    endpoints = SatEndpoints.for_kind(payload.kind)
+    service = SatDescargaSoapService(endpoints)
+    with SessionLocal() as db:
+        credentials = _get_sat_credentials(db, MI_RFC)
+        if credentials and _credentials_ready(credentials):
+            password = decrypt_password(credentials.key_password)
+            logger.debug(
+                "SAT auth usando credenciales BD rfc=%s cert=%s key=%s password=%s",
+                MI_RFC,
+                bool(credentials.cert_der),
+                bool(credentials.key_der),
+                bool(password),
+            )
+            key_material = load_sat_key_material_from_bytes(
+                credentials.cert_der,
+                credentials.key_der,
+                password,
+            )
+            workflow = SatDescargaWorkflow(service=service, key_material=key_material)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="No hay credenciales validas en BD para este RFC.",
+            )
+    token = workflow.autenticar(
+        soap_action=payload.soap_action,
+        to_url=payload.to_url,
+        action=payload.action,
+    )
+    return {"token": token}
+
+
+@app.post("/sat/credentials")
+async def sat_credentials(
+    rfc: Optional[str] = Form(None),
+    key_password: Optional[str] = Form(None),
+    cert_file: UploadFile = File(...),
+    key_file: UploadFile = File(...),
+) -> dict:
+    rfc_value = (rfc or MI_RFC).strip()
+    cert_bytes = await cert_file.read()
+    key_bytes = await key_file.read()
+    if not cert_bytes or not key_bytes:
+        raise HTTPException(status_code=400, detail="Archivos .cer y .key son requeridos.")
+    encrypted_password = encrypt_password(key_password)
+    with SessionLocal() as db:
+        existing = _get_sat_credentials(db, rfc_value)
+        if existing:
+            existing.cert_der = cert_bytes
+            existing.key_der = key_bytes
+            existing.key_password = encrypted_password
+        else:
+            db.add(
+                SatCredential(
+                    rfc=rfc_value,
+                    cert_der=cert_bytes,
+                    key_der=key_bytes,
+                    key_password=encrypted_password,
+                )
+            )
+        db.commit()
+    return {"status": "ok", "rfc": rfc_value}
+
+
+@app.post("/sat/credentials/delete")
+def sat_credentials_delete() -> dict:
+    rfc_value = MI_RFC.strip()
+    with SessionLocal() as db:
+        existing = _get_sat_credentials(db, rfc_value)
+        if not existing:
+            raise HTTPException(status_code=404, detail="RFC sin credenciales.")
+        existing.cert_der = b""
+        existing.key_der = b""
+        existing.key_password = None
+        db.commit()
+    return {"status": "cleared", "rfc": rfc_value}
+
+
+@app.get("/admin/sat", response_class=HTMLResponse)
+def admin_sat(request: Request) -> HTMLResponse:
+    with SessionLocal() as db:
+        creds = db.query(SatCredential).order_by(SatCredential.rfc.asc()).all()
+        packages = db.query(SatPackage).order_by(SatPackage.created_at.desc()).limit(20).all()
+    return templates.TemplateResponse(
+        "admin_sat.html",
+        {
+            "request": request,
+            "mi_rfc": MI_RFC,
+            "creds": creds,
+            "packages": packages,
+        },
+    )
+
+
+@app.post("/sat/descarga/flow")
+def sat_descarga_flow(payload: SatDescargaFlowRequest) -> dict:
+    endpoints = SatEndpoints.for_kind(payload.kind)
+    service = SatDescargaSoapService(endpoints)
+    with SessionLocal() as db:
+        credentials = _get_sat_credentials(db, payload.rfc_solicitante or MI_RFC)
+        if not credentials or not _credentials_ready(credentials):
+            raise HTTPException(status_code=404, detail="No hay credenciales para el RFC.")
+        password = decrypt_password(credentials.key_password)
+        key_material = load_sat_key_material_from_bytes(
+            credentials.cert_der,
+            credentials.key_der,
+            password,
+        )
+        workflow = SatDescargaWorkflow(service=service, key_material=key_material)
+
+    token = workflow.autenticar(
+        soap_action=SOAP_CFDI_ACTION_AUTENTICA,
+        to_url=endpoints.auth_url,
+        action=SOAP_CFDI_ACTION_AUTENTICA,
+    )
+    try:
+        fecha_inicial = datetime.fromisoformat(payload.fecha_inicial)
+        fecha_final = datetime.fromisoformat(payload.fecha_final)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Formato de fecha invalido.") from exc
+    params = SolicitudDescargaParams(
+        rfc_solicitante=payload.rfc_solicitante or MI_RFC,
+        rfc_emisor=payload.rfc_emisor,
+        fecha_inicial=fecha_inicial,
+        fecha_final=fecha_final,
+        tipo_solicitud=payload.tipo_solicitud,
+        rfc_receptores=payload.rfc_receptores or [],
+    )
+    id_solicitud = workflow.solicitar_descarga(params, access_token=token)
+
+    result = None
+    for _ in range(max(1, payload.poll_attempts)):
+        result = workflow.verificar_descarga(
+            rfc_solicitante=params.rfc_solicitante,
+            id_solicitud=id_solicitud,
+            access_token=token,
+        )
+        if result.estado_solicitud == "3":
+            break
+        time.sleep(max(0, payload.poll_seconds))
+
+    response = {
+        "id_solicitud": id_solicitud,
+        "estado_solicitud": result.estado_solicitud if result else None,
+        "codigo_estado": result.codigo_estado if result else None,
+        "mensaje": result.mensaje if result else None,
+        "paquetes": result.paquetes if result else [],
+    }
+    if payload.download and result and result.paquetes:
+        paquetes = []
+        for paquete_id in result.paquetes:
+            zip_bytes = workflow.descargar_paquete(
+                rfc_solicitante=params.rfc_solicitante,
+                id_paquete=paquete_id,
+                access_token=token,
+            )
+            paquetes.append(
+                {
+                    "id_paquete": paquete_id,
+                    "zip_base64": base64.b64encode(zip_bytes).decode("ascii"),
+                }
+            )
+        response["descargas"] = paquetes
+    return response
+
+
+@app.get("/sat/descarga/zip/{paquete_id}")
+def sat_descarga_zip(paquete_id: str, kind: str = "cfdi", rfc: Optional[str] = None) -> Response:
+    endpoints = SatEndpoints.for_kind(kind)
+    service = SatDescargaSoapService(endpoints)
+    rfc_value = (rfc or MI_RFC).strip()
+    with SessionLocal() as db:
+        credentials = _get_sat_credentials(db, rfc_value)
+        if not credentials or not _credentials_ready(credentials):
+            raise HTTPException(status_code=404, detail="No hay credenciales para el RFC.")
+        password = decrypt_password(credentials.key_password)
+        key_material = load_sat_key_material_from_bytes(
+            credentials.cert_der,
+            credentials.key_der,
+            password,
+        )
+        workflow = SatDescargaWorkflow(service=service, key_material=key_material)
+    token = workflow.autenticar(
+        soap_action=SOAP_CFDI_ACTION_AUTENTICA,
+        to_url=endpoints.auth_url,
+        action=SOAP_CFDI_ACTION_AUTENTICA,
+    )
+    zip_bytes = workflow.descargar_paquete(
+        rfc_solicitante=rfc_value,
+        id_paquete=paquete_id,
+        access_token=token,
+    )
+    headers = {"Content-Disposition": f'attachment; filename="{paquete_id}.zip"'}
+    return Response(content=zip_bytes, media_type="application/zip", headers=headers)
+
+
+@app.post("/sat/descarga/zip/save")
+def sat_descarga_zip_save(
+    paquete_id: str = Form(...),
+    kind: str = Form("cfdi"),
+    rfc: Optional[str] = Form(None),
+) -> dict:
+    endpoints = SatEndpoints.for_kind(kind)
+    service = SatDescargaSoapService(endpoints)
+    rfc_value = (rfc or MI_RFC).strip()
+    with SessionLocal() as db:
+        credentials = _get_sat_credentials(db, rfc_value)
+        if not credentials or not _credentials_ready(credentials):
+            raise HTTPException(status_code=404, detail="No hay credenciales para el RFC.")
+        password = decrypt_password(credentials.key_password)
+        key_material = load_sat_key_material_from_bytes(
+            credentials.cert_der,
+            credentials.key_der,
+            password,
+        )
+        workflow = SatDescargaWorkflow(service=service, key_material=key_material)
+        token = workflow.autenticar(
+            soap_action=SOAP_CFDI_ACTION_AUTENTICA,
+            to_url=endpoints.auth_url,
+            action=SOAP_CFDI_ACTION_AUTENTICA,
+        )
+        zip_bytes = workflow.descargar_paquete(
+            rfc_solicitante=rfc_value,
+            id_paquete=paquete_id,
+            access_token=token,
+        )
+        existing = (
+            db.query(SatPackage)
+            .filter(SatPackage.rfc == rfc_value, SatPackage.paquete_id == paquete_id)
+            .one_or_none()
+        )
+        if existing:
+            existing.zip_data = zip_bytes
+        else:
+            db.add(
+                SatPackage(
+                    rfc=rfc_value,
+                    paquete_id=paquete_id,
+                    zip_data=zip_bytes,
+                )
+            )
+        db.commit()
+    return {"status": "stored", "rfc": rfc_value, "paquete_id": paquete_id, "bytes": len(zip_bytes)}
+
+
+@app.get("/sat/descarga/zip/stored/{paquete_id}")
+def sat_descarga_zip_stored(paquete_id: str, rfc: Optional[str] = None) -> Response:
+    rfc_value = (rfc or MI_RFC).strip()
+    with SessionLocal() as db:
+        stored = (
+            db.query(SatPackage)
+            .filter(SatPackage.rfc == rfc_value, SatPackage.paquete_id == paquete_id)
+            .one_or_none()
+        )
+        if not stored:
+            raise HTTPException(status_code=404, detail="Paquete no encontrado en BD.")
+        zip_bytes = stored.zip_data
+    headers = {"Content-Disposition": f'attachment; filename="{paquete_id}.zip"'}
+    return Response(content=zip_bytes, media_type="application/zip", headers=headers)
+
+
+def _get_sat_credentials(db: Session, rfc: str) -> SatCredential | None:
+    return db.query(SatCredential).filter(SatCredential.rfc == rfc).one_or_none()
+
+
+def _credentials_ready(credentials: SatCredential) -> bool:
+    return bool(credentials.cert_der) and bool(credentials.key_der)
+
+
+def _password_ready(credentials: SatCredential) -> bool:
+    return bool(credentials.key_password)
+
+
+def _sat_wait_until(db: Session, rfc: str, year: int, month: int) -> Optional[datetime]:
+    cutoff = datetime.utcnow() - timedelta(hours=48)
+    recent = (
+        db.query(SatCfdiZip)
+        .filter(
+            SatCfdiZip.rfc == rfc,
+            SatCfdiZip.year == year,
+            SatCfdiZip.month == month,
+            SatCfdiZip.created_at >= cutoff,
+        )
+        .order_by(SatCfdiZip.created_at.desc())
+        .first()
+    )
+    if not recent:
+        return None
+    return recent.created_at + timedelta(hours=48)
+
+
+def _build_period_range(year: int, month: int) -> tuple[datetime, datetime]:
+    last_day = calendar.monthrange(year, month)[1]
+    start = datetime(year, month, 1, 0, 0, 0)
+    end = datetime(year, month, last_day, 23, 59, 59)
+    return start, end
+
+
+def _zip_storage_path(rfc: str, year: int, month: int, tipo: str, paquete_id: str) -> Path:
+    safe_rfc = re.sub(r"[^A-Z0-9]", "", rfc.upper())
+    stamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    filename = f"{safe_rfc}_{year}{month:02d}_{tipo}_{paquete_id}_{stamp}.zip"
+    return ZIP_DIR / filename
+
+
+def _import_cfdi_xml_bytes(db: Session, xml_bytes: bytes, stats: dict) -> None:
+    kind = detect_xml_kind(xml_bytes)
+    if kind != "cfdi":
+        stats["omitidos"] += 1
+        return
+    parsed = parse_cfdi_40(xml_bytes)
+    uuid = parsed.get("uuid")
+    if uuid:
+        exists = db.scalar(select(Factura.id).where(Factura.uuid == uuid))
+        if exists:
+            stats["duplicados"] += 1
+            return
+    parsed["xml_text"] = xml_bytes.decode("utf-8", errors="replace")
+    factura = _create_factura_from_parsed(parsed)
+    db.add(factura)
+    db.commit()
+    stats["insertados"] += 1
 
 
 # ============================================================================
@@ -486,6 +865,7 @@ def listar_facturas(
     month: Optional[str] = None,
     tipo: Optional[str] = None,
     naturaleza: Optional[str] = None,
+    msg: Optional[str] = None,
 ) -> HTMLResponse:
     """Lista CFDI de facturas con filtros opcionales."""
     db = get_db()
@@ -513,6 +893,28 @@ def listar_facturas(
             q = q.where(Factura.naturaleza == naturaleza.lower())
 
         facturas = db.scalars(q.limit(500)).all()
+
+        sat_creds = _get_sat_credentials(db, MI_RFC)
+        sat_ready = bool(sat_creds) and _credentials_ready(sat_creds) and _password_ready(sat_creds)
+
+        sat_zips_q = db.query(SatCfdiZip).filter(SatCfdiZip.rfc == MI_RFC)
+        if year_i is not None:
+            sat_zips_q = sat_zips_q.filter(SatCfdiZip.year == year_i)
+        if month_i is not None:
+            sat_zips_q = sat_zips_q.filter(SatCfdiZip.month == month_i)
+        sat_zips_raw = sat_zips_q.order_by(SatCfdiZip.created_at.desc()).all()
+        now_utc = datetime.utcnow()
+        sat_zips = [
+            {
+                "row": row,
+                "can_delete": row.created_at + timedelta(hours=48) <= now_utc,
+            }
+            for row in sat_zips_raw
+        ]
+
+        wait_until = None
+        if year_i is not None and month_i is not None:
+            wait_until = _sat_wait_until(db, MI_RFC, year_i, month_i)
         return templates.TemplateResponse(
             "facturas.html",
             {
@@ -525,10 +927,211 @@ def listar_facturas(
                 "month": month_i,
                 "year_options": year_options,
                 "months_for_year": months_for_year,
+                "sat_ready": sat_ready,
+                "sat_zips": sat_zips,
+                "sat_wait_until": wait_until,
+                "msg": msg,
             },
         )
     finally:
         db.close()
+
+
+@app.post("/facturas/sat_import")
+def facturas_sat_import(
+    year: str = Form(...),
+    month: str = Form(...),
+) -> Response:
+    if not (year.isdigit() and month.isdigit()):
+        return RedirectResponse(
+            url=f"/facturas?msg=Selecciona+ano+y+mes+validos&year={year}&month={month}",
+            status_code=303,
+        )
+    year_i = int(year)
+    month_i = int(month)
+    if month_i < 1 or month_i > 12:
+        return RedirectResponse(
+            url=f"/facturas?msg=Mes+invalido&year={year_i}&month={month_i}",
+            status_code=303,
+        )
+
+    with SessionLocal() as db:
+        try:
+            def _stage(label: str, fn):
+                try:
+                    return fn()
+                except Exception as exc:
+                    raise RuntimeError(f"{label}: {exc}") from exc
+
+            credentials = _get_sat_credentials(db, MI_RFC)
+            if not credentials or not _credentials_ready(credentials) or not _password_ready(credentials):
+                return RedirectResponse(
+                    url=(
+                        "/facturas?msg=Configura+credenciales+SAT+con+password"
+                        f"&year={year_i}&month={month_i}"
+                    ),
+                    status_code=303,
+                )
+
+            wait_until = _sat_wait_until(db, MI_RFC, year_i, month_i)
+            if wait_until and wait_until > datetime.utcnow():
+                msg = f"Ya existe una descarga reciente. Espera hasta {wait_until.isoformat()}."
+                return RedirectResponse(
+                    url=f"/facturas?msg={msg}&year={year_i}&month={month_i}",
+                    status_code=303,
+                )
+
+            password = decrypt_password(credentials.key_password)
+            key_material = load_sat_key_material_from_bytes(
+                credentials.cert_der,
+                credentials.key_der,
+                password,
+            )
+            endpoints = SatEndpoints.for_kind("cfdi")
+            service = SatDescargaSoapService(endpoints)
+            workflow = SatDescargaWorkflow(service=service, key_material=key_material)
+
+            token = _stage(
+                "Autenticacion",
+                lambda: workflow.autenticar(
+                    soap_action=SOAP_CFDI_ACTION_AUTENTICA,
+                    to_url=endpoints.auth_url,
+                    action=SOAP_CFDI_ACTION_AUTENTICA,
+                ),
+            )
+            fecha_inicial, fecha_final = _build_period_range(year_i, month_i)
+
+            stats = {"insertados": 0, "duplicados": 0, "omitidos": 0}
+            paquetes_guardados = 0
+
+            for tipo in ["emitidos", "recibidos"]:
+                tag_name = "SolicitaDescargaEmitidos" if tipo == "emitidos" else "SolicitaDescargaRecibidos"
+                soap_action = (
+                    SOAP_CFDI_ACTION_SOLICITA_EMITIDOS
+                    if tipo == "emitidos"
+                    else SOAP_CFDI_ACTION_SOLICITA_RECIBIDOS
+                )
+                params = SolicitudDescargaParams(
+                    rfc_solicitante=MI_RFC,
+                    rfc_emisor=MI_RFC if tipo == "emitidos" else None,
+                    rfc_receptor=MI_RFC if tipo == "recibidos" else None,
+                    fecha_inicial=fecha_inicial,
+                    fecha_final=fecha_final,
+                    tipo_solicitud="CFDI",
+                    estado_comprobante="Vigente",
+                    rfc_a_cuenta_terceros="",
+                )
+                solicitud_id = _stage(
+                    f"Solicitud {tipo}",
+                    lambda: workflow.solicitar_descarga(
+                        params, access_token=token, soap_action=soap_action, tag_name=tag_name
+                    ),
+                )
+
+                result = None
+                for _ in range(10):
+                    result = _stage(
+                        f"Verificacion {tipo}",
+                        lambda: workflow.verificar_descarga(
+                            rfc_solicitante=MI_RFC,
+                            id_solicitud=solicitud_id,
+                            access_token=token,
+                        ),
+                    )
+                    if result.estado_solicitud == "3":
+                        break
+                    time.sleep(10)
+
+                if not result or result.estado_solicitud != "3":
+                    continue
+
+            for paquete_id in result.paquetes:
+                zip_bytes = _stage(
+                    f"Descarga {tipo}",
+                    lambda: workflow.descargar_paquete(
+                        rfc_solicitante=MI_RFC,
+                        id_paquete=paquete_id,
+                        access_token=token,
+                    ),
+                )
+                zip_path = _zip_storage_path(MI_RFC, year_i, month_i, tipo, paquete_id)
+                zip_path.write_bytes(zip_bytes)
+
+                existing = (
+                    db.query(SatCfdiZip)
+                    .filter(SatCfdiZip.rfc == MI_RFC, SatCfdiZip.paquete_id == paquete_id)
+                    .one_or_none()
+                )
+                if existing:
+                    existing.zip_filename = zip_path.name
+                else:
+                    db.add(
+                        SatCfdiZip(
+                            rfc=MI_RFC,
+                            year=year_i,
+                            month=month_i,
+                            tipo=tipo,
+                            solicitud_id=solicitud_id,
+                            paquete_id=paquete_id,
+                            zip_filename=zip_path.name,
+                        )
+                    )
+                db.commit()
+                paquetes_guardados += 1
+
+                with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+                    for name in zf.namelist():
+                        if not name.lower().endswith(".xml"):
+                            continue
+                        _import_cfdi_xml_bytes(db, zf.read(name), stats)
+
+            msg = (
+                f"SAT: {paquetes_guardados} zip guardados. "
+                f"XML insertados: {stats['insertados']}, duplicados: {stats['duplicados']}, "
+                f"omitidos: {stats['omitidos']}."
+            )
+            return RedirectResponse(
+                url=f"/facturas?year={year_i}&month={month_i}&msg={msg}",
+                status_code=303,
+            )
+        except Exception as exc:
+            msg = str(exc)[:400].replace(" ", "+")
+            return RedirectResponse(
+                url=f"/facturas?msg=Error+SAT:+{msg}&year={year_i}&month={month_i}",
+                status_code=303,
+            )
+
+
+@app.get("/facturas/sat_zips/{zip_id}")
+def facturas_sat_zip_download(zip_id: int) -> Response:
+    with SessionLocal() as db:
+        row = db.get(SatCfdiZip, zip_id)
+        if not row or row.rfc != MI_RFC:
+            raise HTTPException(status_code=404, detail="Zip no encontrado.")
+        zip_path = ZIP_DIR / row.zip_filename
+        if not zip_path.exists():
+            raise HTTPException(status_code=404, detail="Archivo zip no encontrado.")
+        data = zip_path.read_bytes()
+    headers = {"Content-Disposition": f'attachment; filename="{row.zip_filename}"'}
+    return Response(content=data, media_type="application/zip", headers=headers)
+
+
+@app.post("/facturas/sat_zips/{zip_id}/delete")
+def facturas_sat_zip_delete(zip_id: int) -> Response:
+    with SessionLocal() as db:
+        row = db.get(SatCfdiZip, zip_id)
+        if not row or row.rfc != MI_RFC:
+            return RedirectResponse(url="/facturas?msg=Zip+no+encontrado", status_code=303)
+        if row.created_at + timedelta(hours=48) > datetime.utcnow():
+            return RedirectResponse(
+                url="/facturas?msg=No+puedes+eliminar+antes+de+48h", status_code=303
+            )
+        zip_path = ZIP_DIR / row.zip_filename
+        db.delete(row)
+        db.commit()
+    if zip_path.exists():
+        zip_path.unlink()
+    return RedirectResponse(url="/facturas?msg=Zip+eliminado", status_code=303)
 
 
 

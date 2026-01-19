@@ -11,6 +11,9 @@ DATA_DIR.mkdir(exist_ok=True)
 PDF_DIR = DATA_DIR / "pdfs"
 PDF_DIR.mkdir(exist_ok=True)
 
+ZIP_DIR = DATA_DIR / "zips"
+ZIP_DIR.mkdir(exist_ok=True)
+
 DB_PATH = DATA_DIR / "contabilidad.sqlite"
 DATABASE_URL = f"sqlite:///{DB_PATH.as_posix()}"
 
