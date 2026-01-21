@@ -19,6 +19,8 @@
     (completed)="handleXmlImportCompleted($event)"
   ></app-xml-import>
 
+  <p class="text-sm text-rose-600" *ngIf="error">{{ error }}</p>
+
   <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
     <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
       <span>Filtros</span>
@@ -87,6 +89,7 @@
             <th class="px-5 py-3 text-right">IVA Ret.</th>
             <th class="px-5 py-3 text-right">ISR Ret.</th>
             <th class="px-5 py-3 text-right">Detalle</th>
+            <th class="px-5 py-3 text-right">Eliminar</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border" *ngIf="retenciones$ | async as retenciones; else empty">
@@ -124,6 +127,16 @@
                   <path d="M10 9h2" />
                 </svg>
               </a>
+            </td>
+            <td class="px-5 py-4 text-right">
+              <button
+                class="rounded-lg border border-border px-3 py-2 text-xs uppercase tracking-[0.16em] text-text/70 hover:bg-bg"
+                type="button"
+                (click)="deleteRetencion(r.id)"
+                [disabled]="deletingId === r.id"
+              >
+                {{ deletingId === r.id ? 'Eliminando...' : 'Eliminar' }}
+              </button>
             </td>
           </tr>
         </tbody>

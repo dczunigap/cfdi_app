@@ -70,10 +70,14 @@
       class="mt-4 rounded-xl border border-border bg-bg p-4 text-sm text-text"
       *ngIf="hasPdfStats(pdfStats)"
     >
-      <div class="grid gap-3 md:grid-cols-3">
+      <div class="grid gap-3 md:grid-cols-4">
         <div>
           <div class="text-xs uppercase tracking-[0.18em] text-muted">Insertados</div>
           <div class="text-lg">{{ pdfStats.insertados }}</div>
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-[0.18em] text-muted">Actualizados</div>
+          <div class="text-lg">{{ pdfStats.actualizados }}</div>
         </div>
         <div>
           <div class="text-xs uppercase tracking-[0.18em] text-muted">Duplicados</div>

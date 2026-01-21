@@ -1,6 +1,7 @@
 export interface SummaryData {
   year: number;
   month: number;
+  mi_rfc?: string | null;
   ingresos_total: number;
   ingresos_base: number;
   ingresos_trasl: number;

@@ -76,8 +76,10 @@ export class XmlImportComponent {
     if (!result) return false;
     return (
       result.cfdi_insertados > 0 ||
+      result.cfdi_actualizados > 0 ||
       result.cfdi_duplicados > 0 ||
       result.retenciones_insertadas > 0 ||
+      result.retenciones_actualizadas > 0 ||
       result.retenciones_duplicadas > 0 ||
       result.errores > 0
     );
@@ -97,8 +99,19 @@ export class XmlImportComponent {
       this.alerts.warning('Importacion XML con errores. Revisa los archivos.');
       return;
     }
-    if (result.cfdi_insertados > 0 || result.retenciones_insertadas > 0) {
-      this.alerts.success('Importacion XML completada.');
+    if (
+      result.cfdi_insertados > 0 ||
+      result.retenciones_insertadas > 0 ||
+      result.cfdi_actualizados > 0 ||
+      result.retenciones_actualizadas > 0
+    ) {
+      const details = [];
+      if (result.cfdi_insertados > 0) details.push(`${result.cfdi_insertados} cfdi insertados`);
+      if (result.cfdi_actualizados > 0) details.push(`${result.cfdi_actualizados} cfdi actualizados`);
+      if (result.retenciones_insertadas > 0) details.push(`${result.retenciones_insertadas} retenciones insertadas`);
+      if (result.retenciones_actualizadas > 0)
+        details.push(`${result.retenciones_actualizadas} retenciones actualizadas`);
+      this.alerts.success(`Importacion XML completada. ${details.join(', ')}.`);
       return;
     }
     if (result.cfdi_duplicados > 0 || result.retenciones_duplicadas > 0) {

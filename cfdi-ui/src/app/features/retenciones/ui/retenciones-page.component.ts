@@ -23,6 +23,8 @@ export class RetencionesPageComponent implements OnInit {
   selectedPeriod: string | null = null;
   filtersCollapsed = false;
   showXmlImport = false;
+  deletingId: number | null = null;
+  error: string | null = null;
 
   constructor(private readonly repo: RetencionesRepository) {}
 
@@ -52,6 +54,21 @@ export class RetencionesPageComponent implements OnInit {
     if (success) {
       this.repo.fetch();
     }
+  }
+
+  deleteRetencion(id: number): void {
+    if (!confirm('Eliminar retencion?')) return;
+    this.deletingId = id;
+    this.error = null;
+    this.repo.delete(id).subscribe({
+      next: () => {
+        this.deletingId = null;
+      },
+      error: () => {
+        this.error = 'No se pudo eliminar la retencion.';
+        this.deletingId = null;
+      },
+    });
   }
 
   formatPeriod(item: RetencionListItem): string {

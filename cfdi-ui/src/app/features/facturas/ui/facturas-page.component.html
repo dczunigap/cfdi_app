@@ -4,15 +4,25 @@
       <h1 class="font-display text-2xl text-text">Facturas</h1>
       <p class="text-sm text-muted">Listado desde el backend</p>
     </div>
-    <button
-      class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
-      type="button"
-      (click)="openXmlImport()"
-      *ngIf="!showXmlImport"
-    >
-      Importar XML
-    </button>
+    <div class="flex items-center gap-3" *ngIf="!showXmlImport">
+      <button
+        class="rounded-xl border border-border bg-bg px-4 py-2 text-sm text-text hover:bg-bg/70"
+        type="button"
+        (click)="downloadCsv()"
+      >
+        Exportar CSV
+      </button>
+      <button
+        class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
+        type="button"
+        (click)="openXmlImport()"
+      >
+        Importar XML
+      </button>
+    </div>
   </div>
+
+  <p class="text-sm text-rose-600" *ngIf="error">{{ error }}</p>
 
   <app-xml-import
     *ngIf="showXmlImport"
@@ -116,6 +126,7 @@
             <th class="px-5 py-3">Uso CFDI</th>
             <th class="px-5 py-3 text-right">Total</th>
             <th class="px-5 py-3 text-right">Detalle</th>
+            <th class="px-5 py-3 text-right">Eliminar</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border" *ngIf="facturas$ | async as facturas; else empty">
@@ -151,6 +162,16 @@
                   <path d="M10 9h2" />
                 </svg>
               </a>
+            </td>
+            <td class="px-5 py-4 text-right">
+              <button
+                class="rounded-lg border border-border px-3 py-2 text-xs uppercase tracking-[0.16em] text-text/70 hover:bg-bg"
+                type="button"
+                (click)="deleteFactura(f.id)"
+                [disabled]="deletingId === f.id"
+              >
+                {{ deletingId === f.id ? 'Eliminando...' : 'Eliminar' }}
+              </button>
             </td>
           </tr>
         </tbody>

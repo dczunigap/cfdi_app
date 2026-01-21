@@ -4,7 +4,8 @@ import { Injectable } from '@angular/core';
 import { API_BASE_URL } from '../../../core/api/api-client';
 import { FacturaDetail, FacturaListItem } from './facturas.model';
 import { facturasStore, FacturasFilters } from './facturas.store';
-import { setEntities } from '@ngneat/elf-entities';
+import { deleteEntities, setEntities } from '@ngneat/elf-entities';
+import { tap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class FacturasRepository {
@@ -42,5 +43,13 @@ export class FacturasRepository {
     return this.http.get(`${API_BASE_URL}/facturas/${id}/xml`, {
       responseType: 'text',
     });
+  }
+
+  delete(id: number) {
+    return this.http.delete<{ ok: boolean }>(`${API_BASE_URL}/facturas/${id}`).pipe(
+      tap(() => {
+        facturasStore.update(deleteEntities(id));
+      })
+    );
   }
 }

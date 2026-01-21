@@ -48,10 +48,14 @@
       class="mt-4 rounded-xl border border-border bg-bg p-4 text-sm text-text"
       *ngIf="hasXmlStats(xmlStats)"
     >
-      <div class="grid gap-3 md:grid-cols-5">
+      <div class="grid gap-3 md:grid-cols-7">
         <div>
           <div class="text-xs uppercase tracking-[0.18em] text-muted">CFDI OK</div>
           <div class="text-lg">{{ xmlStats.cfdi_insertados }}</div>
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-[0.18em] text-muted">CFDI Act</div>
+          <div class="text-lg">{{ xmlStats.cfdi_actualizados }}</div>
         </div>
         <div>
           <div class="text-xs uppercase tracking-[0.18em] text-muted">CFDI Dup</div>
@@ -60,6 +64,10 @@
         <div>
           <div class="text-xs uppercase tracking-[0.18em] text-muted">Ret OK</div>
           <div class="text-lg">{{ xmlStats.retenciones_insertadas }}</div>
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-[0.18em] text-muted">Ret Act</div>
+          <div class="text-lg">{{ xmlStats.retenciones_actualizadas }}</div>
         </div>
         <div>
           <div class="text-xs uppercase tracking-[0.18em] text-muted">Ret Dup</div>

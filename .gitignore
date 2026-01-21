@@ -7,3 +7,5 @@ database/
 node_modules/
 dist/
 **/package-lock.json
+wa-bot/.wwebjs_cache/
+wa-bot/.wwebjs_auth/

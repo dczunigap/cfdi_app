@@ -92,6 +92,18 @@
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
+          routerLink="/platform-rfcs"
+          routerLinkActive="bg-primary/10 text-primary"
+          [class.justify-center]="sidebarCollapsed()"
+          [class.px-2]="sidebarCollapsed()"
+          [class.px-4]="!sidebarCollapsed()"
+          [attr.title]="sidebarCollapsed() ? 'RFCs de plataforma' : null"
+        >
+          <span *ngIf="!sidebarCollapsed()">RFCs de plataforma</span>
+          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">RFC</span>
+        </a>
+        <a
+          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
           routerLink="/declaraciones"
           routerLinkActive="bg-primary/10 text-primary"
           [class.justify-center]="sidebarCollapsed()"

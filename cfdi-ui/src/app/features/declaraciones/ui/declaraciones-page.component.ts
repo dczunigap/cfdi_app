@@ -26,6 +26,8 @@ export class DeclaracionesPageComponent implements OnInit {
   selectedPeriod: string | null = null;
   filtersCollapsed = false;
   showPdfImport = false;
+  deletingId: number | null = null;
+  error: string | null = null;
 
   constructor(private readonly repo: DeclaracionesRepository) {}
 
@@ -55,6 +57,21 @@ export class DeclaracionesPageComponent implements OnInit {
     if (success) {
       this.repo.fetch();
     }
+  }
+
+  deleteDeclaracion(id: number): void {
+    if (!confirm('Eliminar declaracion?')) return;
+    this.deletingId = id;
+    this.error = null;
+    this.repo.delete(id).subscribe({
+      next: () => {
+        this.deletingId = null;
+      },
+      error: () => {
+        this.error = 'No se pudo eliminar la declaracion.';
+        this.deletingId = null;
+      },
+    });
   }
 
   formatPeriod(year: number, month: number): string {

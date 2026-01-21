@@ -1,29 +1,21 @@
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
+  <div class="flex flex-wrap items-start justify-between gap-3">
     <div>
       <h1 class="font-display text-2xl text-text">Resumen mensual</h1>
       <p class="text-sm text-muted">KPIs del periodo y alertas de control</p>
+      <p class="mt-2 text-sm text-muted" *ngIf="summary?.mi_rfc">
+        RFC: <span class="font-medium text-text">{{ summary?.mi_rfc }}</span>
+      </p>
     </div>
     <div class="text-sm text-muted" *ngIf="summary">
-      Periodo: <span class="text-text">{{ periodLabel(summary) }}</span>
+      Mostrando: <span class="font-semibold text-text">{{ periodLabel(summary) }}</span>
     </div>
   </div>
 
   <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-    <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
-      <span>Filtros</span>
-      <button
-        class="rounded-lg border border-border px-3 py-1 text-xs text-text hover:bg-bg"
-        type="button"
-        (click)="toggleFilters()"
-        [attr.aria-expanded]="filtersOpen"
-      >
-        {{ filtersOpen ? 'Ocultar' : 'Mostrar' }}
-      </button>
-    </div>
-    <div class="grid gap-4 md:grid-cols-4" *ngIf="filtersOpen">
+    <div class="flex flex-wrap items-end gap-3">
       <label class="text-xs uppercase tracking-[0.18em] text-muted">
-        Año
+        Ano
         <select
           class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
           [(ngModel)]="year"
@@ -42,114 +34,179 @@
           <option *ngFor="let m of months" [ngValue]="m">{{ m }}</option>
         </select>
       </label>
-      <div class="flex items-end">
-        <button
-          class="w-full rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
-          type="button"
-          (click)="applyFilters()"
-          [disabled]="loading || !year || !month"
-        >
-          {{ loading ? 'Cargando...' : 'Cargar' }}
-        </button>
-      </div>
-      <div class="flex items-end">
-        <button
-          class="w-full rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
-          type="button"
-          (click)="resetFilters()"
-        >
-          Quitar filtros
-        </button>
-      </div>
+      <button
+        class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
+        type="button"
+        (click)="applyFilters()"
+        [disabled]="loading"
+      >
+        {{ loading ? 'Cargando...' : 'Ver' }}
+      </button>
+      <a
+        class="rounded-xl border border-border bg-bg px-4 py-2 text-sm text-text hover:bg-bg/70"
+        *ngIf="csvUrl"
+        [href]="csvUrl"
+      >
+        Exportar CSV SAT
+      </a>
+      <a
+        class="rounded-xl border border-border bg-bg px-4 py-2 text-sm text-text hover:bg-bg/70"
+        routerLink="/declaracion"
+        [queryParams]="declaracionParams"
+      >
+        Ir a modo declaracion
+      </a>
+      <button
+        class="rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+        type="button"
+        (click)="resetFilters()"
+      >
+        Quitar filtros
+      </button>
     </div>
   </div>
 
-  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4" *ngIf="summary">
+  <!-- <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+    <span class="font-semibold">Evita doble conteo:</span>
+    si tus ingresos principales vienen de plataforma, el XML de retenciones ya trae ingresos sin IVA y retenciones.
+    Los CFDI I/E pueden existir aparte (por ejemplo, ingresos fuera de plataforma). Aqui se muestran ambos por separado.
+  </div> -->
+
+  <div class="grid gap-4 md:grid-cols-2" *ngIf="summary as summary">
     <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-      <div class="text-xs uppercase tracking-[0.18em] text-muted">Ingresos totales</div>
-      <div class="mt-2 text-2xl font-semibold text-text">{{ summary.ingresos_total | number: '1.2-2' }}</div>
-      <div class="mt-1 text-xs text-muted">Base: {{ summary.ingresos_base | number: '1.2-2' }}</div>
-    </div>
-    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-      <div class="text-xs uppercase tracking-[0.18em] text-muted">IVA trasladado</div>
-      <div class="mt-2 text-2xl font-semibold text-text">{{ summary.ingresos_trasl | number: '1.2-2' }}</div>
-      <div class="mt-1 text-xs text-muted">Retenido: {{ summary.ingresos_ret | number: '1.2-2' }}</div>
-    </div>
-    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-      <div class="text-xs uppercase tracking-[0.18em] text-muted">Gastos totales</div>
-      <div class="mt-2 text-2xl font-semibold text-text">{{ summary.gastos_total | number: '1.2-2' }}</div>
-      <div class="mt-1 text-xs text-muted">IVA acreditable: {{ summary.gastos_trasl | number: '1.2-2' }}</div>
-    </div>
-    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-      <div class="text-xs uppercase tracking-[0.18em] text-muted">Flujo neto</div>
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Retenciones de Plataforma (periodo)</div>
       <div class="mt-2 text-2xl font-semibold text-text">
-        {{ summary.cash_in - summary.cash_out | number: '1.2-2' }}
+        Ingresos sin IVA: {{ summary.plat_ing_siva | number: '1.2-2' }}
       </div>
-      <div class="mt-1 text-xs text-muted">Entradas: {{ summary.cash_in | number: '1.2-2' }}</div>
+      <div class="mt-2 text-sm text-muted">IVA trasladado: {{ summary.plat_iva_tras | number: '1.2-2' }}</div>
+      <div class="text-sm text-muted">
+        IVA retenido: {{ summary.plat_iva_ret | number: '1.2-2' }}
+      </div>
+      <div class="text-sm text-muted">
+        ISR retenido: {{ summary.plat_isr_ret | number: '1.2-2' }}
+      </div>
+      <div class="text-sm text-muted">Uso de plataforma: {{ summary.plat_comision | number: '1.2-2' }}</div>
     </div>
-  </div>
 
-  <div class="grid gap-4 md:grid-cols-2" *ngIf="summary">
     <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-      <h2 class="font-display text-lg text-text">Plataforma</h2>
-      <div class="mt-4 space-y-2 text-sm text-text">
-        <div class="flex items-center justify-between">
-          <span class="text-muted">Ingresos sin IVA</span>
-          <span>{{ summary.plat_ing_siva | number: '1.2-2' }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-muted">IVA trasladado</span>
-          <span>{{ summary.plat_iva_tras | number: '1.2-2' }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-muted">IVA retenido</span>
-          <span>{{ summary.plat_iva_ret | number: '1.2-2' }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-muted">ISR retenido</span>
-          <span>{{ summary.plat_isr_ret | number: '1.2-2' }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-muted">Comision</span>
-          <span>{{ summary.plat_comision | number: '1.2-2' }}</span>
-        </div>
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">CFDI por emision (I/E) - excluye P</div>
+      <div class="mt-2 text-2xl font-semibold text-text">
+        Ingresos: {{ summary.ingresos_total | number: '1.2-2' }}
+      </div>
+      <div class="mt-2 text-sm text-muted">IVA trasladado (CFDI): {{ summary.ingresos_trasl | number: '1.2-2' }}</div>
+      <div class="mt-2 text-2xl font-semibold text-text">
+        Gastos: {{ summary.gastos_total | number: '1.2-2' }}
+      </div>
+      <div class="text-sm text-muted">
+        IVA acreditable aprox.: {{ summary.gastos_trasl | number: '1.2-2' }}
       </div>
     </div>
 
     <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-      <h2 class="font-display text-lg text-text">IVA sugerido</h2>
-      <div class="mt-4 space-y-2 text-sm text-text">
-        <div class="flex items-center justify-between">
-          <span class="text-muted">IVA causado</span>
-          <span>{{ summary.iva_causado_sugerido | number: '1.2-2' }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-muted">IVA acreditable</span>
-          <span>{{ summary.iva_acreditable_sugerido | number: '1.2-2' }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-muted">IVA retenido</span>
-          <span>{{ summary.iva_retenido_plat | number: '1.2-2' }}</span>
-        </div>
-        <div class="mt-4 rounded-xl border border-border bg-bg p-3 text-center text-sm">
-          Neto sugerido: <strong>{{ summary.iva_neto_sugerido | number: '1.2-2' }}</strong>
-        </div>
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Flujo por Complementos P (FechaPago)</div>
+      <div class="mt-2 text-2xl font-semibold text-text">Cobros: {{ summary.cash_in | number: '1.2-2' }}</div>
+      <div class="mt-2 text-sm text-muted">
+        Pagos: {{ summary.cash_out | number: '1.2-2' }}
+      </div>
+      <div class="mt-2 text-sm text-muted">
+        Renglones de pago detectados: {{ summary.pagos_count }}
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Papel de trabajo (IVA sugerido)</div>
+      <div class="mt-2 text-sm text-muted">
+        <strong>IVA causado</strong> = IVA plataforma + IVA CFDI:  {{ summary.iva_causado_sugerido | number: '1.2-2' }}
+      </div> 
+      <div class="text-sm text-muted">
+        <strong>IVA acreditable</strong> (gastos CFDI): {{ summary.iva_acreditable_sugerido | number: '1.2-2' }}
+      </div>
+      <div class="text-sm text-muted">
+        <strong>IVA retenido plataforma</strong>: {{ summary.iva_retenido_plat | number: '1.2-2' }}
+      </div>
+      <div class="text-sm text-muted">
+        <strong>ISR retenido plataforma</strong>: {{ summary.plat_isr_ret | number: '1.2-2' }}
+      </div>
+      <div class="text-sm text-muted">
+        <strong>IVA neto</strong> (causado - acreditable - retenido):
+        <strong>{{ summary.iva_neto_sugerido | number: '1.2-2' }}</strong>
       </div>
     </div>
   </div>
 
   <div class="rounded-2xl border border-border bg-surface p-5 shadow-card" *ngIf="summary">
-    <h2 class="font-display text-lg text-text">Alertas</h2>
-    <div class="mt-3 space-y-2 text-sm text-text" *ngIf="alertsList.length; else noAlerts">
-      <div
-        class="rounded-xl border border-border bg-bg px-4 py-3"
-        *ngFor="let alert of alertsList"
-      >
-        {{ alert }}
-      </div>
+    <h2 class="font-display text-lg text-text">CFDI del mes (por emision)</h2>
+    <p class="mt-1 text-sm text-muted">
+      Lista acotada a 200. Los tipo P aparecen pero no entran al calculo de emision.
+    </p>
+    <div class="mt-4 overflow-x-auto" *ngIf="details?.docs?.length; else noDocs">
+      <table class="min-w-full text-left text-sm">
+        <thead class="text-xs uppercase tracking-[0.12em] text-muted">
+          <tr>
+            <th class="px-3 py-2">Fecha</th>
+            <th class="px-3 py-2">Tipo</th>
+            <th class="px-3 py-2">Naturaleza</th>
+            <th class="px-3 py-2">UUID</th>
+            <th class="px-3 py-2">Emisor</th>
+            <th class="px-3 py-2">Receptor</th>
+            <th class="px-3 py-2">Uso CFDI</th>
+            <th class="px-3 py-2">Total</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          <tr *ngFor="let d of details?.docs">
+            <td class="px-3 py-2">{{ d.fecha_emision | date: 'yyyy-MM-dd' }}</td>
+            <td class="px-3 py-2">{{ d.tipo_comprobante || '-' }}</td>
+            <td class="px-3 py-2">{{ d.naturaleza || '-' }}</td>
+            <td class="px-3 py-2">{{ d.uuid || '-' }}</td>
+            <td class="px-3 py-2">{{ d.emisor_rfc || '-' }}</td>
+            <td class="px-3 py-2">{{ d.receptor_rfc || '-' }}</td>
+            <td class="px-3 py-2">{{ d.uso_cfdi || '-' }}</td>
+            <td class="px-3 py-2">{{ d.total | number: '1.2-2' }}</td>
+            <td class="px-3 py-2">
+              <a class="text-primary" [routerLink]="['/facturas', d.id]">Detalle</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-    <ng-template #noAlerts>
-      <div class="mt-3 text-sm text-muted">Sin alertas para este periodo.</div>
+    <ng-template #noDocs>
+      <div class="mt-4 text-sm text-muted">Sin CFDI para mostrar.</div>
+    </ng-template>
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card" *ngIf="summary">
+    <h2 class="font-display text-lg text-text">Pagos del mes (por FechaPago)</h2>
+    <p class="mt-1 text-sm text-muted">Se toman de CFDI tipo P. Lista acotada a 200.</p>
+    <div class="mt-4 overflow-x-auto" *ngIf="details?.pagos?.length; else noPagos">
+      <table class="min-w-full text-left text-sm">
+        <thead class="text-xs uppercase tracking-[0.12em] text-muted">
+          <tr>
+            <th class="px-3 py-2">FechaPago</th>
+            <th class="px-3 py-2">Monto</th>
+            <th class="px-3 py-2">Moneda</th>
+            <th class="px-3 py-2">Forma</th>
+            <th class="px-3 py-2">Naturaleza CFDI P</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          <tr *ngFor="let p of details?.pagos">
+            <td class="px-3 py-2">{{ p.fecha_pago | date: 'yyyy-MM-dd' }}</td>
+            <td class="px-3 py-2">{{ p.monto | number: '1.2-2' }}</td>
+            <td class="px-3 py-2">{{ p.moneda_p || 'MXN' }}</td>
+            <td class="px-3 py-2">{{ p.forma_pago_p || '-' }}</td>
+            <td class="px-3 py-2">{{ p.naturaleza || '-' }}</td>
+            <td class="px-3 py-2">
+              <a class="text-primary" [routerLink]="['/facturas', p.factura_id]">Ver CFDI</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #noPagos>
+      <div class="mt-4 text-sm text-muted">Sin pagos para mostrar.</div>
     </ng-template>
   </div>
 </div>

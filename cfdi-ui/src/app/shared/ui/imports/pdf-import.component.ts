@@ -76,7 +76,12 @@ export class PdfImportComponent {
 
   hasPdfStats(result: ImportPdfResult | null): boolean {
     if (!result) return false;
-    return result.insertados > 0 || result.duplicados > 0 || result.errores > 0;
+    return (
+      result.insertados > 0 ||
+      result.actualizados > 0 ||
+      result.duplicados > 0 ||
+      result.errores > 0
+    );
   }
 
   private finishPdfImport(clearFiles: boolean): void {
@@ -93,8 +98,11 @@ export class PdfImportComponent {
       this.alerts.warning('Importacion PDF con errores. Revisa los archivos.');
       return;
     }
-    if (result.insertados > 0) {
-      this.alerts.success('Importacion PDF completada.');
+    if (result.insertados > 0 || result.actualizados > 0) {
+      const details = [];
+      if (result.insertados > 0) details.push(`${result.insertados} insertados`);
+      if (result.actualizados > 0) details.push(`${result.actualizados} actualizados`);
+      this.alerts.success(`Importacion PDF completada. ${details.join(', ')}.`);
       return;
     }
     if (result.duplicados > 0) {
