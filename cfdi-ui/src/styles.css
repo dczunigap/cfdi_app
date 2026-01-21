@@ -30,12 +30,95 @@ select {
 }
 
 @layer base {
-  button:not([tuiButton]):not([tuiIconButton]) {
-    @apply shadow-sm shadow-black/10;
+  button {
+    @apply shadow-[0_2px_6px_rgba(148,163,184,0.35)] transition-colors duration-150;
   }
 
-  input:not([tuiInput]):not([tuiInputFiles]) {
-    @apply shadow-sm shadow-black/10;
+  button:focus-visible {
+    @apply outline-none ring-2 ring-offset-2 ring-offset-bg;
+  }
+
+  input,
+  select,
+  textarea {
+    @apply rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text shadow-sm shadow-black/10;
+    @apply focus:border-primary focus:ring-2;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-muted;
+  }
+
+  select {
+    @apply pr-8;
+  }
+
+  table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  thead th {
+    @apply text-left text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+
+  th,
+  td {
+    @apply border-b border-border px-3 py-2 align-middle;
+  }
+
+  tbody tr:hover {
+    @apply bg-surface;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-transparent font-medium transition-colors duration-150;
+  }
+
+  .btn-xs {
+    @apply px-2.5 py-1 text-xs;
+  }
+
+  .btn-s {
+    @apply px-3 py-1.5 text-sm;
+  }
+
+  .btn-m {
+    @apply px-4 py-2 text-sm;
+  }
+
+  .btn-l {
+    @apply px-5 py-2.5 text-base;
+  }
+
+  .btn-xl {
+    @apply px-6 py-3 text-base;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold;
+  }
+
+  .badge-neutral {
+    @apply border-slate-200 bg-slate-50 text-slate-700;
+  }
+
+  .badge-info {
+    @apply border-sky-200 bg-sky-50 text-sky-800;
+  }
+
+  .badge-success {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-800;
+  }
+
+  .badge-warn {
+    @apply border-amber-200 bg-amber-50 text-amber-900;
+  }
+
+  .badge-danger {
+    @apply border-rose-200 bg-rose-50 text-rose-900;
   }
 }
 
@@ -50,25 +133,6 @@ select {
   --color-success: #16a34a;
   --color-warn: #d97706;
   --color-danger: #dc2626;
-  --tui-primary: #0f766e;
-  --tui-primary-hover: #0d5c57;
-  --tui-base-01: #ffffff;
-  --tui-base-02: #f7f4ef;
-  --tui-text-01: #1f2933;
-  --tui-text-02: #52606d;
-  --tui-support-01: #16a34a;
-  --tui-support-02: #d97706;
-  --tui-support-03: #dc2626;
-  --tui-radius-m: 12px;
-  --tui-radius-l: 16px;
-  --tui-font-heading: 'Sora', 'Manrope', system-ui, sans-serif;
-  --tui-font-text: 'Manrope', system-ui, sans-serif;
-  --tui-font-offset: 0rem;
-  --tui-shadow-small: 0 4px 14px rgba(15, 23, 42, 0.06);
-  --tui-shadow-small-hover: 0 10px 22px rgba(15, 23, 42, 0.1);
-  --tui-shadow-medium: 0 8px 24px rgba(15, 23, 42, 0.1);
-  --tui-shadow-medium-hover: 0 14px 34px rgba(15, 23, 42, 0.14);
-  --tui-shadow-popup: 0 16px 40px rgba(15, 23, 42, 0.16);
 }
 
 html,
@@ -78,4 +142,26 @@ body {
 
 body {
   @apply bg-bg text-text font-sans;
+}
+
+.app-toast-overlay {
+  z-index: 60;
+  pointer-events: none;
+}
+
+.app-toast-overlay app-alert {
+  pointer-events: auto;
+}
+
+.app-dialog-backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.app-dialog-panel .cdk-dialog-container {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+  padding: 24px;
+  width: 100%;
 }

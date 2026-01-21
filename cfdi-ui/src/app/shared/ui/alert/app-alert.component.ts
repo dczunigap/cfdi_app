@@ -1,21 +1,16 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { NgIf } from '@angular/common';
-import { TuiButton } from '@taiga-ui/core/components/button';
-import { TuiNotification } from '@taiga-ui/core/components/notification';
-import { TUI_COMMON_ICONS } from '@taiga-ui/core/tokens';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { NgClass, NgIf } from '@angular/common';
 
 export type AlertAppearance = 'info' | 'positive' | 'negative' | 'warning';
 
 @Component({
   selector: 'app-alert',
   standalone: true,
-  imports: [NgIf, TuiButton, TuiNotification],
+  imports: [NgIf, NgClass],
   templateUrl: './app-alert.component.html',
   styleUrl: './app-alert.component.css',
 })
 export class AppAlertComponent {
-  private readonly icons = inject(TUI_COMMON_ICONS);
-
   @Input() appearance: AlertAppearance = 'info';
   @Input() title: string | null = null;
   @Input() message = '';
@@ -23,7 +18,12 @@ export class AppAlertComponent {
 
   @Output() readonly close = new EventEmitter<void>();
 
-  get closeIcon(): string {
-    return this.icons.close?.toString?.() ?? '';
+  get classes(): Record<string, boolean> {
+    return {
+      'alert-info': this.appearance === 'info',
+      'alert-success': this.appearance === 'positive',
+      'alert-warning': this.appearance === 'warning',
+      'alert-danger': this.appearance === 'negative',
+    };
   }
 }

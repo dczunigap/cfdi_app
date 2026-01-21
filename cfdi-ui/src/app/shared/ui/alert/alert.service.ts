@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
-import { TuiAlertService } from '@taiga-ui/core/components/alert';
+import { ToastService } from './toast.service';
 
 export type AlertAppearance = 'info' | 'positive' | 'negative' | 'warning';
 
 @Injectable({ providedIn: 'root' })
 export class AppAlertService {
-  constructor(private readonly alerts: TuiAlertService) {}
+  constructor(private readonly toasts: ToastService) {}
 
   info(message: string, title = 'Info'): void {
     this.show(message, 'info', title);
@@ -24,13 +24,12 @@ export class AppAlertService {
   }
 
   private show(message: string, appearance: AlertAppearance, title: string): void {
-    this.alerts
-      .open(message, {
-        appearance,
-        label: title,
-        autoClose: 4000,
-        closeable: true,
-      })
-      .subscribe();
+    this.toasts.show({
+      appearance,
+      title,
+      message,
+      dismissible: true,
+      durationMs: 4000,
+    });
   }
 }

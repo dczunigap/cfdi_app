@@ -1,17 +1,20 @@
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="font-display text-2xl text-text">Declaraciones</h1>
-      <p class="text-sm text-muted">Listado de declaraciones PDF</p>
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="text-xs uppercase tracking-[0.2em] text-muted">Declaraciones</div>
+        <h1 class="mt-2 font-display text-2xl text-text">Listado de PDF SAT</h1>
+        <p class="mt-1 text-sm text-muted">Importa y revisa tus declaraciones mensuales.</p>
+      </div>
+      <button
+        class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+        type="button"
+        (click)="openPdfImport()"
+        *ngIf="!showPdfImport"
+      >
+        Importar PDF
+      </button>
     </div>
-    <button
-      class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
-      type="button"
-      (click)="openPdfImport()"
-      *ngIf="!showPdfImport"
-    >
-      Importar PDF
-    </button>
   </div>
 
   <app-pdf-import
@@ -23,9 +26,9 @@
 
   <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
     <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
-      <span>Filtros</span>
+      <span class="text-xs uppercase tracking-[0.2em] text-muted">Filtros</span>
       <button
-        class="rounded-lg border border-border bg-bg px-3 py-2 text-xs uppercase tracking-[0.18em] text-text/70 hover:bg-surface"
+        class="btn btn-xs rounded-lg border border-border bg-bg text-xs uppercase tracking-[0.18em] text-text/70 hover:bg-surface"
         type="button"
         (click)="toggleFilters()"
         [attr.aria-expanded]="!filtersCollapsed"
@@ -48,7 +51,7 @@
       </label>
       <div class="flex items-end gap-3">
         <button
-          class="w-full rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
+          class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
           (click)="applyFilters()"
         >
           Filtrar
@@ -56,7 +59,7 @@
       </div>
       <div class="flex items-end">
         <button
-          class="w-full rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+          class="btn btn-s w-full rounded-xl border border-border bg-bg text-text hover:bg-bg"
           (click)="resetFilters()"
         >
           Quitar filtros
@@ -70,7 +73,7 @@
       <div class="flex items-center gap-3">
         <h2 class="font-display text-lg text-text">Declaraciones recientes</h2>
         <span
-          class="rounded-full bg-accent/20 px-3 py-1 text-xs font-medium text-accent"
+          class="badge badge-info"
           *ngIf="declaracionesCount$ | async as total"
         >
           {{ total }} registros
@@ -114,7 +117,7 @@
             </td>
             <td class="px-5 py-4 text-right">
               <a
-                class="inline-flex items-center justify-center rounded-lg border border-border px-2 py-2 text-text hover:bg-bg"
+                class="btn btn-xs inline-flex items-center justify-center rounded-lg border border-border p-0 text-text hover:bg-bg"
                 [routerLink]="['/declaraciones', d.id]"
                 title="Detalle de declaracion"
               >
@@ -138,7 +141,7 @@
             </td>
             <td class="px-5 py-4 text-right">
               <button
-                class="rounded-lg border border-border px-3 py-2 text-xs uppercase tracking-[0.16em] text-text/70 hover:bg-bg"
+                class="btn btn-xs rounded-lg border border-border text-xs uppercase tracking-[0.16em] text-text/70 hover:bg-bg"
                 type="button"
                 (click)="deleteDeclaracion(d.id)"
                 [disabled]="deletingId === d.id"

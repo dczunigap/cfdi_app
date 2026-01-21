@@ -1,20 +1,22 @@
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <div>
-      <div class="mb-2 text-xs uppercase tracking-[0.18em] text-muted">
-        <a class="hover:text-text" routerLink="/facturas">Facturas</a>
-        <span class="mx-2 text-muted">/</span>
-        <span class="text-text">Detalle</span>
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="mb-2 text-xs uppercase tracking-[0.18em] text-muted">
+          <a class="hover:text-text" routerLink="/facturas">Facturas</a>
+          <span class="mx-2 text-muted">/</span>
+          <span class="text-text">Detalle</span>
+        </div>
+        <h1 class="font-display text-2xl text-text">Detalle CFDI</h1>
+        <p class="text-sm text-muted">Visor de factura y XML</p>
       </div>
-      <h1 class="font-display text-2xl text-text">Detalle CFDI</h1>
-      <p class="text-sm text-muted">Visor de factura y XML</p>
+      <a
+        class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-bg"
+        routerLink="/facturas"
+      >
+        Volver
+      </a>
     </div>
-    <a
-      class="rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
-      routerLink="/facturas"
-    >
-      Volver
-    </a>
   </div>
 
   <ng-container *ngIf="detail$ | async as detail">

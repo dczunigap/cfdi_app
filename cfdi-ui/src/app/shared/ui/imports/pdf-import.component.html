@@ -1,5 +1,11 @@
 <ng-template #contentTpl>
-  <h2 class="font-display text-lg text-text">Importar PDF de declaracion mensual</h2>
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="text-xs uppercase tracking-[0.2em] text-muted">PDF</div>
+      <h2 class="mt-1 font-display text-lg text-text">Importar declaracion mensual</h2>
+    </div>
+    <span class="rounded-full border border-border bg-bg px-3 py-1 text-xs text-muted">SAT</span>
+  </div>
   <p class="mt-2 text-sm text-muted">
     Sube el acuse SAT. Si el PDF tiene texto, se genera un resumen.
   </p>
@@ -9,7 +15,7 @@
       Año
       <input
         type="number"
-        class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+        class="mt-2 w-full"
         [(ngModel)]="year"
       />
     </label>
@@ -17,7 +23,7 @@
       Mes
       <input
         type="number"
-        class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+        class="mt-2 w-full"
         [(ngModel)]="month"
       />
     </label>
@@ -25,10 +31,16 @@
 
   <div class="mt-4 space-y-3">
     <label
-      tuiInputFiles
-      class="block w-full rounded-xl border border-dashed border-border bg-bg px-4 py-6 text-center text-sm text-text"
+      class="block w-full cursor-pointer rounded-xl border border-dashed border-border bg-bg px-4 py-6 text-center text-sm text-text transition hover:bg-surface focus-within:border-primary focus-within:ring-2"
     >
-      <input tuiInputFiles type="file" accept=".pdf,application/pdf" multiple [(ngModel)]="pdfFiles" />
+      <input
+        #pdfInput
+        class="sr-only"
+        type="file"
+        accept=".pdf,application/pdf"
+        multiple
+        (change)="onPdfFilesSelected($event)"
+      />
       <div class="text-muted">Arrastra o selecciona PDF</div>
       <div class="mt-1 text-xs text-muted">
         {{ pdfFiles.length || 0 }} archivo(s) seleccionado(s)
@@ -36,7 +48,7 @@
     </label>
     <div class="flex flex-wrap gap-3">
       <button
-        class="rounded-xl bg-primary px-5 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
+        class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
         type="button"
         (click)="importPdf()"
         [disabled]="pdfLoading"
@@ -44,7 +56,7 @@
         {{ pdfLoading ? 'Importando...' : 'Importar PDF' }}
       </button>
       <button
-        class="rounded-xl border border-border bg-surface px-5 py-2 text-sm text-text shadow-sm shadow-black/10 hover:shadow-md"
+        class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-surface"
         type="button"
         (click)="cancelImport()"
         [disabled]="pdfLoading"
@@ -52,8 +64,8 @@
         Cancelar
       </button>
       <button
-        *ngIf="dialogContext"
-        class="rounded-xl border border-border bg-surface px-5 py-2 text-sm text-text shadow-sm shadow-black/10 hover:shadow-md"
+        *ngIf="dialogRef"
+        class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-surface"
         type="button"
         (click)="closeDialog()"
       >
@@ -96,8 +108,10 @@
 </ng-template>
 
 <ng-container *ngIf="showCard; else bareTpl">
-  <div class="rounded-2xl border border-border bg-surface p-6 shadow-card">
-    <ng-container *ngTemplateOutlet="contentTpl"></ng-container>
+  <div class="flex h-full flex-col rounded-2xl border border-border bg-surface p-6 shadow-card">
+    <div class="flex-1">
+      <ng-container *ngTemplateOutlet="contentTpl"></ng-container>
+    </div>
   </div>
 </ng-container>
 

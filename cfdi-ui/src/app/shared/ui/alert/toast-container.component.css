@@ -1,0 +1,6 @@
+.toast-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(420px, calc(100vw - 2rem));
+}

@@ -1,0 +1,10 @@
+<div class="toast-stack">
+  <app-alert
+    *ngFor="let toast of toasts$ | async"
+    [appearance]="toast.appearance"
+    [title]="toast.title"
+    [message]="toast.message"
+    [dismissible]="toast.dismissible"
+    (close)="dismiss(toast.id)"
+  ></app-alert>
+</div>

@@ -1,12 +1,20 @@
 <div class="space-y-6">
-  <div>
-    <h1 class="font-display text-2xl text-text">RFCs de plataforma</h1>
-    <p class="text-sm text-muted">
-      Lista usada para evitar doble conteo de CFDI emitidos a plataformas.
-    </p>
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="text-xs uppercase tracking-[0.2em] text-muted">Plataformas</div>
+        <h1 class="mt-2 font-display text-2xl text-text">RFCs de plataforma</h1>
+        <p class="mt-1 text-sm text-muted">
+          Lista usada para evitar doble conteo de CFDI emitidos a plataformas.
+        </p>
+      </div>
+      <span class="rounded-full border border-border bg-bg px-3 py-1 text-xs text-muted">
+        Control SAT
+      </span>
+    </div>
   </div>
 
-  <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900">
+  <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900 shadow-card">
     Se cargan automaticamente al importar XML de retenciones. Puedes agregar o eliminar manualmente.
   </div>
 
@@ -33,7 +41,7 @@
       </label>
       <div class="flex items-end">
         <button
-          class="w-full rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
+          class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
           type="button"
           (click)="addRfc()"
           [disabled]="saving"
@@ -64,7 +72,7 @@
             <td class="px-5 py-4 text-muted">{{ item.nombre || '-' }}</td>
             <td class="px-5 py-4 text-right">
               <button
-                class="rounded-lg border border-border px-3 py-2 text-xs uppercase tracking-[0.16em] text-text/70 hover:bg-bg"
+                class="btn btn-xs rounded-lg border border-border text-xs uppercase tracking-[0.16em] text-text/70 hover:bg-bg"
                 type="button"
                 (click)="deleteRfc(item.id)"
                 [disabled]="deletingId === item.id"

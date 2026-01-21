@@ -1,6 +1,4 @@
-<tui-root class="min-h-screen bg-bg block">
-  <tui-alerts></tui-alerts>
-  <tui-dialogs></tui-dialogs>
+<div class="min-h-screen bg-bg block">
   <app-loading-overlay></app-loading-overlay>
   <div class="flex min-h-screen">
     <aside
@@ -18,7 +16,7 @@
           </div>
         </div>
         <button
-          class="rounded-lg border border-border bg-bg p-2 text-text/70 hover:bg-surface"
+          class="btn btn-xs rounded-lg border border-border bg-bg text-text/70 hover:bg-surface"
           type="button"
           (click)="toggleSidebar()"
           [attr.aria-expanded]="!sidebarCollapsed()"
@@ -157,4 +155,4 @@
       </main>
     </div>
   </div>
-</tui-root>
+</div>

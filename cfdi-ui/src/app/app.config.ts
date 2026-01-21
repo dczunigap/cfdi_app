@@ -1,7 +1,8 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, importProvidersFrom, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
+import { DialogModule } from '@angular/cdk/dialog';
 
 import { routes } from './app.routes';
 import { httpErrorInterceptor } from './core/api/http-error.interceptor';
@@ -13,5 +14,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([loadingInterceptor, httpErrorInterceptor])),
     provideRouter(routes),
     provideAnimations(),
+    importProvidersFrom(DialogModule),
   ]
 };
