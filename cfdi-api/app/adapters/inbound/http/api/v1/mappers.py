@@ -52,6 +52,7 @@ def summary_to_payload(
     year: int,
     month: int,
     data: dict,
+    mi_rfc: str | None,
     iva_causado_sugerido: float,
     iva_acreditable_sugerido: float,
     iva_retenido_plat: float,
@@ -60,6 +61,7 @@ def summary_to_payload(
     return {
         "year": year,
         "month": month,
+        "mi_rfc": mi_rfc,
         "ingresos_total": data["ingresos_total"],
         "ingresos_base": data["ingresos_base"],
         "ingresos_trasl": data["ingresos_trasl"],
@@ -121,15 +123,17 @@ def summary_details_to_payload(docs, pagos_rows) -> dict:
 def import_xml_stats() -> dict:
     return {
         "cfdi_insertados": 0,
+        "cfdi_actualizados": 0,
         "cfdi_duplicados": 0,
         "retenciones_insertadas": 0,
+        "retenciones_actualizadas": 0,
         "retenciones_duplicadas": 0,
         "errores": 0,
     }
 
 
 def import_pdf_stats() -> dict:
-    return {"insertados": 0, "duplicados": 0, "errores": 0}
+    return {"insertados": 0, "actualizados": 0, "duplicados": 0, "errores": 0}
 
 
 def declaracion_pdf_to_payload(model) -> dict | None:

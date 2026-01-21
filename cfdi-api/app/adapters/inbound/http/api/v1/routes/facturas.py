@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from typing import Optional
+import csv
+import io
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -19,7 +21,7 @@ from app.adapters.inbound.http.api.v1.mappers import (
 from app.adapters.inbound.http.deps import get_db
 from app.adapters.outbound.db.repositories.facturas import SqlFacturaRepository
 from app.adapters.outbound.db.models import FacturaModel
-from app.adapters.inbound.http.api.v1.routes.utils import get_or_404, xml_response
+from app.adapters.inbound.http.api.v1.routes.utils import csv_response, get_or_404, xml_response
 from app.adapters.outbound.db.repositories.conceptos import SqlConceptoRepository
 from app.adapters.outbound.db.repositories.pagos import SqlPagoRepository
 from app.application.facturas.use_cases import (
@@ -53,6 +55,67 @@ def listar_facturas(
 
 
 @router.get(
+    "/export.csv",
+    summary="Exporta facturas a CSV",
+    description="Devuelve un CSV con las facturas filtradas.",
+)
+def export_facturas_csv(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    tipo: Optional[str] = None,
+    naturaleza: Optional[str] = None,
+    db: Session = Depends(get_db),
+) -> Response:
+    repo = SqlFacturaRepository(db)
+    use_case = ListFacturasUseCase(repo)
+    data = ListFacturasInput(year=year, month=month, tipo=tipo, naturaleza=naturaleza)
+    items = use_case.execute(data)
+
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(
+        [
+            "fecha_emision",
+            "tipo_comprobante",
+            "naturaleza",
+            "uuid",
+            "emisor_rfc",
+            "receptor_rfc",
+            "uso_cfdi",
+            "total",
+            "total_sin_iva",
+            "total_trasladados",
+            "total_retenidos",
+            "moneda",
+        ]
+    )
+    for row in items:
+        w.writerow(
+            [
+                row.fecha_emision.isoformat() if row.fecha_emision else "",
+                row.tipo_comprobante or "",
+                row.naturaleza or "",
+                row.uuid or "",
+                row.emisor_rfc or "",
+                row.receptor_rfc or "",
+                row.uso_cfdi or "",
+                f"{row.total:.2f}" if row.total is not None else "",
+                f"{(row.total - row.total_trasladados):.2f}"
+                if row.total is not None and row.total_trasladados is not None
+                else "",
+                f"{row.total_trasladados:.2f}" if row.total_trasladados is not None else "",
+                f"{row.total_retenidos:.2f}" if row.total_retenidos is not None else "",
+                row.moneda or "",
+            ]
+        )
+
+    filename = "facturas.csv"
+    if year and month:
+        filename = f"facturas_{year}_{month:02d}.csv"
+    return csv_response(out.getvalue(), filename=filename)
+
+
+@router.get(
     "/{factura_id}",
     response_model=FacturaDetailResponse,
     summary="Detalle de factura",
@@ -78,3 +141,15 @@ def detalle_factura(factura_id: int, db: Session = Depends(get_db)) -> FacturaDe
 def factura_xml(factura_id: int, db: Session = Depends(get_db)) -> Response:
     row = get_or_404(db, FacturaModel, factura_id, "Factura")
     return xml_response(row.xml_text or "")
+
+
+@router.delete(
+    "/{factura_id}",
+    summary="Eliminar factura",
+    description="Elimina una factura por ID.",
+)
+def eliminar_factura(factura_id: int, db: Session = Depends(get_db)) -> dict:
+    row = get_or_404(db, FacturaModel, factura_id, "Factura")
+    db.delete(row)
+    db.commit()
+    return {"ok": True}

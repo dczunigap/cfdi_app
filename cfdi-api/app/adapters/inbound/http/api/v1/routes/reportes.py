@@ -18,6 +18,7 @@ from app.application.reportes.periodo import (
 )
 from app.utils.money import format_money
 from app.adapters.outbound.db.models import DeclaracionModel
+from app.core.config import settings
 from app.adapters.services.parsers.pdf_parser import LocalPdfParser
 from app.application.declaraciones.payload import build_declaracion_payload
 from app.adapters.inbound.http.api.v1.routes.utils import (
@@ -51,11 +52,24 @@ def summary(year: Optional[int] = None, month: Optional[int] = None, db: Session
     iva_acreditable_sugerido = data["gastos_trasl"]
     iva_retenido_plat = data["plat_iva_ret"]
     iva_neto_sugerido = iva_causado_sugerido - iva_acreditable_sugerido - iva_retenido_plat
+    declaracion_pdf = db.execute(
+        select(DeclaracionModel)
+        .where(DeclaracionModel.year == year, DeclaracionModel.month == month)
+        .order_by(desc(DeclaracionModel.fecha_presentacion).nullslast(), desc(DeclaracionModel.id))
+        .limit(1)
+    ).scalar_one_or_none()
+    mi_rfc = (settings.mi_rfc or "").strip() or None
+    if not mi_rfc:
+        mi_rfc = declaracion_pdf.rfc if declaracion_pdf and declaracion_pdf.rfc else None
+    if not mi_rfc:
+        ret_rows = data.get("ret_rows") or []
+        mi_rfc = (ret_rows[0].receptor_rfc if ret_rows else None) or None
 
     return summary_to_payload(
         year=year,
         month=month,
         data=data,
+        mi_rfc=mi_rfc,
         iva_causado_sugerido=iva_causado_sugerido,
         iva_acreditable_sugerido=iva_acreditable_sugerido,
         iva_retenido_plat=iva_retenido_plat,
@@ -109,7 +123,9 @@ def declaracion_mode(
         .limit(1)
     ).scalar_one_or_none()
 
-    mi_rfc = declaracion_pdf.rfc if declaracion_pdf and declaracion_pdf.rfc else None
+    mi_rfc = (settings.mi_rfc or "").strip() or None
+    if not mi_rfc:
+        mi_rfc = declaracion_pdf.rfc if declaracion_pdf and declaracion_pdf.rfc else None
     if not mi_rfc:
         ret_rows = data.get("ret_rows") or []
         mi_rfc = (ret_rows[0].receptor_rfc if ret_rows else None) or None

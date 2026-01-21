@@ -15,6 +15,8 @@ from app.adapters.inbound.http.api.v1.mappers import (
 )
 from app.adapters.outbound.db.repositories.retenciones import SqlRetencionRepository
 from app.adapters.inbound.http.deps import get_db
+from app.adapters.outbound.db.models import RetencionModel
+from app.adapters.inbound.http.api.v1.routes.utils import get_or_404
 from app.application.retenciones.use_cases import (
     GetRetencionDetailInput,
     GetRetencionDetailUseCase,
@@ -59,3 +61,15 @@ def detalle_retencion(
     if result is None:
         raise HTTPException(status_code=404, detail="Retencion no encontrada")
     return retencion_detail_to_dto(result)
+
+
+@router.delete(
+    "/{retencion_id}",
+    summary="Eliminar retencion",
+    description="Elimina una retencion por ID.",
+)
+def eliminar_retencion(retencion_id: int, db: Session = Depends(get_db)) -> dict:
+    row = get_or_404(db, RetencionModel, retencion_id, "Retencion")
+    db.delete(row)
+    db.commit()
+    return {"ok": True}

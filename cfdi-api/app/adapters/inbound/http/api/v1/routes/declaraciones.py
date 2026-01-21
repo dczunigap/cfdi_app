@@ -110,3 +110,24 @@ def declaracion_pdf_resumen_json(dec_id: int, db: Session = Depends(get_db)) -> 
     parser = LocalPdfParser()
     payload = build_declaracion_payload(dec_entity, parser.parse_sat_summary)
     return json_response(serialize_to_json(payload))
+
+
+@router.delete(
+    "/{dec_id}",
+    summary="Eliminar declaracion",
+    description="Elimina una declaracion por ID.",
+)
+def eliminar_declaracion(dec_id: int, db: Session = Depends(get_db)) -> dict:
+    dec = get_or_404(db, DeclaracionModel, dec_id, "Declaracion")
+
+    if dec.filename:
+        base_dir = Path(__file__).resolve().parents[7]
+        pdf_path = base_dir / "database" / "pdfs" / dec.filename
+        try:
+            pdf_path.unlink()
+        except FileNotFoundError:
+            pass
+
+    db.delete(dec)
+    db.commit()
+    return {"ok": True}

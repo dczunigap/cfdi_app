@@ -1,8 +1,24 @@
 from __future__ import annotations
 
 from datetime import datetime
+import io
 from xml.etree import ElementTree as ET
 
+# Namespaces conocidos
+CFDI_40_NS = "http://www.sat.gob.mx/cfd/4"
+
+def _collect_namespaces(xml_bytes: bytes) -> dict[str, str]:
+    ns: dict[str, str] = {}
+    for event, elem in ET.iterparse(io.BytesIO(xml_bytes), events=("start-ns",)):
+        prefix, uri = elem
+        ns[prefix or ""] = uri
+    return ns
+
+def _ns_from_tag(tag: str) -> str | None:
+    # "{namespace}Comprobante"
+    if tag.startswith("{") and "}" in tag:
+        return tag[1:tag.index("}")]
+    return None
 
 def detect_xml_kind(xml_bytes: bytes) -> str:
     try:
@@ -19,8 +35,13 @@ def detect_xml_kind(xml_bytes: bytes) -> str:
 
 
 def parse_cfdi_40(xml_bytes: bytes) -> dict:
-    root = ET.fromstring(xml_bytes)
+    def q(ns: str, t: str) -> str:
+        return f"{{{ns}}}{t}"
+    
+    nsmap = _collect_namespaces(xml_bytes)
+    root = ET.fromstring(xml_bytes.lstrip(b"\xef\xbb\xbf"))
     comprobante = root
+    cfdi_ns = _ns_from_tag(root.tag) or nsmap.get("cfdi") or CFDI_40_NS
 
     fecha_emision = _parse_datetime(comprobante.attrib.get("Fecha"))
 
@@ -62,6 +83,14 @@ def parse_cfdi_40(xml_bytes: bytes) -> dict:
             }
         )
 
+    impuestos = root.find(q(cfdi_ns, "Impuestos"))
+    total_trasladados = _parse_float(
+        impuestos.attrib.get("TotalImpuestosTrasladados") if impuestos is not None else None
+    )
+    total_retenidos = _parse_float(
+        impuestos.attrib.get("TotalImpuestosRetenidos") if impuestos is not None else None
+    )
+
     return {
         "uuid": uuid,
         "version": comprobante.attrib.get("Version"),
@@ -81,12 +110,8 @@ def parse_cfdi_40(xml_bytes: bytes) -> dict:
         "subtotal": _parse_float(comprobante.attrib.get("SubTotal")),
         "descuento": _parse_float(comprobante.attrib.get("Descuento")),
         "total": _parse_float(comprobante.attrib.get("Total")),
-        "total_trasladados": _parse_float(
-            comprobante.attrib.get("TotalImpuestosTrasladados")
-        ),
-        "total_retenidos": _parse_float(
-            comprobante.attrib.get("TotalImpuestosRetenidos")
-        ),
+        "total_trasladados": total_trasladados,
+        "total_retenidos": total_retenidos,
         "conceptos": conceptos,
         "pagos": pagos,
     }
@@ -99,9 +124,12 @@ def parse_retenciones_plataforma(xml_bytes: bytes) -> dict:
     receptor = _find_first(root, "Receptor")
     receptor_rfc, receptor_nombre = _parse_retenciones_receptor(receptor)
 
+    periodo = _find_first(root, "Periodo")
     totales = _find_first(root, "Totales")
-    plataforma = _find_first(root, "PlataformasTecnologicas") or _find_first(
-        root, "ServiciosPlataforma"
+    plataforma = (
+        _find_first(root, "ServiciosPlataformasTecnologicas")
+        or _find_first(root, "PlataformasTecnologicas")
+        or _find_first(root, "ServiciosPlataforma")
     )
 
     uuid = None
@@ -111,14 +139,26 @@ def parse_retenciones_plataforma(xml_bytes: bytes) -> dict:
 
     fecha_exp = _parse_datetime(root.attrib.get("FechaExp"))
 
+    ejercicio = _parse_int(root.attrib.get("Ejercicio"))
+    mes_ini = _parse_int(root.attrib.get("MesIni"))
+    mes_fin = _parse_int(root.attrib.get("MesFin"))
+    if periodo is not None:
+        ejercicio = ejercicio or _parse_int(periodo.attrib.get("Ejercicio"))
+        mes_ini = mes_ini or _parse_int(periodo.attrib.get("MesIni"))
+        mes_fin = mes_fin or _parse_int(periodo.attrib.get("MesFin"))
+
     return {
         "uuid": uuid,
         "version": root.attrib.get("Version"),
         "fecha_exp": fecha_exp,
-        "ejercicio": _parse_int(root.attrib.get("Ejercicio")),
-        "mes_ini": _parse_int(root.attrib.get("MesIni")),
-        "mes_fin": _parse_int(root.attrib.get("MesFin")),
-        "emisor_rfc": emisor.attrib.get("RfcEmisor") if emisor is not None else None,
+        "ejercicio": ejercicio,
+        "mes_ini": mes_ini,
+        "mes_fin": mes_fin,
+        "emisor_rfc": (
+            emisor.attrib.get("RfcEmisor") or emisor.attrib.get("RfcE")
+            if emisor is not None
+            else None
+        ),
         "emisor_nombre": emisor.attrib.get("NomDenRazSocE")
         if emisor is not None
         else None,
@@ -136,7 +176,9 @@ def parse_retenciones_plataforma(xml_bytes: bytes) -> dict:
         "monto_tot_ret": _parse_float(
             totales.attrib.get("MontoTotRet") if totales is not None else None
         ),
-        "periodicidad": root.attrib.get("Periodicidad"),
+        "periodicidad": plataforma.attrib.get("Periodicidad")
+        if plataforma is not None
+        else root.attrib.get("Periodicidad"),
         "num_serv": _parse_int(
             plataforma.attrib.get("NumServ") if plataforma is not None else None
         ),
@@ -225,12 +267,12 @@ def _map_naturaleza(tipo: str | None) -> str | None:
     if not tipo:
         return None
     return {
-        "I": "Ingreso",
-        "E": "Egreso",
-        "P": "Pago",
-        "T": "Traslado",
-        "N": "Nomina",
-    }.get(tipo, tipo)
+        "I": "ingreso",
+        "E": "gasto",
+        "P": "pago",
+        "T": "traslado",
+        "N": "nomina",
+    }.get(tipo, tipo.lower())
 
 
 def _parse_retenciones_receptor(
@@ -241,10 +283,14 @@ def _parse_retenciones_receptor(
 
     nacional = _find_first(receptor, "Nacional")
     if nacional is not None:
-        return nacional.attrib.get("RfcRecep"), nacional.attrib.get("NomDenRazSocR")
+        return nacional.attrib.get("RfcRecep") or nacional.attrib.get(
+            "RfcR"
+        ), nacional.attrib.get("NomDenRazSocR")
 
     extranjero = _find_first(receptor, "Extranjero")
     if extranjero is not None:
         return extranjero.attrib.get("NumRegIdTrib"), extranjero.attrib.get("NomDenRazSocR")
 
-    return receptor.attrib.get("RfcRecep"), receptor.attrib.get("NomDenRazSocR")
+    return receptor.attrib.get("RfcRecep") or receptor.attrib.get("RfcR"), receptor.attrib.get(
+        "NomDenRazSocR"
+    )
