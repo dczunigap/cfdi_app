@@ -72,12 +72,14 @@
             <td class="px-5 py-4 text-muted">{{ item.nombre || '-' }}</td>
             <td class="px-5 py-4 text-right">
               <button
-                class="btn btn-xs rounded-lg border border-border text-xs uppercase tracking-[0.16em] text-text/70 hover:bg-bg"
+                class="btn-icon text-rose-600 hover:text-rose-700"
                 type="button"
                 (click)="deleteRfc(item.id)"
                 [disabled]="deletingId === item.id"
+                [attr.title]="deletingId === item.id ? 'Eliminando...' : 'Eliminar'"
+                [attr.aria-label]="deletingId === item.id ? 'Eliminando...' : 'Eliminar'"
               >
-                {{ deletingId === item.id ? 'Eliminando...' : 'Eliminar' }}
+                <ng-icon name="lucideTrash2" class="h-4 w-4"></ng-icon>
               </button>
             </td>
           </tr>

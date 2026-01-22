@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { SummaryRepository } from '../data/summary.repository';
-import { SummaryData, SummaryDetails } from '../data/summary.model';
+import { SummaryData } from '../data/summary.model';
 import { AppAlertService } from '../../../shared/ui/alert/alert.service';
 
 @Component({
@@ -16,7 +16,6 @@ import { AppAlertService } from '../../../shared/ui/alert/alert.service';
 })
 export class SummaryPageComponent implements OnInit {
   summary: SummaryData | null = null;
-  details: SummaryDetails | null = null;
   loading = false;
   filtersOpen = true;
 
@@ -52,13 +51,11 @@ export class SummaryPageComponent implements OnInit {
         this.year = data.year;
         this.month = data.month;
         this.loading = false;
-        this.fetchDetails(data.year, data.month);
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.loading = false;
         this.summary = null;
-        this.details = null;
         this.cdr.markForCheck();
         if (err?.status === 404) {
           this.alerts.warning('No hay datos para resumir en ese periodo.');
@@ -81,7 +78,6 @@ export class SummaryPageComponent implements OnInit {
     this.year = null;
     this.month = null;
     this.summary = null;
-    this.details = null;
   }
 
   periodLabel(data: SummaryData): string {
@@ -111,19 +107,6 @@ export class SummaryPageComponent implements OnInit {
   get declaracionParams(): { year: number; month: number } | null {
     if (!this.summary) return null;
     return { year: this.summary.year, month: this.summary.month };
-  }
-
-  private fetchDetails(year: number, month: number): void {
-    this.repo.fetchDetails(year, month).subscribe({
-      next: (details: SummaryDetails) => {
-        this.details = { ...details };
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.details = null;
-        this.cdr.markForCheck();
-      },
-    });
   }
 
   private buildYears(): number[] {

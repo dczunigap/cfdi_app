@@ -37,6 +37,8 @@
     "@maskito/core": "^3.11.1",
     "@maskito/kit": "^3.11.1",
     "@maskito/phone": "^3.11.1",
+    "@ng-icons/core": "^33.0.0",
+    "@ng-icons/lucide": "^33.0.0",
     "@ng-web-apis/common": "^4.14.0",
     "@ng-web-apis/intersection-observer": "^4.14.0",
     "@ng-web-apis/mutation-observer": "^4.14.0",

@@ -97,6 +97,11 @@ select {
     @apply px-6 py-3 text-base;
   }
 
+  .btn-icon {
+    @apply inline-flex items-center justify-center border-0 bg-transparent p-0 text-inherit shadow-none;
+    cursor: pointer;
+  }
+
   .badge {
     @apply inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold;
   }

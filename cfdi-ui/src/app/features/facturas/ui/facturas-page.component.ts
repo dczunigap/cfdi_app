@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideFileText, lucideTrash2 } from '@ng-icons/lucide';
 
 import { facturas$, facturasCount$ } from '../data/facturas.queries';
 import { FacturasRepository } from '../data/facturas.repository';
@@ -11,7 +13,18 @@ import { API_BASE_URL } from '../../../core/api/api-client';
 @Component({
   selector: 'app-facturas-page',
   standalone: true,
-  imports: [AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink, XmlImportComponent],
+  imports: [
+    AsyncPipe,
+    DatePipe,
+    DecimalPipe,
+    NgFor,
+    NgIf,
+    FormsModule,
+    RouterLink,
+    XmlImportComponent,
+    NgIcon,
+  ],
+  providers: [provideIcons({ lucideFileText, lucideTrash2 })],
   templateUrl: './facturas-page.component.html',
   styleUrl: './facturas-page.component.css',
 })
