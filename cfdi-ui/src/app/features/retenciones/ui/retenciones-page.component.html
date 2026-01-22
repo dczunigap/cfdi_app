@@ -6,23 +6,27 @@
         <h1 class="mt-2 font-display text-2xl text-text">Listado de plataformas</h1>
         <p class="mt-1 text-sm text-muted">Retenciones por periodo y detalle de plataforma.</p>
       </div>
-      <button
-        class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
-        type="button"
-        (click)="openXmlImport()"
-        *ngIf="!showXmlImport"
-      >
-        Importar XML
-      </button>
+      @if (!showXmlImport) {
+        <button
+          class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+          type="button"
+          (click)="openXmlImport()"
+          >
+          Importar XML
+        </button>
+      }
     </div>
   </div>
 
-  <app-xml-import
-    *ngIf="showXmlImport"
-    (completed)="handleXmlImportCompleted($event)"
-  ></app-xml-import>
+  @if (showXmlImport) {
+    <app-xml-import
+      (completed)="handleXmlImportCompleted($event)"
+    ></app-xml-import>
+  }
 
-  <p class="text-sm text-rose-600" *ngIf="error">{{ error }}</p>
+  @if (error) {
+    <p class="text-sm text-rose-600">{{ error }}</p>
+  }
 
   <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
     <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
@@ -32,108 +36,118 @@
         type="button"
         (click)="toggleFilters()"
         [attr.aria-expanded]="!filtersCollapsed"
-      >
+        >
         {{ filtersCollapsed ? 'Mostrar' : 'Ocultar' }}
       </button>
     </div>
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5" *ngIf="!filtersCollapsed">
-      <label class="text-xs uppercase tracking-[0.18em] text-muted">
-        Periodo
-        <select
-          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
-          [(ngModel)]="selectedPeriod"
-        >
-          <option [ngValue]="null">Todos</option>
-          <option *ngFor="let period of periods$ | async" [ngValue]="period">
-            {{ period }}
-          </option>
-        </select>
-      </label>
-      <div class="flex items-end gap-3">
-        <button
-          class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
-          (click)="applyFilters()"
-        >
-          Filtrar
-        </button>
+    @if (!filtersCollapsed) {
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <label class="text-xs uppercase tracking-[0.18em] text-muted">
+          Periodo
+          <select
+            class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+            [(ngModel)]="selectedPeriod"
+            >
+            <option [ngValue]="null">Todos</option>
+            @for (period of periods$ | async; track period) {
+              <option [ngValue]="period">
+                {{ period }}
+              </option>
+            }
+          </select>
+        </label>
+        <div class="flex items-end gap-3">
+          <button
+            class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+            (click)="applyFilters()"
+            >
+            Filtrar
+          </button>
+        </div>
+        <div class="flex items-end">
+          <button
+            class="btn btn-s w-full rounded-xl border border-border bg-bg text-text hover:bg-bg"
+            (click)="resetFilters()"
+            >
+            Quitar filtros
+          </button>
+        </div>
       </div>
-      <div class="flex items-end">
-        <button
-          class="btn btn-s w-full rounded-xl border border-border bg-bg text-text hover:bg-bg"
-          (click)="resetFilters()"
-        >
-          Quitar filtros
-        </button>
-      </div>
-    </div>
+    }
   </div>
 
-  <div class="rounded-2xl border border-border bg-surface shadow-card" *ngIf="!showXmlImport">
-    <div class="border-b border-border px-5 py-4">
-      <div class="flex items-center gap-3">
-        <h2 class="font-display text-lg text-text">Retenciones recientes</h2>
-        <span
-          class="badge badge-info"
-          *ngIf="retencionesCount$ | async as total"
-        >
-          {{ total }} registros
-        </span>
+  @if (!showXmlImport) {
+    <div class="rounded-2xl border border-border bg-surface shadow-card">
+      <div class="border-b border-border px-5 py-4">
+        <div class="flex items-center gap-3">
+          <h2 class="font-display text-lg text-text">Retenciones recientes</h2>
+          @if (retencionesCount$ | async; as total) {
+            <span
+              class="badge badge-info"
+              >
+              {{ total }} registros
+            </span>
+          }
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
+            <tr>
+              <th class="px-5 py-3">Periodo</th>
+              <th class="px-5 py-3">UUID</th>
+              <th class="px-5 py-3">Emisor</th>
+              <th class="px-5 py-3 text-right">Ingresos sin IVA</th>
+              <th class="px-5 py-3 text-right">IVA Trasl.</th>
+              <th class="px-5 py-3 text-right">IVA Ret.</th>
+              <th class="px-5 py-3 text-right">ISR Ret.</th>
+              <th class="px-5 py-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          @if (retenciones$ | async; as retenciones) {
+            <tbody class="divide-y divide-border">
+              @for (r of retenciones; track r) {
+                <tr>
+                  <td class="px-5 py-4">{{ formatPeriod(r) }}</td>
+                  <td class="px-5 py-4">{{ r.uuid || '-' }}</td>
+                  <td class="px-5 py-4">
+                    <div class="text-text">{{ r.emisor_rfc || '-' }}</div>
+                    <div class="text-xs text-muted">{{ r.emisor_nombre || 'Sin nombre' }}</div>
+                  </td>
+                  <td class="px-5 py-4 text-right">{{ r.mon_tot_serv_siva | number: '1.2-2' }}</td>
+                  <td class="px-5 py-4 text-right">{{ r.total_iva_trasladado | number: '1.2-2' }}</td>
+                  <td class="px-5 py-4 text-right">{{ r.total_iva_retenido | number: '1.2-2' }}</td>
+                  <td class="px-5 py-4 text-right">{{ r.total_isr_retenido | number: '1.2-2' }}</td>
+                  <td class="px-5 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <a
+                        class="btn-icon text-text hover:text-primary"
+                        [routerLink]="['/retenciones', r.id]"
+                        title="Detalle de retencion"
+                        aria-label="Detalle de retencion"
+                        >
+                        <ng-icon name="lucideFileText" class="h-4 w-4"></ng-icon>
+                      </a>
+                      <button
+                        class="btn-icon text-rose-600 hover:text-rose-700"
+                        type="button"
+                        (click)="deleteRetencion(r.id)"
+                        [disabled]="deletingId === r.id"
+                        [attr.title]="deletingId === r.id ? 'Eliminando...' : 'Eliminar'"
+                        [attr.aria-label]="deletingId === r.id ? 'Eliminando...' : 'Eliminar'"
+                        >
+                        <ng-icon name="lucideTrash2" class="h-4 w-4"></ng-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          } @else {
+            <div class="px-5 py-6 text-sm text-muted">Sin retenciones para mostrar.</div>
+          }
+        </table>
       </div>
     </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-sm">
-        <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
-          <tr>
-            <th class="px-5 py-3">Periodo</th>
-            <th class="px-5 py-3">UUID</th>
-            <th class="px-5 py-3">Emisor</th>
-            <th class="px-5 py-3 text-right">Ingresos sin IVA</th>
-            <th class="px-5 py-3 text-right">IVA Trasl.</th>
-            <th class="px-5 py-3 text-right">IVA Ret.</th>
-            <th class="px-5 py-3 text-right">ISR Ret.</th>
-            <th class="px-5 py-3 text-right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border" *ngIf="retenciones$ | async as retenciones; else empty">
-          <tr *ngFor="let r of retenciones">
-            <td class="px-5 py-4">{{ formatPeriod(r) }}</td>
-            <td class="px-5 py-4">{{ r.uuid || '-' }}</td>
-            <td class="px-5 py-4">
-              <div class="text-text">{{ r.emisor_rfc || '-' }}</div>
-              <div class="text-xs text-muted">{{ r.emisor_nombre || 'Sin nombre' }}</div>
-            </td>
-            <td class="px-5 py-4 text-right">{{ r.mon_tot_serv_siva | number: '1.2-2' }}</td>
-            <td class="px-5 py-4 text-right">{{ r.total_iva_trasladado | number: '1.2-2' }}</td>
-            <td class="px-5 py-4 text-right">{{ r.total_iva_retenido | number: '1.2-2' }}</td>
-            <td class="px-5 py-4 text-right">{{ r.total_isr_retenido | number: '1.2-2' }}</td>
-            <td class="px-5 py-4 text-right">
-              <div class="flex items-center justify-end gap-2">
-                <a
-                  class="btn-icon text-text hover:text-primary"
-                  [routerLink]="['/retenciones', r.id]"
-                  title="Detalle de retencion"
-                  aria-label="Detalle de retencion"
-                >
-                  <ng-icon name="lucideFileText" class="h-4 w-4"></ng-icon>
-                </a>
-                <button
-                  class="btn-icon text-rose-600 hover:text-rose-700"
-                  type="button"
-                  (click)="deleteRetencion(r.id)"
-                  [disabled]="deletingId === r.id"
-                  [attr.title]="deletingId === r.id ? 'Eliminando...' : 'Eliminar'"
-                  [attr.aria-label]="deletingId === r.id ? 'Eliminando...' : 'Eliminar'"
-                >
-                  <ng-icon name="lucideTrash2" class="h-4 w-4"></ng-icon>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <ng-template #empty>
-        <div class="px-5 py-6 text-sm text-muted">Sin retenciones para mostrar.</div>
-      </ng-template>
-    </div>
-  </div>
+  }
 </div>

@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { AsyncPipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
+import { AsyncPipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -13,7 +13,7 @@ import { XmlImportComponent } from '../../../shared/ui/imports/xml-import.compon
 @Component({
   selector: 'app-retenciones-page',
   standalone: true,
-  imports: [AsyncPipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink, XmlImportComponent, NgIcon],
+  imports: [AsyncPipe, DecimalPipe, FormsModule, RouterLink, XmlImportComponent, NgIcon],
   providers: [provideIcons({ lucideFileText, lucideTrash2 })],
   templateUrl: './retenciones-page.component.html',
   styleUrl: './retenciones-page.component.css',

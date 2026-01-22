@@ -1,12 +1,12 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { NgClass, NgIf } from '@angular/common';
+import { NgClass } from '@angular/common';
 
 export type AlertAppearance = 'info' | 'positive' | 'negative' | 'warning';
 
 @Component({
   selector: 'app-alert',
   standalone: true,
-  imports: [NgIf, NgClass],
+  imports: [NgClass],
   templateUrl: './app-alert.component.html',
   styleUrl: './app-alert.component.css',
 })

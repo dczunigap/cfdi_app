@@ -13,13 +13,13 @@
       <a
         class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-bg"
         routerLink="/facturas"
-      >
+        >
         Volver
       </a>
     </div>
   </div>
 
-  <ng-container *ngIf="detail$ | async as detail">
+  @if (detail$ | async; as detail) {
     <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
       <div class="grid gap-4 md:grid-cols-2">
         <div class="space-y-2 text-sm">
@@ -48,7 +48,6 @@
         </div>
       </div>
     </section>
-
     <section class="rounded-2xl border border-border bg-surface shadow-card">
       <div class="border-b border-border px-5 py-4">
         <h2 class="font-display text-lg text-text">Conceptos</h2>
@@ -66,19 +65,20 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr *ngFor="let c of detail.conceptos">
-              <td class="px-5 py-4">{{ c.clave_prod_serv || '-' }}</td>
-              <td class="px-5 py-4">{{ c.descripcion || '-' }}</td>
-              <td class="px-5 py-4">{{ c.cantidad ?? '-' }}</td>
-              <td class="px-5 py-4">{{ c.valor_unitario | number: '1.2-2' }}</td>
-              <td class="px-5 py-4">{{ c.importe | number: '1.2-2' }}</td>
-              <td class="px-5 py-4">{{ c.objeto_imp || '-' }}</td>
-            </tr>
+            @for (c of detail.conceptos; track c) {
+              <tr>
+                <td class="px-5 py-4">{{ c.clave_prod_serv || '-' }}</td>
+                <td class="px-5 py-4">{{ c.descripcion || '-' }}</td>
+                <td class="px-5 py-4">{{ c.cantidad ?? '-' }}</td>
+                <td class="px-5 py-4">{{ c.valor_unitario | number: '1.2-2' }}</td>
+                <td class="px-5 py-4">{{ c.importe | number: '1.2-2' }}</td>
+                <td class="px-5 py-4">{{ c.objeto_imp || '-' }}</td>
+              </tr>
+            }
           </tbody>
         </table>
       </div>
     </section>
-
     <section class="rounded-2xl border border-border bg-surface shadow-card">
       <div class="border-b border-border px-5 py-4">
         <h2 class="font-display text-lg text-text">Complemento de Pagos</h2>
@@ -94,17 +94,19 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr *ngFor="let p of detail.pagos">
-              <td class="px-5 py-4">{{ p.fecha_pago ? (p.fecha_pago | date: 'yyyy-MM-dd') : '-' }}</td>
-              <td class="px-5 py-4">{{ p.monto | number: '1.2-2' }}</td>
-              <td class="px-5 py-4">{{ p.moneda_p || '-' }}</td>
-              <td class="px-5 py-4">{{ p.forma_pago_p || '-' }}</td>
-            </tr>
+            @for (p of detail.pagos; track p) {
+              <tr>
+                <td class="px-5 py-4">{{ p.fecha_pago ? (p.fecha_pago | date: 'yyyy-MM-dd') : '-' }}</td>
+                <td class="px-5 py-4">{{ p.monto | number: '1.2-2' }}</td>
+                <td class="px-5 py-4">{{ p.moneda_p || '-' }}</td>
+                <td class="px-5 py-4">{{ p.forma_pago_p || '-' }}</td>
+              </tr>
+            }
           </tbody>
         </table>
       </div>
     </section>
-  </ng-container>
+  }
 
   <section class="rounded-2xl border border-border bg-surface shadow-card">
     <div class="flex items-center justify-between border-b border-border px-5 py-4">
@@ -112,7 +114,7 @@
     </div>
     <div class="px-5 py-4">
       <pre class="max-h-[360px] overflow-auto rounded-xl border border-border bg-bg p-4 text-xs text-muted">
-{{ xml$ | async }}
+        {{ xml$ | async }}
       </pre>
     </div>
   </section>

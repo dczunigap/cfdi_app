@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
-import { DatePipe, DecimalPipe, NgClass, NgFor, NgIf, UpperCasePipe } from '@angular/common';
+import { DatePipe, DecimalPipe, NgClass, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
@@ -16,7 +16,7 @@ type IncomeSourceOption = {
 @Component({
   selector: 'app-declaracion-page',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, FormsModule, NgClass, NgFor, NgIf, RouterLink, UpperCasePipe],
+  imports: [DatePipe, DecimalPipe, FormsModule, NgClass, RouterLink, UpperCasePipe],
   templateUrl: './declaracion-page.component.html',
   styleUrl: './declaracion-page.component.css',
 })

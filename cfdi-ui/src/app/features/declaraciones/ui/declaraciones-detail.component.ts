@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { AsyncPipe, DatePipe, JsonPipe, NgIf } from '@angular/common';
+import { AsyncPipe, DatePipe, JsonPipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, distinctUntilChanged, filter, map, of, shareReplay, switchMap, tap } from 'rxjs';
 
@@ -11,7 +11,7 @@ import { DeclaracionSummary } from '../data/declaraciones.model';
 @Component({
   selector: 'app-declaraciones-detail',
   standalone: true,
-  imports: [AsyncPipe, DatePipe, JsonPipe, NgIf, RouterLink],
+  imports: [AsyncPipe, DatePipe, JsonPipe, RouterLink],
   templateUrl: './declaraciones-detail.component.html',
   styleUrl: './declaraciones-detail.component.css',
 })

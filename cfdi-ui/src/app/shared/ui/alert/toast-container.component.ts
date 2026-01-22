@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { AsyncPipe, NgFor } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 
 import { AppAlertComponent } from './app-alert.component';
 import { ToastService } from './toast.service';
@@ -7,7 +7,7 @@ import { ToastService } from './toast.service';
 @Component({
   selector: 'app-toast-container',
   standalone: true,
-  imports: [AsyncPipe, NgFor, AppAlertComponent],
+  imports: [AsyncPipe, AppAlertComponent],
   templateUrl: './toast-container.component.html',
   styleUrl: './toast-container.component.css',
 })

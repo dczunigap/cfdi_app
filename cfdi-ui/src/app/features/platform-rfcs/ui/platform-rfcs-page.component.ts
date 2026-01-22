@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { AsyncPipe, NgFor, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideTrash2 } from '@ng-icons/lucide';
@@ -10,7 +10,7 @@ import { PlatformRfcsRepository } from '../data/platform-rfcs.repository';
 @Component({
   selector: 'app-platform-rfcs-page',
   standalone: true,
-  imports: [AsyncPipe, NgFor, NgIf, FormsModule, NgIcon],
+  imports: [AsyncPipe, FormsModule, NgIcon],
   providers: [provideIcons({ lucideTrash2 })],
   templateUrl: './platform-rfcs-page.component.html',
   styleUrl: './platform-rfcs-page.component.css',
