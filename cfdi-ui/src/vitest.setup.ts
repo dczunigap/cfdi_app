@@ -1,3 +1,12 @@
+import { getTestBed } from '@angular/core/testing';
+import { setupTestBed } from '@analogjs/vitest-angular/setup-testbed';
+
+// Access internal platform property to check initialization status
+const testBed = getTestBed();
+if (!(testBed as any)._instantiated) {
+  setupTestBed();
+}
+
 // Ensure browser APIs exist in the test environment.
 if (!globalThis.localStorage) {
   const store = new Map<string, string>();
