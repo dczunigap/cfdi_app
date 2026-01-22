@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,7 +9,15 @@ from app.adapters.inbound.http.api.v1.routes import api_router
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="CFDI API")
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        Base.metadata.create_all(bind=engine)
+        try:
+            yield
+        finally:
+            engine.dispose()
+
+    app = FastAPI(title="CFDI API", lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
@@ -19,10 +29,6 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(api_router, prefix="/api/v1")
-
-    @app.on_event("startup")
-    def init_db() -> None:
-        Base.metadata.create_all(bind=engine)
 
     return app
 

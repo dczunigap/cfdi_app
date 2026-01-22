@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.outbound.db.mappers import declaracion_to_list_item
 from app.adapters.outbound.db.models import DeclaracionModel
-from app.adapters.outbound.db.repositories.utils import apply_optional_filter, exists_by_field
+from app.adapters.outbound.db.repositories.utils import apply_optional_filters, exists_by_field
 from app.ports.declaraciones_repo import DeclaracionRepository
 from app.application.declaraciones.dto import DeclaracionListItem
 from app.domain.declaraciones.entities import DeclaracionPDF
@@ -22,9 +22,11 @@ class SqlDeclaracionRepository(DeclaracionRepository):
         year: Optional[int] = None,
         month: Optional[int] = None,
     ) -> list[DeclaracionListItem]:
-        q = select(DeclaracionModel)
-        q = apply_optional_filter(q, DeclaracionModel.year, year)
-        q = apply_optional_filter(q, DeclaracionModel.month, month)
+        q = apply_optional_filters(
+            select(DeclaracionModel),
+            (DeclaracionModel.year, year),
+            (DeclaracionModel.month, month),
+        )
         rows = self._db.execute(q).scalars().all()
         return [declaracion_to_list_item(r) for r in rows]
 

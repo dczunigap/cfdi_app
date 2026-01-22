@@ -12,6 +12,12 @@ def apply_optional_filter(query: Select, field, value: Any) -> Select:
     return query.where(field == value)
 
 
+def apply_optional_filters(query: Select, *pairs: tuple[Any, Any]) -> Select:
+    for field, value in pairs:
+        query = apply_optional_filter(query, field, value)
+    return query
+
+
 def exists_by_field(db: Session, model, field, value: Any) -> bool:
     if not value:
         return False

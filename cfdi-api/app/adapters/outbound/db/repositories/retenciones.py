@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.outbound.db.mappers import retencion_to_list_item
 from app.adapters.outbound.db.models import RetencionModel
-from app.adapters.outbound.db.repositories.utils import apply_optional_filter, exists_by_field
+from app.adapters.outbound.db.repositories.utils import apply_optional_filters, exists_by_field
 from app.ports.retenciones_repo import RetencionRepository
 from app.application.retenciones.dto import RetencionListItem
 from app.domain.retenciones.entities import RetencionPlataforma
@@ -22,9 +22,11 @@ class SqlRetencionRepository(RetencionRepository):
         year: Optional[int] = None,
         month: Optional[int] = None,
     ) -> list[RetencionListItem]:
-        q = select(RetencionModel)
-        q = apply_optional_filter(q, RetencionModel.ejercicio, year)
-        q = apply_optional_filter(q, RetencionModel.mes_fin, month)
+        q = apply_optional_filters(
+            select(RetencionModel),
+            (RetencionModel.ejercicio, year),
+            (RetencionModel.mes_fin, month),
+        )
         rows = self._db.execute(q).scalars().all()
         return [retencion_to_list_item(r) for r in rows]
 
