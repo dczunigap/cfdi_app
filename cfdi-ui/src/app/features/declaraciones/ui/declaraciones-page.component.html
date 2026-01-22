@@ -6,23 +6,27 @@
         <h1 class="mt-2 font-display text-2xl text-text">Listado de PDF SAT</h1>
         <p class="mt-1 text-sm text-muted">Importa y revisa tus declaraciones mensuales.</p>
       </div>
-      <button
-        class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
-        type="button"
-        (click)="openPdfImport()"
-        *ngIf="!showPdfImport"
-      >
-        Importar PDF
-      </button>
+      @if (!showPdfImport) {
+        <button
+          class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+          type="button"
+          (click)="openPdfImport()"
+          >
+          Importar PDF
+        </button>
+      }
     </div>
   </div>
 
-  <app-pdf-import
-    *ngIf="showPdfImport"
-    (completed)="handlePdfImportCompleted($event)"
-  ></app-pdf-import>
+  @if (showPdfImport) {
+    <app-pdf-import
+      (completed)="handlePdfImportCompleted($event)"
+    ></app-pdf-import>
+  }
 
-  <p class="text-sm text-rose-600" *ngIf="error">{{ error }}</p>
+  @if (error) {
+    <p class="text-sm text-rose-600">{{ error }}</p>
+  }
 
   <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
     <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
@@ -32,116 +36,126 @@
         type="button"
         (click)="toggleFilters()"
         [attr.aria-expanded]="!filtersCollapsed"
-      >
+        >
         {{ filtersCollapsed ? 'Mostrar' : 'Ocultar' }}
       </button>
     </div>
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5" *ngIf="!filtersCollapsed">
-      <label class="text-xs uppercase tracking-[0.18em] text-muted">
-        Periodo
-        <select
-          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
-          [(ngModel)]="selectedPeriod"
-        >
-          <option [ngValue]="null">Todos</option>
-          <option *ngFor="let period of periods$ | async" [ngValue]="period">
-            {{ period }}
-          </option>
-        </select>
-      </label>
-      <div class="flex items-end gap-3">
-        <button
-          class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
-          (click)="applyFilters()"
-        >
-          Filtrar
-        </button>
+    @if (!filtersCollapsed) {
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <label class="text-xs uppercase tracking-[0.18em] text-muted">
+          Periodo
+          <select
+            class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+            [(ngModel)]="selectedPeriod"
+            >
+            <option [ngValue]="null">Todos</option>
+            @for (period of periods$ | async; track period) {
+              <option [ngValue]="period">
+                {{ period }}
+              </option>
+            }
+          </select>
+        </label>
+        <div class="flex items-end gap-3">
+          <button
+            class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+            (click)="applyFilters()"
+            >
+            Filtrar
+          </button>
+        </div>
+        <div class="flex items-end">
+          <button
+            class="btn btn-s w-full rounded-xl border border-border bg-bg text-text hover:bg-bg"
+            (click)="resetFilters()"
+            >
+            Quitar filtros
+          </button>
+        </div>
       </div>
-      <div class="flex items-end">
-        <button
-          class="btn btn-s w-full rounded-xl border border-border bg-bg text-text hover:bg-bg"
-          (click)="resetFilters()"
-        >
-          Quitar filtros
-        </button>
-      </div>
-    </div>
+    }
   </div>
 
-  <div class="rounded-2xl border border-border bg-surface shadow-card" *ngIf="!showPdfImport">
-    <div class="border-b border-border px-5 py-4">
-      <div class="flex items-center gap-3">
-        <h2 class="font-display text-lg text-text">Declaraciones recientes</h2>
-        <span
-          class="badge badge-info"
-          *ngIf="declaracionesCount$ | async as total"
-        >
-          {{ total }} registros
-        </span>
+  @if (!showPdfImport) {
+    <div class="rounded-2xl border border-border bg-surface shadow-card">
+      <div class="border-b border-border px-5 py-4">
+        <div class="flex items-center gap-3">
+          <h2 class="font-display text-lg text-text">Declaraciones recientes</h2>
+          @if (declaracionesCount$ | async; as total) {
+            <span
+              class="badge badge-info"
+              >
+              {{ total }} registros
+            </span>
+          }
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
+            <tr>
+              <th class="px-5 py-3">Periodo</th>
+              <th class="px-5 py-3">UUID</th>
+              <th class="px-5 py-3">Emisor</th>
+              <th class="px-5 py-3 text-right">Ingresos sin IVA</th>
+              <th class="px-5 py-3 text-right">IVA Trasl.</th>
+              <th class="px-5 py-3 text-right">IVA ret.</th>
+              <th class="px-5 py-3 text-right">ISR ret.</th>
+              <th class="px-5 py-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          @if (declaraciones$ | async; as declaraciones) {
+            <tbody class="divide-y divide-border">
+              @for (d of declaraciones; track d) {
+                <tr>
+                  <td class="px-5 py-4">{{ formatPeriod(d.year, d.month) }}</td>
+                  <td class="px-5 py-4">{{ d.summary?.numero_operacion || d.folio || '-' }}</td>
+                  <td class="px-5 py-4">
+                    <div class="text-text">{{ d.summary?.rfc || d.rfc || '-' }}</div>
+                    <div class="text-xs text-muted">{{ d.summary?.nombre || 'Sin nombre' }}</div>
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    {{ d.summary?.ingresos_totales_mes != null ? (d.summary?.ingresos_totales_mes | number: '1.2-2') : '-' }}
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    {{ d.summary?.iva_a_cargo_16 != null ? (d.summary?.iva_a_cargo_16 | number: '1.2-2') : '-' }}
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    {{ d.summary?.iva_retenido != null ? (d.summary?.iva_retenido | number: '1.2-2') : '-' }}
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    {{ d.summary?.retenciones_plataformas != null ? (d.summary?.retenciones_plataformas | number: '1.2-2') : '-' }}
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <a
+                        class="btn-icon text-text hover:text-primary"
+                        [routerLink]="['/declaraciones', d.id]"
+                        title="Detalle de declaracion"
+                        aria-label="Detalle de declaracion"
+                        >
+                        <ng-icon name="lucideFileText" class="h-4 w-4"></ng-icon>
+                      </a>
+                      <button
+                        class="btn-icon text-rose-600 hover:text-rose-700"
+                        type="button"
+                        (click)="deleteDeclaracion(d.id)"
+                        [disabled]="deletingId === d.id"
+                        [attr.title]="deletingId === d.id ? 'Eliminando...' : 'Eliminar'"
+                        [attr.aria-label]="deletingId === d.id ? 'Eliminando...' : 'Eliminar'"
+                        >
+                        <ng-icon name="lucideTrash2" class="h-4 w-4"></ng-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          } @else {
+            <div class="px-5 py-6 text-sm text-muted">Sin declaraciones para mostrar.</div>
+          }
+        </table>
       </div>
     </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-sm">
-        <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
-          <tr>
-            <th class="px-5 py-3">Periodo</th>
-            <th class="px-5 py-3">UUID</th>
-            <th class="px-5 py-3">Emisor</th>
-            <th class="px-5 py-3 text-right">Ingresos sin IVA</th>
-            <th class="px-5 py-3 text-right">IVA Trasl.</th>
-            <th class="px-5 py-3 text-right">IVA ret.</th>
-            <th class="px-5 py-3 text-right">ISR ret.</th>
-            <th class="px-5 py-3 text-right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border" *ngIf="declaraciones$ | async as declaraciones; else empty">
-          <tr *ngFor="let d of declaraciones">
-            <td class="px-5 py-4">{{ formatPeriod(d.year, d.month) }}</td>
-            <td class="px-5 py-4">{{ d.summary?.numero_operacion || d.folio || '-' }}</td>
-            <td class="px-5 py-4">
-              <div class="text-text">{{ d.summary?.rfc || d.rfc || '-' }}</div>
-              <div class="text-xs text-muted">{{ d.summary?.nombre || 'Sin nombre' }}</div>
-            </td>
-            <td class="px-5 py-4 text-right">
-              {{ d.summary?.ingresos_totales_mes != null ? (d.summary?.ingresos_totales_mes | number: '1.2-2') : '-' }}
-            </td>
-            <td class="px-5 py-4 text-right">
-              {{ d.summary?.iva_a_cargo_16 != null ? (d.summary?.iva_a_cargo_16 | number: '1.2-2') : '-' }}
-            </td>
-            <td class="px-5 py-4 text-right">
-              {{ d.summary?.iva_retenido != null ? (d.summary?.iva_retenido | number: '1.2-2') : '-' }}
-            </td>
-            <td class="px-5 py-4 text-right">
-              {{ d.summary?.retenciones_plataformas != null ? (d.summary?.retenciones_plataformas | number: '1.2-2') : '-' }}
-            </td>
-            <td class="px-5 py-4 text-right">
-              <div class="flex items-center justify-end gap-2">
-                <a
-                  class="btn-icon text-text hover:text-primary"
-                  [routerLink]="['/declaraciones', d.id]"
-                  title="Detalle de declaracion"
-                  aria-label="Detalle de declaracion"
-                >
-                  <ng-icon name="lucideFileText" class="h-4 w-4"></ng-icon>
-                </a>
-                <button
-                  class="btn-icon text-rose-600 hover:text-rose-700"
-                  type="button"
-                  (click)="deleteDeclaracion(d.id)"
-                  [disabled]="deletingId === d.id"
-                  [attr.title]="deletingId === d.id ? 'Eliminando...' : 'Eliminar'"
-                  [attr.aria-label]="deletingId === d.id ? 'Eliminando...' : 'Eliminar'"
-                >
-                  <ng-icon name="lucideTrash2" class="h-4 w-4"></ng-icon>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <ng-template #empty>
-        <div class="px-5 py-6 text-sm text-muted">Sin declaraciones para mostrar.</div>
-      </ng-template>
-    </div>
-  </div>
+  }
 </div>

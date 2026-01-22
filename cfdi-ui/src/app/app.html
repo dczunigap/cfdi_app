@@ -7,13 +7,15 @@
       [class.w-64]="!sidebarCollapsed()"
       [class.px-4]="sidebarCollapsed()"
       [class.px-6]="!sidebarCollapsed()"
-    >
+      >
       <div class="mb-10 flex items-start justify-between gap-3">
         <div>
           <div class="text-xs uppercase tracking-[0.2em] text-muted">CFDI</div>
-          <div class="mt-2 font-display text-xl text-text" *ngIf="!sidebarCollapsed()">
-            Basic Administration
-          </div>
+          @if (!sidebarCollapsed()) {
+            <div class="mt-2 font-display text-xl text-text">
+              Basic Administration
+            </div>
+          }
         </div>
         <button
           class="btn btn-xs rounded-lg border border-border bg-bg text-text/70 hover:bg-surface"
@@ -21,7 +23,7 @@
           (click)="toggleSidebar()"
           [attr.aria-expanded]="!sidebarCollapsed()"
           aria-label="Alternar menu lateral"
-        >
+          >
           <svg
             class="h-4 w-4"
             viewBox="0 0 24 24"
@@ -31,9 +33,13 @@
             stroke-linecap="round"
             stroke-linejoin="round"
             aria-hidden="true"
-          >
-            <path d="M15 18l-6-6 6-6" *ngIf="!sidebarCollapsed()" />
-            <path d="M9 6l6 6-6 6" *ngIf="sidebarCollapsed()" />
+            >
+            @if (!sidebarCollapsed()) {
+              <path d="M15 18l-6-6 6-6" />
+            }
+            @if (sidebarCollapsed()) {
+              <path d="M9 6l6 6-6 6" />
+            }
           </svg>
         </button>
       </div>
@@ -47,9 +53,13 @@
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
           [attr.title]="sidebarCollapsed() ? 'Resumen' : null"
-        >
-          <span *ngIf="!sidebarCollapsed()">Resumen</span>
-          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Res</span>
+          >
+          @if (!sidebarCollapsed()) {
+            <span>Resumen</span>
+          }
+          @if (sidebarCollapsed()) {
+            <span class="text-xs uppercase tracking-[0.2em]">Res</span>
+          }
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
@@ -60,9 +70,13 @@
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
           [attr.title]="sidebarCollapsed() ? 'Importacion' : null"
-        >
-          <span *ngIf="!sidebarCollapsed()">Importacion</span>
-          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Imp</span>
+          >
+          @if (!sidebarCollapsed()) {
+            <span>Importacion</span>
+          }
+          @if (sidebarCollapsed()) {
+            <span class="text-xs uppercase tracking-[0.2em]">Imp</span>
+          }
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
@@ -72,9 +86,13 @@
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
           [attr.title]="sidebarCollapsed() ? 'Facturas' : null"
-        >
-          <span *ngIf="!sidebarCollapsed()">Facturas</span>
-          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Fact</span>
+          >
+          @if (!sidebarCollapsed()) {
+            <span>Facturas</span>
+          }
+          @if (sidebarCollapsed()) {
+            <span class="text-xs uppercase tracking-[0.2em]">Fact</span>
+          }
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
@@ -84,9 +102,13 @@
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
           [attr.title]="sidebarCollapsed() ? 'Retenciones' : null"
-        >
-          <span *ngIf="!sidebarCollapsed()">Retenciones</span>
-          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Ret</span>
+          >
+          @if (!sidebarCollapsed()) {
+            <span>Retenciones</span>
+          }
+          @if (sidebarCollapsed()) {
+            <span class="text-xs uppercase tracking-[0.2em]">Ret</span>
+          }
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
@@ -96,9 +118,13 @@
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
           [attr.title]="sidebarCollapsed() ? 'RFCs de plataforma' : null"
-        >
-          <span *ngIf="!sidebarCollapsed()">RFCs de plataforma</span>
-          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">RFC</span>
+          >
+          @if (!sidebarCollapsed()) {
+            <span>RFCs de plataforma</span>
+          }
+          @if (sidebarCollapsed()) {
+            <span class="text-xs uppercase tracking-[0.2em]">RFC</span>
+          }
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
@@ -108,9 +134,13 @@
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
           [attr.title]="sidebarCollapsed() ? 'Declaraciones' : null"
-        >
-          <span *ngIf="!sidebarCollapsed()">Declaraciones</span>
-          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Decl</span>
+          >
+          @if (!sidebarCollapsed()) {
+            <span>Declaraciones</span>
+          }
+          @if (sidebarCollapsed()) {
+            <span class="text-xs uppercase tracking-[0.2em]">Decl</span>
+          }
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
@@ -121,38 +151,42 @@
           [class.px-2]="sidebarCollapsed()"
           [class.px-4]="!sidebarCollapsed()"
           [attr.title]="sidebarCollapsed() ? 'Modo declaracion' : null"
-        >
-          <span *ngIf="!sidebarCollapsed()">Modo declaracion</span>
-          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">Decl</span>
+          >
+          @if (!sidebarCollapsed()) {
+            <span>Modo declaracion</span>
+          }
+          @if (sidebarCollapsed()) {
+            <span class="text-xs uppercase tracking-[0.2em]">Decl</span>
+          }
         </a>
       </nav>
       <!-- <div class="mt-10 rounded-2xl border border-border bg-bg p-4" *ngIf="!sidebarCollapsed()">
-        <div class="text-xs uppercase tracking-[0.18em] text-muted">Estado</div>
-        <div class="mt-2 text-sm text-text">Sincronizacion local activa</div>
-        <div class="mt-3 h-2 rounded-full bg-border">
-          <div class="h-2 w-2/3 rounded-full bg-primary"></div>
-        </div>
-      </div> -->
-    </aside>
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Estado</div>
+      <div class="mt-2 text-sm text-text">Sincronizacion local activa</div>
+      <div class="mt-3 h-2 rounded-full bg-border">
+        <div class="h-2 w-2/3 rounded-full bg-primary"></div>
+      </div>
+    </div> -->
+  </aside>
 
-    <div class="flex w-full flex-col">
-      <!-- <header class="flex items-center justify-between border-b border-border bg-surface px-6 py-4">
-        <div>
-          <h1 class="font-display text-2xl text-text">CFDI UI</h1>
-          <p class="text-sm text-muted">Panel de control</p>
-        </div>
-        <div class="flex items-center gap-3">
-          <div class="hidden items-center gap-2 rounded-xl border border-border bg-bg px-3 py-2 text-sm text-muted md:flex">
-            <span>Buscar</span>
-            <span class="text-xs text-muted">Ctrl K</span>
-          </div>
-          <button class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md">Nuevo</button>
-        </div>
-      </header> -->
-
-      <main class="flex-1 px-6 py-6">
-        <router-outlet></router-outlet>
-      </main>
+  <div class="flex w-full flex-col">
+    <!-- <header class="flex items-center justify-between border-b border-border bg-surface px-6 py-4">
+    <div>
+      <h1 class="font-display text-2xl text-text">CFDI UI</h1>
+      <p class="text-sm text-muted">Panel de control</p>
     </div>
-  </div>
+    <div class="flex items-center gap-3">
+      <div class="hidden items-center gap-2 rounded-xl border border-border bg-bg px-3 py-2 text-sm text-muted md:flex">
+        <span>Buscar</span>
+        <span class="text-xs text-muted">Ctrl K</span>
+      </div>
+      <button class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md">Nuevo</button>
+    </div>
+  </header> -->
+
+  <main class="flex-1 px-6 py-6">
+    <router-outlet></router-outlet>
+  </main>
+</div>
+</div>
 </div>

@@ -5,13 +5,17 @@
         <div class="text-xs uppercase tracking-[0.2em] text-muted">Resumen</div>
         <h1 class="mt-2 font-display text-2xl text-text">Control mensual</h1>
         <p class="mt-1 text-sm text-muted">KPIs del periodo y alertas de control.</p>
-        <p class="mt-2 text-sm text-muted" *ngIf="summary?.mi_rfc">
-          RFC: <span class="font-medium text-text">{{ summary?.mi_rfc }}</span>
-        </p>
+        @if (summary?.mi_rfc) {
+          <p class="mt-2 text-sm text-muted">
+            RFC: <span class="font-medium text-text">{{ summary?.mi_rfc }}</span>
+          </p>
+        }
       </div>
-      <div class="text-sm text-muted" *ngIf="summary">
-        Mostrando: <span class="font-semibold text-text">{{ periodLabel(summary) }}</span>
-      </div>
+      @if (summary) {
+        <div class="text-sm text-muted">
+          Mostrando: <span class="font-semibold text-text">{{ periodLabel(summary) }}</span>
+        </div>
+      }
     </div>
   </div>
 
@@ -21,14 +25,18 @@
         Ano
         <select class="mt-2 w-full" [(ngModel)]="year">
           <option [ngValue]="null">Automatico</option>
-          <option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
+          @for (y of years; track y) {
+            <option [ngValue]="y">{{ y }}</option>
+          }
         </select>
       </label>
       <label class="text-xs uppercase tracking-[0.18em] text-muted">
         Mes
         <select class="mt-2 w-full" [(ngModel)]="month">
           <option [ngValue]="null">Automatico</option>
-          <option *ngFor="let m of months" [ngValue]="m">{{ m }}</option>
+          @for (m of months; track m) {
+            <option [ngValue]="m">{{ m }}</option>
+          }
         </select>
       </label>
       <button
@@ -36,40 +44,42 @@
         type="button"
         (click)="applyFilters()"
         [disabled]="loading"
-      >
+        >
         {{ loading ? 'Cargando...' : 'Ver' }}
       </button>
-      <a
-        class="btn btn-s rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
-        *ngIf="csvUrl"
-        [href]="csvUrl"
-      >
-        Exportar CSV SAT
-      </a>
+      @if (csvUrl) {
+        <a
+          class="btn btn-s rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
+          [href]="csvUrl"
+          >
+          Exportar CSV SAT
+        </a>
+      }
       <a
         class="btn btn-s rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
         routerLink="/declaracion"
         [queryParams]="declaracionParams"
-      >
+        >
         Ir a modo declaracion
       </a>
       <button
         class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-surface"
         type="button"
         (click)="resetFilters()"
-      >
+        >
         Quitar filtros
       </button>
     </div>
   </div>
 
   <!-- <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-    <span class="font-semibold">Evita doble conteo:</span>
-    si tus ingresos principales vienen de plataforma, el XML de retenciones ya trae ingresos sin IVA y retenciones.
-    Los CFDI I/E pueden existir aparte (por ejemplo, ingresos fuera de plataforma). Aqui se muestran ambos por separado.
-  </div> -->
+  <span class="font-semibold">Evita doble conteo:</span>
+  si tus ingresos principales vienen de plataforma, el XML de retenciones ya trae ingresos sin IVA y retenciones.
+  Los CFDI I/E pueden existir aparte (por ejemplo, ingresos fuera de plataforma). Aqui se muestran ambos por separado.
+</div> -->
 
-  <div class="grid gap-4 md:grid-cols-2" *ngIf="summary as summary">
+@if (summary; as summary) {
+  <div class="grid gap-4 md:grid-cols-2">
     <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
       <div class="text-xs uppercase tracking-[0.18em] text-muted">Retenciones de Plataforma (periodo)</div>
       <div class="mt-2 text-2xl font-semibold text-text">
@@ -84,7 +94,6 @@
       </div>
       <div class="text-sm text-muted">Uso de plataforma: {{ summary.plat_comision | number: '1.2-2' }}</div>
     </div>
-
     <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
       <div class="text-xs uppercase tracking-[0.18em] text-muted">CFDI por emision (I/E) - excluye P</div>
       <div class="mt-2 text-2xl font-semibold text-text">
@@ -98,7 +107,6 @@
         IVA acreditable aprox.: {{ summary.gastos_trasl | number: '1.2-2' }}
       </div>
     </div>
-
     <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
       <div class="text-xs uppercase tracking-[0.18em] text-muted">Flujo por Complementos P (FechaPago)</div>
       <div class="mt-2 text-2xl font-semibold text-text">Cobros: {{ summary.cash_in | number: '1.2-2' }}</div>
@@ -109,12 +117,11 @@
         Renglones de pago detectados: {{ summary.pagos_count }}
       </div>
     </div>
-
     <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
       <div class="text-xs uppercase tracking-[0.18em] text-muted">Papel de trabajo (IVA sugerido)</div>
       <div class="mt-2 text-sm text-muted">
         <strong>IVA causado</strong> = IVA plataforma + IVA CFDI:  {{ summary.iva_causado_sugerido | number: '1.2-2' }}
-      </div> 
+      </div>
       <div class="text-sm text-muted">
         <strong>IVA acreditable</strong> (gastos CFDI): {{ summary.iva_acreditable_sugerido | number: '1.2-2' }}
       </div>
@@ -130,4 +137,5 @@
       </div>
     </div>
   </div>
+}
 </div>

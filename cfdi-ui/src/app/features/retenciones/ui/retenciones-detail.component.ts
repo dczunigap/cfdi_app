@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { AsyncPipe, DatePipe, DecimalPipe, NgIf } from '@angular/common';
+import { AsyncPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { distinctUntilChanged, filter, map, shareReplay, switchMap } from 'rxjs';
 
@@ -9,7 +9,7 @@ import { RetencionesRepository } from '../data/retenciones.repository';
 @Component({
   selector: 'app-retenciones-detail',
   standalone: true,
-  imports: [AsyncPipe, DatePipe, DecimalPipe, NgIf, RouterLink],
+  imports: [AsyncPipe, DatePipe, DecimalPipe, RouterLink],
   templateUrl: './retenciones-detail.component.html',
   styleUrl: './retenciones-detail.component.css',
 })

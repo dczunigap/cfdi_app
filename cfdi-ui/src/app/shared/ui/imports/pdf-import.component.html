@@ -17,7 +17,7 @@
         type="number"
         class="mt-2 w-full"
         [(ngModel)]="year"
-      />
+        />
     </label>
     <label class="text-xs uppercase tracking-[0.18em] text-muted">
       Mes
@@ -25,14 +25,14 @@
         type="number"
         class="mt-2 w-full"
         [(ngModel)]="month"
-      />
+        />
     </label>
   </div>
 
   <div class="mt-4 space-y-3">
     <label
       class="block w-full cursor-pointer rounded-xl border border-dashed border-border bg-bg px-4 py-6 text-center text-sm text-text transition hover:bg-surface focus-within:border-primary focus-within:ring-2"
-    >
+      >
       <input
         #pdfInput
         class="sr-only"
@@ -40,7 +40,7 @@
         accept=".pdf,application/pdf"
         multiple
         (change)="onPdfFilesSelected($event)"
-      />
+        />
       <div class="text-muted">Arrastra o selecciona PDF</div>
       <div class="mt-1 text-xs text-muted">
         {{ pdfFiles.length || 0 }} archivo(s) seleccionado(s)
@@ -52,7 +52,7 @@
         type="button"
         (click)="importPdf()"
         [disabled]="pdfLoading"
-      >
+        >
         {{ pdfLoading ? 'Importando...' : 'Importar PDF' }}
       </button>
       <button
@@ -60,61 +60,64 @@
         type="button"
         (click)="cancelImport()"
         [disabled]="pdfLoading"
-      >
+        >
         Cancelar
       </button>
-      <button
-        *ngIf="dialogRef"
-        class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-surface"
-        type="button"
-        (click)="closeDialog()"
-      >
-        Cerrar
-      </button>
+      @if (dialogRef) {
+        <button
+          class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-surface"
+          type="button"
+          (click)="closeDialog()"
+          >
+          Cerrar
+        </button>
+      }
     </div>
     <div class="text-xs text-muted">
       Tip: si el PDF es escaneado, el resumen puede salir vacio.
     </div>
   </div>
 
-  <ng-container *ngIf="pdfResult as pdfStats">
-    <div
-      class="mt-4 rounded-xl border border-border bg-bg p-4 text-sm text-text"
-      *ngIf="hasPdfStats(pdfStats)"
-    >
-      <div class="grid gap-3 md:grid-cols-4">
-        <div>
-          <div class="text-xs uppercase tracking-[0.18em] text-muted">Insertados</div>
-          <div class="text-lg">{{ pdfStats.insertados }}</div>
+  @if (pdfResult; as pdfStats) {
+    @if (hasPdfStats(pdfStats)) {
+      <div
+        class="mt-4 rounded-xl border border-border bg-bg p-4 text-sm text-text"
+        >
+        <div class="grid gap-3 md:grid-cols-4">
+          <div>
+            <div class="text-xs uppercase tracking-[0.18em] text-muted">Insertados</div>
+            <div class="text-lg">{{ pdfStats.insertados }}</div>
+          </div>
+          <div>
+            <div class="text-xs uppercase tracking-[0.18em] text-muted">Actualizados</div>
+            <div class="text-lg">{{ pdfStats.actualizados }}</div>
+          </div>
+          <div>
+            <div class="text-xs uppercase tracking-[0.18em] text-muted">Duplicados</div>
+            <div class="text-lg">{{ pdfStats.duplicados }}</div>
+          </div>
+          <div>
+            <div class="text-xs uppercase tracking-[0.18em] text-muted">Errores</div>
+            <div class="text-lg">{{ pdfStats.errores }}</div>
+          </div>
         </div>
-        <div>
-          <div class="text-xs uppercase tracking-[0.18em] text-muted">Actualizados</div>
-          <div class="text-lg">{{ pdfStats.actualizados }}</div>
-        </div>
-        <div>
-          <div class="text-xs uppercase tracking-[0.18em] text-muted">Duplicados</div>
-          <div class="text-lg">{{ pdfStats.duplicados }}</div>
-        </div>
-        <div>
-          <div class="text-xs uppercase tracking-[0.18em] text-muted">Errores</div>
-          <div class="text-lg">{{ pdfStats.errores }}</div>
-        </div>
+        @if (pdfStats.errores > 0) {
+          <div class="mt-3 text-xs text-muted">
+            Se detectaron errores durante la importacion. Revisa los PDF.
+          </div>
+        }
       </div>
-      <div class="mt-3 text-xs text-muted" *ngIf="pdfStats.errores > 0">
-        Se detectaron errores durante la importacion. Revisa los PDF.
-      </div>
-    </div>
-  </ng-container>
+    }
+  }
 </ng-template>
 
-<ng-container *ngIf="showCard; else bareTpl">
+@if (showCard) {
   <div class="flex h-full flex-col rounded-2xl border border-border bg-surface p-6 shadow-card">
     <div class="flex-1">
       <ng-container *ngTemplateOutlet="contentTpl"></ng-container>
     </div>
   </div>
-</ng-container>
-
-<ng-template #bareTpl>
+} @else {
   <ng-container *ngTemplateOutlet="contentTpl"></ng-container>
-</ng-template>
+}
+

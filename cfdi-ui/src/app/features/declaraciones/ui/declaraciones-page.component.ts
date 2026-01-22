@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { AsyncPipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
+import { AsyncPipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -16,7 +16,7 @@ import { PdfImportComponent } from '../../../shared/ui/imports/pdf-import.compon
 @Component({
   selector: 'app-declaraciones-page',
   standalone: true,
-  imports: [AsyncPipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink, PdfImportComponent, NgIcon],
+  imports: [AsyncPipe, DecimalPipe, FormsModule, RouterLink, PdfImportComponent, NgIcon],
   providers: [provideIcons({ lucideFileText, lucideTrash2 })],
   templateUrl: './declaraciones-page.component.html',
   styleUrl: './declaraciones-page.component.css',

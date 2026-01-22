@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Output, ViewChild, inject } from '@angular/core';
-import { NgIf, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 
@@ -12,7 +12,7 @@ import { AppAlertService } from '../alert/alert.service';
 @Component({
   selector: 'app-xml-import',
   standalone: true,
-  imports: [FormsModule, NgIf, NgTemplateOutlet],
+  imports: [FormsModule, NgTemplateOutlet],
   templateUrl: './xml-import.component.html',
   styleUrl: './xml-import.component.css',
 })

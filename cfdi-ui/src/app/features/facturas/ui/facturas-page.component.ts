@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
+import { AsyncPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -17,13 +17,11 @@ import { API_BASE_URL } from '../../../core/api/api-client';
     AsyncPipe,
     DatePipe,
     DecimalPipe,
-    NgFor,
-    NgIf,
     FormsModule,
     RouterLink,
     XmlImportComponent,
-    NgIcon,
-  ],
+    NgIcon
+],
   providers: [provideIcons({ lucideFileText, lucideTrash2 })],
   templateUrl: './facturas-page.component.html',
   styleUrl: './facturas-page.component.css',

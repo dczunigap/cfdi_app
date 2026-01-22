@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
+import { AsyncPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { distinctUntilChanged, filter, map, shareReplay, switchMap } from 'rxjs';
 
@@ -8,7 +8,7 @@ import { FacturasRepository } from '../data/facturas.repository';
 @Component({
   selector: 'app-facturas-detail',
   standalone: true,
-  imports: [AsyncPipe, DatePipe, DecimalPipe, NgFor, NgIf, RouterLink],
+  imports: [AsyncPipe, DatePipe, DecimalPipe, RouterLink],
   templateUrl: './facturas-detail.component.html',
   styleUrl: './facturas-detail.component.css',
 })

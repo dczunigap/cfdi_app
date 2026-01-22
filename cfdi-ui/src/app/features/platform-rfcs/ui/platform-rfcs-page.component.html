@@ -29,7 +29,7 @@
           class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
           [(ngModel)]="newRfc"
           placeholder="AAA010101AAA"
-        />
+          />
       </label>
       <label class="text-xs uppercase tracking-[0.18em] text-muted">
         Nombre
@@ -37,7 +37,7 @@
           class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
           [(ngModel)]="newNombre"
           placeholder="Nombre de plataforma"
-        />
+          />
       </label>
       <div class="flex items-end">
         <button
@@ -45,12 +45,14 @@
           type="button"
           (click)="addRfc()"
           [disabled]="saving"
-        >
+          >
           {{ saving ? 'Guardando...' : 'Agregar' }}
         </button>
       </div>
     </div>
-    <p class="mt-3 text-sm text-rose-600" *ngIf="error">{{ error }}</p>
+    @if (error) {
+      <p class="mt-3 text-sm text-rose-600">{{ error }}</p>
+    }
   </div>
 
   <div class="rounded-2xl border border-border bg-surface shadow-card">
@@ -66,28 +68,31 @@
             <th class="px-5 py-3 text-right">Acciones</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-border" *ngIf="platformRfcs$ | async as items; else empty">
-          <tr *ngFor="let item of items">
-            <td class="px-5 py-4 font-medium text-text">{{ item.rfc }}</td>
-            <td class="px-5 py-4 text-muted">{{ item.nombre || '-' }}</td>
-            <td class="px-5 py-4 text-right">
-              <button
-                class="btn-icon text-rose-600 hover:text-rose-700"
-                type="button"
-                (click)="deleteRfc(item.id)"
-                [disabled]="deletingId === item.id"
-                [attr.title]="deletingId === item.id ? 'Eliminando...' : 'Eliminar'"
-                [attr.aria-label]="deletingId === item.id ? 'Eliminando...' : 'Eliminar'"
-              >
-                <ng-icon name="lucideTrash2" class="h-4 w-4"></ng-icon>
-              </button>
-            </td>
-          </tr>
-        </tbody>
+        @if (platformRfcs$ | async; as items) {
+          <tbody class="divide-y divide-border">
+            @for (item of items; track item) {
+              <tr>
+                <td class="px-5 py-4 font-medium text-text">{{ item.rfc }}</td>
+                <td class="px-5 py-4 text-muted">{{ item.nombre || '-' }}</td>
+                <td class="px-5 py-4 text-right">
+                  <button
+                    class="btn-icon text-rose-600 hover:text-rose-700"
+                    type="button"
+                    (click)="deleteRfc(item.id)"
+                    [disabled]="deletingId === item.id"
+                    [attr.title]="deletingId === item.id ? 'Eliminando...' : 'Eliminar'"
+                    [attr.aria-label]="deletingId === item.id ? 'Eliminando...' : 'Eliminar'"
+                    >
+                    <ng-icon name="lucideTrash2" class="h-4 w-4"></ng-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        } @else {
+          <div class="px-5 py-6 text-sm text-muted">Sin RFCs registrados.</div>
+        }
       </table>
-      <ng-template #empty>
-        <div class="px-5 py-6 text-sm text-muted">Sin RFCs registrados.</div>
-      </ng-template>
     </div>
   </div>
 </div>
