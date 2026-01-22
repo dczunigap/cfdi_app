@@ -1,6 +1,4 @@
-<tui-root class="min-h-screen bg-bg block">
-  <tui-alerts></tui-alerts>
-  <tui-dialogs></tui-dialogs>
+<div class="min-h-screen bg-bg block">
   <app-loading-overlay></app-loading-overlay>
   <div class="flex min-h-screen">
     <aside
@@ -18,7 +16,7 @@
           </div>
         </div>
         <button
-          class="rounded-lg border border-border bg-bg p-2 text-text/70 hover:bg-surface"
+          class="btn btn-xs rounded-lg border border-border bg-bg text-text/70 hover:bg-surface"
           type="button"
           (click)="toggleSidebar()"
           [attr.aria-expanded]="!sidebarCollapsed()"
@@ -92,6 +90,18 @@
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
+          routerLink="/platform-rfcs"
+          routerLinkActive="bg-primary/10 text-primary"
+          [class.justify-center]="sidebarCollapsed()"
+          [class.px-2]="sidebarCollapsed()"
+          [class.px-4]="!sidebarCollapsed()"
+          [attr.title]="sidebarCollapsed() ? 'RFCs de plataforma' : null"
+        >
+          <span *ngIf="!sidebarCollapsed()">RFCs de plataforma</span>
+          <span class="text-xs uppercase tracking-[0.2em]" *ngIf="sidebarCollapsed()">RFC</span>
+        </a>
+        <a
+          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
           routerLink="/declaraciones"
           routerLinkActive="bg-primary/10 text-primary"
           [class.justify-center]="sidebarCollapsed()"
@@ -145,4 +155,4 @@
       </main>
     </div>
   </div>
-</tui-root>
+</div>

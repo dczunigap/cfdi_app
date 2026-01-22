@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { setEntities } from '@ngneat/elf-entities';
+import { deleteEntities, setEntities } from '@ngneat/elf-entities';
+import { tap } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/api/api-client';
 import { DeclaracionDetail, DeclaracionListItem, DeclaracionSummary } from './declaraciones.model';
@@ -35,6 +36,21 @@ export class DeclaracionesRepository {
 
   getSummary(id: number) {
     return this.http.get<DeclaracionSummary>(`${API_BASE_URL}/declaraciones/${id}/resumen.json`);
+  }
+
+  delete(id: number) {
+    return this.http.delete<{ ok: boolean }>(`${API_BASE_URL}/declaraciones/${id}`).pipe(
+      tap(() => {
+        declaracionesStore.update((state) => {
+          const { [id]: _removed, ...rest } = state.summaries;
+          return {
+            ...state,
+            summaries: rest,
+          };
+        });
+        declaracionesStore.update(deleteEntities(id));
+      })
+    );
   }
 
   private loadSummaries(items: DeclaracionListItem[]): void {

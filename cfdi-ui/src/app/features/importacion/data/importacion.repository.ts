@@ -5,14 +5,17 @@ import { API_BASE_URL } from '../../../core/api/api-client';
 
 export interface ImportXmlResult {
   cfdi_insertados: number;
+  cfdi_actualizados: number;
   cfdi_duplicados: number;
   retenciones_insertadas: number;
+  retenciones_actualizadas: number;
   retenciones_duplicadas: number;
   errores: number;
 }
 
 export interface ImportPdfResult {
   insertados: number;
+  actualizados: number;
   duplicados: number;
   errores: number;
 }

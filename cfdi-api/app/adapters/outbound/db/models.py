@@ -104,6 +104,15 @@ class RetencionModel(Base):
     xml_text: Mapped[str] = mapped_column(Text, nullable=False)
 
 
+class PlatformRfcModel(Base):
+    __tablename__ = "platform_rfcs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rfc: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=False)
+    nombre: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class DeclaracionModel(Base):
     __tablename__ = "declaraciones_pdf"
 

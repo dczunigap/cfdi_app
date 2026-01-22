@@ -1,20 +1,22 @@
 <div class="space-y-6" *ngIf="detail$ | async as detail">
-  <div class="flex items-center justify-between">
-    <div>
-      <div class="mb-2 text-xs uppercase tracking-[0.18em] text-muted">
-        <a class="hover:text-text" routerLink="/retenciones">Retenciones</a>
-        <span class="mx-2 text-muted">/</span>
-        <span class="text-text">Detalle</span>
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="mb-2 text-xs uppercase tracking-[0.18em] text-muted">
+          <a class="hover:text-text" routerLink="/retenciones">Retenciones</a>
+          <span class="mx-2 text-muted">/</span>
+          <span class="text-text">Detalle</span>
+        </div>
+        <h1 class="font-display text-2xl text-text">Detalle Retencion</h1>
+        <p class="text-sm text-muted">Plataformas</p>
       </div>
-      <h1 class="font-display text-2xl text-text">Detalle Retencion</h1>
-      <p class="text-sm text-muted">Plataformas</p>
+      <a
+        class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-bg"
+        routerLink="/retenciones"
+      >
+        Volver
+      </a>
     </div>
-    <a
-      class="rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
-      routerLink="/retenciones"
-    >
-      Volver
-    </a>
   </div>
 
   <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
@@ -78,7 +80,7 @@
     <div class="flex items-center justify-between border-b border-border px-5 py-4">
       <h2 class="font-display text-lg text-text">XML (raw)</h2>
       <button
-        class="rounded-lg border border-border px-3 py-2 text-xs text-text hover:bg-bg"
+        class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
         type="button"
         (click)="openXml(detail)"
         [disabled]="!detail.xml_text"

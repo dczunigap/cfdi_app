@@ -1,38 +1,34 @@
-import { Injectable, Injector } from '@angular/core';
-import { TuiDialogService } from '@taiga-ui/core';
-import { PolymorpheusComponent } from '@taiga-ui/polymorpheus';
+import { Injectable } from '@angular/core';
+import { Dialog } from '@angular/cdk/dialog';
 
 import { XmlImportComponent } from './xml-import.component';
 import { PdfImportComponent } from './pdf-import.component';
 
 @Injectable({ providedIn: 'root' })
 export class ImportDialogService {
-  constructor(
-    private readonly dialogs: TuiDialogService,
-    private readonly injector: Injector,
-  ) {}
+  constructor(private readonly dialogs: Dialog) {}
 
   openXml(): void {
-    this.dialogs
-      .open(new PolymorpheusComponent(XmlImportComponent, this.injector), {
-        label: 'Importar XML',
-        size: 'l',
-        closeable: true,
-        dismissible: false,
-        data: { showCard: false },
-      })
-      .subscribe();
+    this.dialogs.open(XmlImportComponent, {
+      data: { showCard: false },
+      ariaLabel: 'Importar XML',
+      width: 'min(720px, 92vw)',
+      maxWidth: '92vw',
+      disableClose: true,
+      panelClass: 'app-dialog-panel',
+      backdropClass: 'app-dialog-backdrop',
+    });
   }
 
   openPdf(): void {
-    this.dialogs
-      .open(new PolymorpheusComponent(PdfImportComponent, this.injector), {
-        label: 'Importar PDF',
-        size: 'l',
-        closeable: true,
-        dismissible: false,
-        data: { showCard: false },
-      })
-      .subscribe();
+    this.dialogs.open(PdfImportComponent, {
+      data: { showCard: false },
+      ariaLabel: 'Importar PDF',
+      width: 'min(720px, 92vw)',
+      maxWidth: '92vw',
+      disableClose: true,
+      panelClass: 'app-dialog-panel',
+      backdropClass: 'app-dialog-backdrop',
+    });
   }
 }

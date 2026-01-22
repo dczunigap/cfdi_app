@@ -1,21 +1,21 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { DecimalPipe, NgFor, NgIf } from '@angular/common';
+import { DatePipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
 import { SummaryRepository } from '../data/summary.repository';
-import { SummaryData, SummaryDetails } from '../data/summary.model';
+import { SummaryData } from '../data/summary.model';
 import { AppAlertService } from '../../../shared/ui/alert/alert.service';
 
 @Component({
   selector: 'app-summary-page',
   standalone: true,
-  imports: [DecimalPipe, FormsModule, NgFor, NgIf],
+  imports: [DatePipe, DecimalPipe, FormsModule, NgFor, NgIf, RouterLink],
   templateUrl: './summary-page.component.html',
   styleUrl: './summary-page.component.css',
 })
 export class SummaryPageComponent implements OnInit {
   summary: SummaryData | null = null;
-  details: SummaryDetails | null = null;
   loading = false;
   filtersOpen = true;
 
@@ -32,29 +32,30 @@ export class SummaryPageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.fetch();
   }
 
   fetch(): void {
     const year = Number(this.year);
     const month = Number(this.month);
-    if (!Number.isFinite(year) || !Number.isFinite(month) || year <= 0 || month <= 0) {
+    const hasYear = Number.isFinite(year) && year > 0;
+    const hasMonth = Number.isFinite(month) && month > 0;
+    if ((hasYear && !hasMonth) || (!hasYear && hasMonth)) {
       this.alerts.warning('Selecciona ano y mes para cargar el resumen.');
       return;
     }
-    this.year = year;
-    this.month = month;
     this.loading = true;
-    this.repo.fetch(year, month).subscribe({
+    this.repo.fetch(hasYear ? year : null, hasMonth ? month : null).subscribe({
       next: (data) => {
         this.summary = { ...data };
+        this.year = data.year;
+        this.month = data.month;
         this.loading = false;
-        this.fetchDetails(data.year, data.month);
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.loading = false;
         this.summary = null;
-        this.details = null;
         this.cdr.markForCheck();
         if (err?.status === 404) {
           this.alerts.warning('No hay datos para resumir en ese periodo.');
@@ -77,7 +78,6 @@ export class SummaryPageComponent implements OnInit {
     this.year = null;
     this.month = null;
     this.summary = null;
-    this.details = null;
   }
 
   periodLabel(data: SummaryData): string {
@@ -104,17 +104,9 @@ export class SummaryPageComponent implements OnInit {
     return `/api/v1/sat_report.csv?year=${this.summary.year}&month=${this.summary.month}`;
   }
 
-  private fetchDetails(year: number, month: number): void {
-    this.repo.fetchDetails(year, month).subscribe({
-      next: (details: SummaryDetails) => {
-        this.details = { ...details };
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.details = null;
-        this.cdr.markForCheck();
-      },
-    });
+  get declaracionParams(): { year: number; month: number } | null {
+    if (!this.summary) return null;
+    return { year: this.summary.year, month: this.summary.month };
   }
 
   private buildYears(): number[] {

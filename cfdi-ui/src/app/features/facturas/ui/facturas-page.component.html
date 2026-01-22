@@ -1,18 +1,31 @@
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="font-display text-2xl text-text">Facturas</h1>
-      <p class="text-sm text-muted">Listado desde el backend</p>
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="text-xs uppercase tracking-[0.2em] text-muted">Facturas</div>
+        <h1 class="mt-2 font-display text-2xl text-text">Listado de CFDI</h1>
+        <p class="mt-1 text-sm text-muted">Consulta, filtra y gestiona tus facturas.</p>
+      </div>
+      <div class="flex items-center gap-3" *ngIf="!showXmlImport">
+        <button
+          class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-surface"
+          type="button"
+          (click)="downloadCsv()"
+        >
+          Exportar CSV
+        </button>
+        <button
+          class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+          type="button"
+          (click)="openXmlImport()"
+        >
+          Importar XML
+        </button>
+      </div>
     </div>
-    <button
-      class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
-      type="button"
-      (click)="openXmlImport()"
-      *ngIf="!showXmlImport"
-    >
-      Importar XML
-    </button>
   </div>
+
+  <p class="text-sm text-rose-600" *ngIf="error">{{ error }}</p>
 
   <app-xml-import
     *ngIf="showXmlImport"
@@ -21,9 +34,9 @@
 
   <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
     <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
-      <span>Filtros</span>
+      <span class="text-xs uppercase tracking-[0.2em] text-muted">Filtros</span>
       <button
-        class="rounded-lg border border-border bg-bg px-3 py-2 text-xs uppercase tracking-[0.18em] text-text/70 hover:bg-surface"
+        class="btn btn-xs rounded-lg border border-border bg-bg text-xs uppercase tracking-[0.18em] text-text/70 hover:bg-surface"
         type="button"
         (click)="toggleFilters()"
         [attr.aria-expanded]="!filtersCollapsed"
@@ -35,7 +48,7 @@
       <label class="text-xs uppercase tracking-[0.18em] text-muted">
         Año
         <select
-          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          class="mt-2 w-full"
           [(ngModel)]="year"
         >
           <option [ngValue]="null">Todos</option>
@@ -45,7 +58,7 @@
       <label class="text-xs uppercase tracking-[0.18em] text-muted">
         Mes
         <select
-          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          class="mt-2 w-full"
           [(ngModel)]="month"
         >
           <option [ngValue]="null">Todos</option>
@@ -55,7 +68,7 @@
       <label class="text-xs uppercase tracking-[0.18em] text-muted">
         Tipo
         <select
-          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          class="mt-2 w-full"
           [(ngModel)]="tipo"
         >
           <option [ngValue]="null">Todos</option>
@@ -65,7 +78,7 @@
       <label class="text-xs uppercase tracking-[0.18em] text-muted">
         Naturaleza
         <select
-          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          class="mt-2 w-full"
           [(ngModel)]="naturaleza"
         >
           <option [ngValue]="null">Todas</option>
@@ -74,18 +87,18 @@
       </label>
       <div class="flex items-end gap-3">
         <button
-          class="w-full rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
+          class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
           (click)="applyFilters()"
         >
-          Filtrar
+          Aplicar
         </button>
       </div>
       <div class="flex items-end">
         <button
-          class="w-full rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+          class="btn btn-s w-full rounded-xl border border-border bg-bg text-text hover:bg-surface"
           (click)="resetFilters()"
         >
-          Quitar filtros
+          Limpiar
         </button>
       </div>
     </div>
@@ -96,7 +109,7 @@
       <div class="flex items-center gap-3">
         <h2 class="font-display text-lg text-text">Ultimos CFDI</h2>
         <span
-          class="rounded-full bg-accent/20 px-3 py-1 text-xs font-medium text-accent"
+          class="badge badge-info"
           *ngIf="facturasCount$ | async as total"
         >
           {{ total }} registros
@@ -115,11 +128,11 @@
             <th class="px-5 py-3">Receptor</th>
             <th class="px-5 py-3">Uso CFDI</th>
             <th class="px-5 py-3 text-right">Total</th>
-            <th class="px-5 py-3 text-right">Detalle</th>
+            <th class="px-5 py-3 text-right">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border" *ngIf="facturas$ | async as facturas; else empty">
-          <tr *ngFor="let f of facturas">
+          <tr class="hover:bg-bg" *ngFor="let f of facturas">
             <td class="px-5 py-4">{{ f.fecha_emision ? (f.fecha_emision | date: 'yyyy-MM-dd') : '-' }}</td>
             <td class="px-5 py-4">{{ f.tipo_comprobante || '-' }}</td>
             <td class="px-5 py-4">{{ f.naturaleza || '-' }}</td>
@@ -129,28 +142,26 @@
             <td class="px-5 py-4">{{ f.uso_cfdi || '-' }}</td>
             <td class="px-5 py-4 text-right">{{ f.total | number: '1.2-2' }}</td>
             <td class="px-5 py-4 text-right">
-              <a
-                class="inline-flex items-center justify-center rounded-lg border border-border px-2 py-2 text-text hover:bg-bg"
-                [routerLink]="['/facturas', f.id]"
-                title="Detalle de CFDI"
-              >
-                <svg
-                  class="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
+              <div class="flex items-center justify-end gap-2">
+                <a
+                  class="btn-icon text-text hover:text-primary"
+                  [routerLink]="['/facturas', f.id]"
+                  title="Ver detalle"
+                  aria-label="Ver detalle"
                 >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <path d="M14 2v6h6" />
-                  <path d="M10 13h6" />
-                  <path d="M10 17h6" />
-                  <path d="M10 9h2" />
-                </svg>
-              </a>
+                  <ng-icon name="lucideFileText" class="h-4 w-4"></ng-icon>
+                </a>
+                <button
+                  class="btn-icon text-rose-600 hover:text-rose-700"
+                  type="button"
+                  (click)="deleteFactura(f.id)"
+                  [disabled]="deletingId === f.id"
+                  title="Eliminar"
+                  aria-label="Eliminar"
+                >
+                  <ng-icon name="lucideTrash2" class="h-4 w-4"></ng-icon>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>

@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { AsyncPipe, DecimalPipe, NgFor, NgIf } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideFileText, lucideTrash2 } from '@ng-icons/lucide';
 
 import { retenciones$, retencionesCount$, retencionesPeriods$ } from '../data/retenciones.queries';
 import { RetencionListItem } from '../data/retenciones.model';
@@ -11,7 +13,8 @@ import { XmlImportComponent } from '../../../shared/ui/imports/xml-import.compon
 @Component({
   selector: 'app-retenciones-page',
   standalone: true,
-  imports: [AsyncPipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink, XmlImportComponent],
+  imports: [AsyncPipe, DecimalPipe, NgFor, NgIf, FormsModule, RouterLink, XmlImportComponent, NgIcon],
+  providers: [provideIcons({ lucideFileText, lucideTrash2 })],
   templateUrl: './retenciones-page.component.html',
   styleUrl: './retenciones-page.component.css',
 })
@@ -23,6 +26,8 @@ export class RetencionesPageComponent implements OnInit {
   selectedPeriod: string | null = null;
   filtersCollapsed = false;
   showXmlImport = false;
+  deletingId: number | null = null;
+  error: string | null = null;
 
   constructor(private readonly repo: RetencionesRepository) {}
 
@@ -52,6 +57,21 @@ export class RetencionesPageComponent implements OnInit {
     if (success) {
       this.repo.fetch();
     }
+  }
+
+  deleteRetencion(id: number): void {
+    if (!confirm('Eliminar retencion?')) return;
+    this.deletingId = id;
+    this.error = null;
+    this.repo.delete(id).subscribe({
+      next: () => {
+        this.deletingId = null;
+      },
+      error: () => {
+        this.error = 'No se pudo eliminar la retencion.';
+        this.deletingId = null;
+      },
+    });
   }
 
   formatPeriod(item: RetencionListItem): string {

@@ -1,0 +1,93 @@
+<div class="space-y-6">
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="text-xs uppercase tracking-[0.2em] text-muted">Plataformas</div>
+        <h1 class="mt-2 font-display text-2xl text-text">RFCs de plataforma</h1>
+        <p class="mt-1 text-sm text-muted">
+          Lista usada para evitar doble conteo de CFDI emitidos a plataformas.
+        </p>
+      </div>
+      <span class="rounded-full border border-border bg-bg px-3 py-1 text-xs text-muted">
+        Control SAT
+      </span>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900 shadow-card">
+    Se cargan automaticamente al importar XML de retenciones. Puedes agregar o eliminar manualmente.
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="mb-4 flex items-center gap-3">
+      <h2 class="font-display text-lg text-text">Agregar RFC</h2>
+    </div>
+    <div class="grid gap-4 md:grid-cols-3">
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        RFC
+        <input
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="newRfc"
+          placeholder="AAA010101AAA"
+        />
+      </label>
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Nombre
+        <input
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="newNombre"
+          placeholder="Nombre de plataforma"
+        />
+      </label>
+      <div class="flex items-end">
+        <button
+          class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+          type="button"
+          (click)="addRfc()"
+          [disabled]="saving"
+        >
+          {{ saving ? 'Guardando...' : 'Agregar' }}
+        </button>
+      </div>
+    </div>
+    <p class="mt-3 text-sm text-rose-600" *ngIf="error">{{ error }}</p>
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface shadow-card">
+    <div class="border-b border-border px-5 py-4">
+      <h2 class="font-display text-lg text-text">RFCs registrados</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
+          <tr>
+            <th class="px-5 py-3">RFC</th>
+            <th class="px-5 py-3">Nombre</th>
+            <th class="px-5 py-3 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border" *ngIf="platformRfcs$ | async as items; else empty">
+          <tr *ngFor="let item of items">
+            <td class="px-5 py-4 font-medium text-text">{{ item.rfc }}</td>
+            <td class="px-5 py-4 text-muted">{{ item.nombre || '-' }}</td>
+            <td class="px-5 py-4 text-right">
+              <button
+                class="btn-icon text-rose-600 hover:text-rose-700"
+                type="button"
+                (click)="deleteRfc(item.id)"
+                [disabled]="deletingId === item.id"
+                [attr.title]="deletingId === item.id ? 'Eliminando...' : 'Eliminar'"
+                [attr.aria-label]="deletingId === item.id ? 'Eliminando...' : 'Eliminar'"
+              >
+                <ng-icon name="lucideTrash2" class="h-4 w-4"></ng-icon>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #empty>
+        <div class="px-5 py-6 text-sm text-muted">Sin RFCs registrados.</div>
+      </ng-template>
+    </div>
+  </div>
+</div>

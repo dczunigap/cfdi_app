@@ -103,26 +103,26 @@ export class DeclaracionPageComponent {
   checkBadgeClass(check: DeclaracionCheck): string {
     switch (check.level) {
       case 'ok':
-        return 'border-emerald-200 bg-emerald-50 text-emerald-800';
+        return 'badge-success';
       case 'warn':
-        return 'border-amber-200 bg-amber-50 text-amber-900';
+        return 'badge-warn';
       case 'error':
-        return 'border-rose-200 bg-rose-50 text-rose-900';
+        return 'badge-danger';
       default:
-        return 'border-indigo-200 bg-indigo-50 text-indigo-900';
+        return 'badge-info';
     }
   }
 
   statusBadgeClass(status: string): string {
     switch (status) {
       case 'ok':
-        return 'border-emerald-200 bg-emerald-50 text-emerald-800';
+        return 'badge-success';
       case 'warn':
-        return 'border-amber-200 bg-amber-50 text-amber-900';
+        return 'badge-warn';
       case 'error':
-        return 'border-rose-200 bg-rose-50 text-rose-900';
+        return 'badge-danger';
       default:
-        return 'border-indigo-200 bg-indigo-50 text-indigo-900';
+        return 'badge-info';
     }
   }
 

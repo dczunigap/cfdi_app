@@ -1,14 +1,26 @@
 <ng-template #contentTpl>
-  <h2 class="font-display text-lg text-text">Importar XML</h2>
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="text-xs uppercase tracking-[0.2em] text-muted">XML</div>
+      <h2 class="mt-1 font-display text-lg text-text">Importar CFDI y Retenciones</h2>
+    </div>
+    <span class="rounded-full border border-border bg-bg px-3 py-1 text-xs text-muted">SAT</span>
+  </div>
   <p class="mt-2 text-sm text-muted">
     CFDI 4.0 (I, E, P) y Retenciones 2.0 (Plataformas).
   </p>
   <div class="mt-4 space-y-3">
     <label
-      tuiInputFiles
-      class="block w-full rounded-xl border border-dashed border-border bg-bg px-4 py-6 text-center text-sm text-text"
+      class="block w-full cursor-pointer rounded-xl border border-dashed border-border bg-bg px-4 py-6 text-center text-sm text-text transition hover:bg-surface focus-within:border-primary focus-within:ring-2"
     >
-      <input tuiInputFiles type="file" accept=".xml" multiple [(ngModel)]="xmlFiles" />
+      <input
+        #xmlInput
+        class="sr-only"
+        type="file"
+        accept=".xml"
+        multiple
+        (change)="onXmlFilesSelected($event)"
+      />
       <div class="text-muted">Arrastra o selecciona archivos XML</div>
       <div class="mt-1 text-xs text-muted">
         {{ xmlFiles.length || 0 }} archivo(s) seleccionado(s)
@@ -16,7 +28,7 @@
     </label>
     <div class="flex flex-wrap gap-3">
       <button
-        class="rounded-xl bg-primary px-5 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
+        class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
         type="button"
         (click)="importXml()"
         [disabled]="xmlLoading"
@@ -24,7 +36,7 @@
         {{ xmlLoading ? 'Importando...' : 'Importar XML' }}
       </button>
       <button
-        class="rounded-xl border border-border bg-surface px-5 py-2 text-sm text-text shadow-sm shadow-black/10 hover:shadow-md"
+        class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-surface"
         type="button"
         (click)="cancelImport()"
         [disabled]="xmlLoading"
@@ -32,8 +44,8 @@
         Cancelar
       </button>
       <button
-        *ngIf="dialogContext"
-        class="rounded-xl border border-border bg-surface px-5 py-2 text-sm text-text shadow-sm shadow-black/10 hover:shadow-md"
+        *ngIf="dialogRef"
+        class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-surface"
         type="button"
         (click)="closeDialog()"
       >
@@ -48,10 +60,14 @@
       class="mt-4 rounded-xl border border-border bg-bg p-4 text-sm text-text"
       *ngIf="hasXmlStats(xmlStats)"
     >
-      <div class="grid gap-3 md:grid-cols-5">
+      <div class="grid gap-3 md:grid-cols-7">
         <div>
           <div class="text-xs uppercase tracking-[0.18em] text-muted">CFDI OK</div>
           <div class="text-lg">{{ xmlStats.cfdi_insertados }}</div>
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-[0.18em] text-muted">CFDI Act</div>
+          <div class="text-lg">{{ xmlStats.cfdi_actualizados }}</div>
         </div>
         <div>
           <div class="text-xs uppercase tracking-[0.18em] text-muted">CFDI Dup</div>
@@ -60,6 +76,10 @@
         <div>
           <div class="text-xs uppercase tracking-[0.18em] text-muted">Ret OK</div>
           <div class="text-lg">{{ xmlStats.retenciones_insertadas }}</div>
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-[0.18em] text-muted">Ret Act</div>
+          <div class="text-lg">{{ xmlStats.retenciones_actualizadas }}</div>
         </div>
         <div>
           <div class="text-xs uppercase tracking-[0.18em] text-muted">Ret Dup</div>
@@ -79,8 +99,10 @@
 </ng-template>
 
 <ng-container *ngIf="showCard; else bareTpl">
-  <div class="rounded-2xl border border-border bg-surface p-6 shadow-card">
-    <ng-container *ngTemplateOutlet="contentTpl"></ng-container>
+  <div class="flex h-full flex-col rounded-2xl border border-border bg-surface p-6 shadow-card">
+    <div class="flex-1">
+      <ng-container *ngTemplateOutlet="contentTpl"></ng-container>
+    </div>
   </div>
 </ng-container>
 

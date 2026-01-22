@@ -1,9 +1,7 @@
-import { ChangeDetectorRef, Component, EventEmitter, Output, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Output, ViewChild, inject } from '@angular/core';
 import { NgIf, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TuiInputFiles, TuiInputFilesDirective } from '@taiga-ui/kit';
-import { type TuiDialogContext } from '@taiga-ui/core';
-import { POLYMORPHEUS_CONTEXT } from '@taiga-ui/polymorpheus';
+import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 
 import {
   ImportacionRepository,
@@ -14,17 +12,16 @@ import { AppAlertService } from '../alert/alert.service';
 @Component({
   selector: 'app-pdf-import',
   standalone: true,
-  imports: [FormsModule, NgIf, NgTemplateOutlet, TuiInputFiles, TuiInputFilesDirective],
+  imports: [FormsModule, NgIf, NgTemplateOutlet],
   templateUrl: './pdf-import.component.html',
   styleUrl: './pdf-import.component.css',
 })
 export class PdfImportComponent {
-  readonly dialogContext =
-    (inject(POLYMORPHEUS_CONTEXT, { optional: true }) as
-      | TuiDialogContext<void, { showCard?: boolean }>
-      | null) ?? null;
+  @ViewChild('pdfInput') pdfInput?: ElementRef<HTMLInputElement>;
+  readonly dialogRef = inject<DialogRef<void> | null>(DialogRef, { optional: true });
+  readonly dialogData = inject<{ showCard?: boolean } | null>(DIALOG_DATA, { optional: true });
 
-  showCard = this.dialogContext?.data?.showCard ?? true;
+  showCard = this.dialogData?.showCard ?? true;
   pdfFiles: readonly File[] = [];
   year: number | null = null;
   month: number | null = null;
@@ -40,13 +37,23 @@ export class PdfImportComponent {
   ) {}
 
   closeDialog(): void {
-    this.dialogContext?.$implicit.complete();
+    this.dialogRef?.close();
+  }
+
+  onPdfFilesSelected(event: Event): void {
+    const target = event.target as HTMLInputElement | null;
+    const files = target?.files ? Array.from(target.files) : [];
+    this.pdfFiles = files;
+    this.cdr.detectChanges();
   }
 
   cancelImport(): void {
     this.pdfFiles = [];
     this.pdfResult = null;
     this.pdfLoading = false;
+    if (this.pdfInput) {
+      this.pdfInput.nativeElement.value = '';
+    }
     this.cdr.detectChanges();
     this.completed.emit(false);
   }
@@ -76,13 +83,21 @@ export class PdfImportComponent {
 
   hasPdfStats(result: ImportPdfResult | null): boolean {
     if (!result) return false;
-    return result.insertados > 0 || result.duplicados > 0 || result.errores > 0;
+    return (
+      result.insertados > 0 ||
+      result.actualizados > 0 ||
+      result.duplicados > 0 ||
+      result.errores > 0
+    );
   }
 
   private finishPdfImport(clearFiles: boolean): void {
     this.pdfLoading = false;
     if (clearFiles) {
       this.pdfFiles = [];
+      if (this.pdfInput) {
+        this.pdfInput.nativeElement.value = '';
+      }
     }
     this.cdr.detectChanges();
     this.completed.emit(clearFiles);
@@ -93,8 +108,11 @@ export class PdfImportComponent {
       this.alerts.warning('Importacion PDF con errores. Revisa los archivos.');
       return;
     }
-    if (result.insertados > 0) {
-      this.alerts.success('Importacion PDF completada.');
+    if (result.insertados > 0 || result.actualizados > 0) {
+      const details = [];
+      if (result.insertados > 0) details.push(`${result.insertados} insertados`);
+      if (result.actualizados > 0) details.push(`${result.actualizados} actualizados`);
+      this.alerts.success(`Importacion PDF completada. ${details.join(', ')}.`);
       return;
     }
     if (result.duplicados > 0) {

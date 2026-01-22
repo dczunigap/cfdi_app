@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { setEntities } from '@ngneat/elf-entities';
+import { deleteEntities, setEntities } from '@ngneat/elf-entities';
+import { tap } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/api/api-client';
 import { RetencionDetail, RetencionListItem } from './retenciones.model';
@@ -28,5 +29,13 @@ export class RetencionesRepository {
 
   getDetail(id: number) {
     return this.http.get<RetencionDetail>(`${API_BASE_URL}/retenciones/${id}`);
+  }
+
+  delete(id: number) {
+    return this.http.delete<{ ok: boolean }>(`${API_BASE_URL}/retenciones/${id}`).pipe(
+      tap(() => {
+        retencionesStore.update(deleteEntities(id));
+      })
+    );
   }
 }

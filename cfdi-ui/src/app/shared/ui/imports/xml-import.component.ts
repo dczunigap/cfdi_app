@@ -1,9 +1,7 @@
-import { ChangeDetectorRef, Component, EventEmitter, Output, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Output, ViewChild, inject } from '@angular/core';
 import { NgIf, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TuiInputFiles, TuiInputFilesDirective } from '@taiga-ui/kit';
-import { type TuiDialogContext } from '@taiga-ui/core';
-import { POLYMORPHEUS_CONTEXT } from '@taiga-ui/polymorpheus';
+import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 
 import {
   ImportacionRepository,
@@ -14,17 +12,16 @@ import { AppAlertService } from '../alert/alert.service';
 @Component({
   selector: 'app-xml-import',
   standalone: true,
-  imports: [FormsModule, NgIf, NgTemplateOutlet, TuiInputFiles, TuiInputFilesDirective],
+  imports: [FormsModule, NgIf, NgTemplateOutlet],
   templateUrl: './xml-import.component.html',
   styleUrl: './xml-import.component.css',
 })
 export class XmlImportComponent {
-  readonly dialogContext =
-    (inject(POLYMORPHEUS_CONTEXT, { optional: true }) as
-      | TuiDialogContext<void, { showCard?: boolean }>
-      | null) ?? null;
+  @ViewChild('xmlInput') xmlInput?: ElementRef<HTMLInputElement>;
+  readonly dialogRef = inject<DialogRef<void> | null>(DialogRef, { optional: true });
+  readonly dialogData = inject<{ showCard?: boolean } | null>(DIALOG_DATA, { optional: true });
 
-  showCard = this.dialogContext?.data?.showCard ?? true;
+  showCard = this.dialogData?.showCard ?? true;
   xmlFiles: readonly File[] = [];
   xmlResult: ImportXmlResult | null = null;
   xmlLoading = false;
@@ -38,13 +35,23 @@ export class XmlImportComponent {
   ) {}
 
   closeDialog(): void {
-    this.dialogContext?.$implicit.complete();
+    this.dialogRef?.close();
+  }
+
+  onXmlFilesSelected(event: Event): void {
+    const target = event.target as HTMLInputElement | null;
+    const files = target?.files ? Array.from(target.files) : [];
+    this.xmlFiles = files;
+    this.cdr.detectChanges();
   }
 
   cancelImport(): void {
     this.xmlFiles = [];
     this.xmlResult = null;
     this.xmlLoading = false;
+    if (this.xmlInput) {
+      this.xmlInput.nativeElement.value = '';
+    }
     this.cdr.detectChanges();
     this.completed.emit(false);
   }
@@ -76,8 +83,10 @@ export class XmlImportComponent {
     if (!result) return false;
     return (
       result.cfdi_insertados > 0 ||
+      result.cfdi_actualizados > 0 ||
       result.cfdi_duplicados > 0 ||
       result.retenciones_insertadas > 0 ||
+      result.retenciones_actualizadas > 0 ||
       result.retenciones_duplicadas > 0 ||
       result.errores > 0
     );
@@ -87,6 +96,9 @@ export class XmlImportComponent {
     this.xmlLoading = false;
     if (clearFiles) {
       this.xmlFiles = [];
+      if (this.xmlInput) {
+        this.xmlInput.nativeElement.value = '';
+      }
     }
     this.cdr.detectChanges();
     this.completed.emit(clearFiles);
@@ -97,8 +109,19 @@ export class XmlImportComponent {
       this.alerts.warning('Importacion XML con errores. Revisa los archivos.');
       return;
     }
-    if (result.cfdi_insertados > 0 || result.retenciones_insertadas > 0) {
-      this.alerts.success('Importacion XML completada.');
+    if (
+      result.cfdi_insertados > 0 ||
+      result.retenciones_insertadas > 0 ||
+      result.cfdi_actualizados > 0 ||
+      result.retenciones_actualizadas > 0
+    ) {
+      const details = [];
+      if (result.cfdi_insertados > 0) details.push(`${result.cfdi_insertados} cfdi insertados`);
+      if (result.cfdi_actualizados > 0) details.push(`${result.cfdi_actualizados} cfdi actualizados`);
+      if (result.retenciones_insertadas > 0) details.push(`${result.retenciones_insertadas} retenciones insertadas`);
+      if (result.retenciones_actualizadas > 0)
+        details.push(`${result.retenciones_actualizadas} retenciones actualizadas`);
+      this.alerts.success(`Importacion XML completada. ${details.join(', ')}.`);
       return;
     }
     if (result.cfdi_duplicados > 0 || result.retenciones_duplicadas > 0) {

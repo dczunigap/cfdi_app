@@ -1,24 +1,26 @@
 <ng-container *ngIf="detail$ | async as detail; else detailErrorTpl">
   <ng-container *ngIf="detail; else detailErrorTpl">
     <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <div>
-      <div class="mb-2 text-xs uppercase tracking-[0.18em] text-muted">
-        <a class="hover:text-text" routerLink="/declaraciones">Declaraciones</a>
-        <span class="mx-2 text-muted">/</span>
-        <span class="text-text">Detalle</span>
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="mb-2 text-xs uppercase tracking-[0.18em] text-muted">
+          <a class="hover:text-text" routerLink="/declaraciones">Declaraciones</a>
+          <span class="mx-2 text-muted">/</span>
+          <span class="text-text">Detalle</span>
+        </div>
+        <h1 class="font-display text-2xl text-text">Declaracion PDF</h1>
+        <p class="text-sm text-muted">
+          {{ formatPeriod(detail.year, detail.month) }}
+        </p>
       </div>
-      <h1 class="font-display text-2xl text-text">Declaracion PDF</h1>
-      <p class="text-sm text-muted">
-        {{ formatPeriod(detail.year, detail.month) }}
-      </p>
+      <a
+        class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-bg"
+        routerLink="/declaraciones"
+      >
+        Volver
+      </a>
     </div>
-    <a
-      class="rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
-      routerLink="/declaraciones"
-    >
-      Volver
-    </a>
   </div>
 
   <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
@@ -44,7 +46,7 @@
       <h2 class="font-display text-lg text-text">Resumen breve</h2>
       <div class="flex flex-wrap gap-2">
         <a
-          class="rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
+          class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
           [href]="(pdfUrl$ | async) || '#'"
           target="_blank"
           rel="noopener"
@@ -52,7 +54,7 @@
           Abrir PDF
         </a>
         <a
-          class="rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+          class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-bg"
           [href]="(jsonUrl$ | async) || '#'"
           target="_blank"
           rel="noopener"
@@ -60,7 +62,7 @@
           Abrir JSON
         </a>
         <button
-          class="rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+          class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-bg"
           type="button"
           (click)="copySummary(summary)"
         >

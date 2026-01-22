@@ -59,6 +59,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'platform-rfcs',
+    loadComponent: () =>
+      import('./features/platform-rfcs/ui/platform-rfcs-page.component').then(
+        (m) => m.PlatformRfcsPageComponent,
+      ),
+  },
+  {
     path: 'declaraciones',
     loadComponent: () =>
       import('./features/declaraciones/ui/declaraciones-page.component').then(

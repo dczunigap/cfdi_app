@@ -1,19 +1,22 @@
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="font-display text-2xl text-text">Modo declaracion (mensual)</h1>
-      <p class="text-sm text-muted">Ingresos + retenciones para captura en SAT</p>
-    </div>
-    <div class="text-sm text-muted" *ngIf="summary">
-      Periodo: <span class="text-text">{{ periodLabel(summary) }}</span>
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="text-xs uppercase tracking-[0.2em] text-muted">Declaracion</div>
+        <h1 class="mt-2 font-display text-2xl text-text">Modo declaracion (mensual)</h1>
+        <p class="mt-1 text-sm text-muted">Ingresos + retenciones para captura en SAT.</p>
+      </div>
+      <div class="text-sm text-muted" *ngIf="summary">
+        Periodo: <span class="text-text">{{ periodLabel(summary) }}</span>
+      </div>
     </div>
   </div>
 
   <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
     <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
-      <span>Filtros</span>
+      <span class="text-xs uppercase tracking-[0.2em] text-muted">Filtros</span>
       <button
-        class="rounded-lg border border-border px-3 py-1 text-xs text-text hover:bg-bg"
+        class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
         type="button"
         (click)="toggleFilters()"
         [attr.aria-expanded]="filtersOpen"
@@ -55,7 +58,7 @@
       </label>
       <div class="flex items-end">
         <button
-          class="w-full rounded-xl bg-primary px-4 py-2 text-sm text-white shadow-sm shadow-primary/20 hover:shadow-md"
+          class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
           type="button"
           (click)="load()"
           [disabled]="loading || !year || !month"
@@ -65,7 +68,7 @@
       </div>
       <div class="flex items-end">
         <button
-          class="w-full rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg"
+          class="btn btn-s w-full rounded-xl border border-border bg-bg text-text hover:bg-bg"
           type="button"
           (click)="clear()"
         >
@@ -74,7 +77,7 @@
       </div>
       <div class="flex items-end">
         <a
-          class="w-full rounded-xl border border-border bg-bg px-4 py-2 text-sm text-text hover:bg-surface text-center"
+          class="btn btn-s w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface text-center"
           [href]="csvUrl"
           [attr.aria-disabled]="!csvUrl"
           target="_blank"
@@ -85,7 +88,7 @@
       </div>
       <div class="flex items-end">
         <a
-          class="w-full rounded-xl border border-border px-4 py-2 text-sm text-text hover:bg-bg text-center"
+          class="btn btn-s w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-bg text-center"
           [href]="hojaUrl"
           [attr.aria-disabled]="!hojaUrl"
           target="_blank"
@@ -157,12 +160,9 @@
           class="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-text"
           *ngFor="let check of summary.checks"
         >
-          <span
-            class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold"
-            [ngClass]="checkBadgeClass(check)"
-          >
-            {{ check.level | uppercase }}
-          </span>
+            <span class="badge" [ngClass]="checkBadgeClass(check)">
+              {{ check.level | uppercase }}
+            </span>
           <div class="mt-2 font-semibold">{{ check.title }}</div>
           <div class="text-xs text-muted">{{ check.detail }}</div>
         </div>
@@ -184,13 +184,13 @@
         </div>
         <div class="mt-3 flex flex-wrap gap-3 text-sm">
           <a
-            class="rounded-lg border border-border px-3 py-2 text-xs text-text hover:bg-bg"
+            class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
             [routerLink]="['/declaraciones', summary.declaracion_pdf.id]"
           >
             Ver detalle
           </a>
           <a
-            class="rounded-lg border border-border px-3 py-2 text-xs text-text hover:bg-bg"
+            class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
             [href]="pdfUrl(summary.declaracion_pdf)"
             target="_blank"
             rel="noopener"
@@ -229,10 +229,7 @@
             class="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-text"
             *ngFor="let item of summary.acuse_checks"
           >
-            <span
-              class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold"
-              [ngClass]="statusBadgeClass(item.status)"
-            >
+            <span class="badge" [ngClass]="statusBadgeClass(item.status)">
               {{ item.status | uppercase }}
             </span>
             <div class="mt-2 font-semibold">{{ item.label }}</div>

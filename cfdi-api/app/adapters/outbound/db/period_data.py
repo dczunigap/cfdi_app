@@ -5,8 +5,9 @@ from typing import Optional
 from sqlalchemy import and_, desc, select
 from sqlalchemy.orm import Session
 
-from app.adapters.outbound.db.models import FacturaModel, PagoModel, RetencionModel
+from app.adapters.outbound.db.models import FacturaModel, PagoModel, PlatformRfcModel, RetencionModel
 from app.utils.money import apply_sign_factor
+from app.core.config import settings
 
 
 def pick_default_period(db: Session) -> tuple[Optional[int], Optional[int]]:
@@ -53,7 +54,33 @@ def _signed(value: Optional[float], tipo: Optional[str]) -> float:
     return apply_sign_factor(value, tipo)
 
 
+def _normalize_naturaleza(naturaleza: Optional[str], tipo: Optional[str]) -> Optional[str]:
+    if naturaleza is not None:
+        nat = naturaleza.strip().lower()
+    else:
+        nat = None
+
+    if nat in {"ingreso", "gasto", "cobro", "pago", "traslado", "nomina"}:
+        return nat
+    if nat == "egreso":
+        return "gasto"
+
+    t = (tipo or "").upper()
+    if t == "I":
+        return "ingreso"
+    if t == "E":
+        return "gasto"
+    if t == "P":
+        return "pago"
+    return nat
+
+
 def compute_period_data(db: Session, year: int, month: int) -> dict:
+    platform_rfcs = {
+        (rfc or "").strip().upper()
+        for rfc in db.scalars(select(PlatformRfcModel.rfc)).all()
+        if rfc
+    }
     docs = db.scalars(
         select(FacturaModel)
         .where(FacturaModel.year_emision == year, FacturaModel.month_emision == month)
@@ -68,20 +95,44 @@ def compute_period_data(db: Session, year: int, month: int) -> dict:
     ingresos_base = 0.0
     p_count = 0
 
+    mi_rfc = (settings.mi_rfc or "").strip().upper()
     for d in docs:
         tipo = (d.tipo_comprobante or "").upper()
+        naturaleza = _normalize_naturaleza(d.naturaleza, tipo)
         if tipo == "P":
             p_count += 1
             continue
 
         base = float(d.subtotal or 0.0) - float(d.descuento or 0.0)
+        emisor_rfc = (d.emisor_rfc or "").upper()
+        receptor_rfc = (d.receptor_rfc or "").upper()
+        uso_cfdi = (d.uso_cfdi or "").upper()
 
-        if d.naturaleza == "ingreso":
+        if mi_rfc:
+            is_gasto = receptor_rfc == mi_rfc and uso_cfdi not in {"S01", "CP01"}
+            is_platform_receptor = receptor_rfc in platform_rfcs if receptor_rfc else False
+            if (
+                emisor_rfc == mi_rfc
+                and uso_cfdi not in {"S01", "CP01"}
+                and naturaleza == "ingreso"
+            ):
+                if not is_platform_receptor:
+                    ingresos_total += _signed(d.total, tipo)
+                    ingresos_ret += _signed(d.total_retenidos, tipo)
+                    ingresos_base += _signed(base, tipo)
+                    ingresos_trasl += _signed(d.total_trasladados, tipo)
+            if is_gasto:
+                gastos_total += _signed(d.total, tipo)
+                gastos_trasl += _signed(d.total_trasladados, tipo)
+                gastos_ret += _signed(d.total_retenidos, tipo)
+            continue
+
+        if naturaleza == "ingreso":
             ingresos_total += _signed(d.total, tipo)
             ingresos_trasl += _signed(d.total_trasladados, tipo)
             ingresos_ret += _signed(d.total_retenidos, tipo)
             ingresos_base += _signed(base, tipo)
-        elif d.naturaleza == "gasto":
+        elif naturaleza == "gasto":
             gastos_total += _signed(d.total, tipo)
             gastos_trasl += _signed(d.total_trasladados, tipo)
             gastos_ret += _signed(d.total_retenidos, tipo)
@@ -98,9 +149,10 @@ def compute_period_data(db: Session, year: int, month: int) -> dict:
     for pago, nat in pagos_rows:
         pagos_count += 1
         monto = float(pago.monto or 0.0)
-        if nat == "cobro":
+        naturaleza = _normalize_naturaleza(nat, "P")
+        if naturaleza == "cobro":
             cash_in += monto
-        elif nat == "pago":
+        elif naturaleza == "pago":
             cash_out += monto
 
     ret_rows = db.scalars(

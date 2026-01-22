@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.outbound.db.mappers import factura_to_list_item
 from app.adapters.outbound.db.models import ConceptoModel, FacturaModel, PagoModel
-from app.adapters.outbound.db.repositories.utils import apply_optional_filter, exists_by_field
+from app.adapters.outbound.db.repositories.utils import apply_optional_filters, exists_by_field
 from app.ports.facturas_repo import FacturaRepository
 from app.application.facturas.dto import FacturaListItem
 from app.domain.facturas.entities import Factura
@@ -24,11 +24,13 @@ class SqlFacturaRepository(FacturaRepository):
         tipo: Optional[str] = None,
         naturaleza: Optional[str] = None,
     ) -> list[FacturaListItem]:
-        q = select(FacturaModel)
-        q = apply_optional_filter(q, FacturaModel.year_emision, year)
-        q = apply_optional_filter(q, FacturaModel.month_emision, month)
-        q = apply_optional_filter(q, FacturaModel.naturaleza, naturaleza)
-        q = apply_optional_filter(q, FacturaModel.tipo_comprobante, tipo.upper() if tipo else None)
+        q = apply_optional_filters(
+            select(FacturaModel),
+            (FacturaModel.year_emision, year),
+            (FacturaModel.month_emision, month),
+            (FacturaModel.naturaleza, naturaleza),
+            (FacturaModel.tipo_comprobante, tipo.upper() if tipo else None),
+        )
         rows = self._db.execute(q).scalars().all()
         return [factura_to_list_item(r) for r in rows]
 
