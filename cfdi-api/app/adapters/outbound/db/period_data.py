@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.adapters.outbound.db.models import FacturaModel, PagoModel, PlatformRfcModel, RetencionModel
 from app.utils.money import apply_sign_factor
-from app.core.config import settings
 
 
 def pick_default_period(db: Session) -> tuple[Optional[int], Optional[int]]:
@@ -75,7 +74,7 @@ def _normalize_naturaleza(naturaleza: Optional[str], tipo: Optional[str]) -> Opt
     return nat
 
 
-def compute_period_data(db: Session, year: int, month: int) -> dict:
+def compute_period_data(db: Session, year: int, month: int, mi_rfc: str | None = None) -> dict:
     platform_rfcs = {
         (rfc or "").strip().upper()
         for rfc in db.scalars(select(PlatformRfcModel.rfc)).all()
@@ -95,7 +94,7 @@ def compute_period_data(db: Session, year: int, month: int) -> dict:
     ingresos_base = 0.0
     p_count = 0
 
-    mi_rfc = (settings.mi_rfc or "").strip().upper()
+    mi_rfc = (mi_rfc or "").strip().upper()
     for d in docs:
         tipo = (d.tipo_comprobante or "").upper()
         naturaleza = _normalize_naturaleza(d.naturaleza, tipo)

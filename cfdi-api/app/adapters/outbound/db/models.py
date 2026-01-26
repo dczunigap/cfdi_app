@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.adapters.outbound.db.session import Base
@@ -110,7 +110,7 @@ class PlatformRfcModel(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     rfc: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=False)
     nombre: Mapped[str | None] = mapped_column(String(300), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class DeclaracionModel(Base):
@@ -127,4 +127,19 @@ class DeclaracionModel(Base):
     original_name: Mapped[str | None] = mapped_column(String(260), nullable=True)
     num_pages: Mapped[int | None] = mapped_column(Integer, nullable=True)
     text_excerpt: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class SatCredentialModel(Base):
+    __tablename__ = "sat_credentials"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rfc: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=False)
+    pfx_encrypted: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    pfx_password_encrypted: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )

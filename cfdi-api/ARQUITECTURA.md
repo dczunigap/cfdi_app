@@ -17,3 +17,25 @@
 
 ## Flujo hexagonal (resumen)
 Inbound (FastAPI) -> Use Case -> Port -> Outbound (DB/Files)
+
+# SAT (credenciales y SOAP)
+
+## Objetivo
+Separar la orquestacion del SAT (SOAP/WS-Security/PKCS12) del dominio y los casos de uso.
+
+## Puertos
+- `SatCredentialsRepository`: persistencia de credenciales SAT.
+- `SatCrypto`: cifrado/descifrado de PFX y password.
+- `SatGateway`: interfaz para operaciones SAT (autenticar, solicitar/verificar/descargar).
+
+## Adapters
+- `adapters/outbound/db/repositories/sat_credentials.py` implementa `SatCredentialsRepository`.
+- `adapters/services/sat/crypto/*` implementa `SatCrypto` (Fernet).
+- `adapters/services/sat/sat_gateway.py` implementa `SatGateway` (SOAP).
+- `adapters/services/sat/soap/*` encapsula transporte y parsing.
+- `adapters/services/sat/wsse/*` encapsula WS-Security y firma XML.
+- `adapters/services/sat/pkcs12/*` encapsula manejo de PFX.
+
+## Use cases
+- `application/sat/use_cases.py` orquesta alta/baja de credenciales y autenticacion SAT
+  via `SatGateway`, sin conocer detalles de SOAP/WSSE.

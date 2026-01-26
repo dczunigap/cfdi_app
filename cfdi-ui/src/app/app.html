@@ -43,6 +43,24 @@
           </svg>
         </button>
       </div>
+      <div class="mb-8 space-y-2">
+        @if (!sidebarCollapsed()) {
+          <div class="text-xs uppercase tracking-[0.2em] text-muted">RFC activo</div>
+        }
+        <select
+          class="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [class.px-2]="sidebarCollapsed()"
+          [class.text-xs]="sidebarCollapsed()"
+          [attr.aria-label]="sidebarCollapsed() ? 'RFC activo' : null"
+          [value]="rfcService.selectedRfc() || ''"
+          (change)="onRfcChange($event)"
+        >
+          <option value="">Sin RFC</option>
+          @for (rfc of rfcService.optionsList(); track rfc) {
+            <option [value]="rfc">{{ rfc }}</option>
+          }
+        </select>
+      </div>
       <nav class="space-y-2 text-sm">
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
@@ -124,6 +142,22 @@
           }
           @if (sidebarCollapsed()) {
             <span class="text-xs uppercase tracking-[0.2em]">RFC</span>
+          }
+        </a>
+        <a
+          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
+          routerLink="/admin-sat"
+          routerLinkActive="bg-primary/10 text-primary"
+          [class.justify-center]="sidebarCollapsed()"
+          [class.px-2]="sidebarCollapsed()"
+          [class.px-4]="!sidebarCollapsed()"
+          [attr.title]="sidebarCollapsed() ? 'Admin SAT' : null"
+          >
+          @if (!sidebarCollapsed()) {
+            <span>Admin SAT</span>
+          }
+          @if (sidebarCollapsed()) {
+            <span class="text-xs uppercase tracking-[0.2em]">SAT</span>
           }
         </a>
         <a

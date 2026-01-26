@@ -6,12 +6,13 @@ import { DialogModule } from '@angular/cdk/dialog';
 
 import { routes } from './app.routes';
 import { httpErrorInterceptor } from './core/api/http-error.interceptor';
+import { rfcInterceptor } from './core/api/rfc.interceptor';
 import { loadingInterceptor } from './shared/ui/loading/loading.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideHttpClient(withInterceptors([loadingInterceptor, httpErrorInterceptor])),
+    provideHttpClient(withInterceptors([loadingInterceptor, rfcInterceptor, httpErrorInterceptor])),
     provideRouter(routes),
     provideAnimations(),
     importProvidersFrom(DialogModule),

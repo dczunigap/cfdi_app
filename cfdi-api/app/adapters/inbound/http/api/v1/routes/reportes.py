@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, select
 from starlette.responses import Response
 
-from app.adapters.inbound.http.deps import get_db
+from app.adapters.inbound.http.deps import get_db, get_rfc
 from app.adapters.outbound.db.period_data import compute_period_data, pick_default_period
 from app.application.reportes.periodo import (
     build_checklist,
@@ -18,7 +18,6 @@ from app.application.reportes.periodo import (
 )
 from app.utils.money import format_money
 from app.adapters.outbound.db.models import DeclaracionModel
-from app.core.config import settings
 from app.adapters.services.parsers.pdf_parser import LocalPdfParser
 from app.application.declaraciones.payload import build_declaracion_payload
 from app.adapters.inbound.http.api.v1.routes.utils import (
@@ -41,13 +40,18 @@ router = APIRouter(tags=["reportes"])
     summary="Resumen mensual",
     description="Devuelve totales agregados del periodo.",
 )
-def summary(year: Optional[int] = None, month: Optional[int] = None, db: Session = Depends(get_db)):
+def summary(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    x_rfc: str | None = Depends(get_rfc),
+    db: Session = Depends(get_db),
+):
     if year is None or month is None:
         year, month = pick_default_period(db)
     if year is None or month is None:
         raise HTTPException(status_code=404, detail="No hay datos para resumir")
 
-    data = compute_period_data(db, year, month)
+    data = compute_period_data(db, year, month, mi_rfc=x_rfc)
     iva_causado_sugerido = data["plat_iva_tras"] + data["ingresos_trasl"]
     iva_acreditable_sugerido = data["gastos_trasl"]
     iva_retenido_plat = data["plat_iva_ret"]
@@ -58,7 +62,7 @@ def summary(year: Optional[int] = None, month: Optional[int] = None, db: Session
         .order_by(desc(DeclaracionModel.fecha_presentacion).nullslast(), desc(DeclaracionModel.id))
         .limit(1)
     ).scalar_one_or_none()
-    mi_rfc = (settings.mi_rfc or "").strip() or None
+    mi_rfc = (x_rfc or "").strip() or None
     if not mi_rfc:
         mi_rfc = declaracion_pdf.rfc if declaracion_pdf and declaracion_pdf.rfc else None
     if not mi_rfc:
@@ -82,13 +86,18 @@ def summary(year: Optional[int] = None, month: Optional[int] = None, db: Session
     summary="Resumen mensual (detalle)",
     description="Devuelve listas acotadas de CFDI y pagos del periodo.",
 )
-def summary_details(year: Optional[int] = None, month: Optional[int] = None, db: Session = Depends(get_db)):
+def summary_details(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    x_rfc: str | None = Depends(get_rfc),
+    db: Session = Depends(get_db),
+):
     if year is None or month is None:
         year, month = pick_default_period(db)
     if year is None or month is None:
         raise HTTPException(status_code=404, detail="No hay datos para resumir")
 
-    data = compute_period_data(db, year, month)
+    data = compute_period_data(db, year, month, mi_rfc=x_rfc)
     docs = data["docs"][:200]
     pagos_rows = data["pagos_rows"][:200]
 
@@ -104,6 +113,7 @@ def declaracion_mode(
     year: Optional[int] = None,
     month: Optional[int] = None,
     income_source: Optional[str] = "auto",
+    x_rfc: str | None = Depends(get_rfc),
     db: Session = Depends(get_db),
 ):
     if year is None or month is None:
@@ -111,7 +121,7 @@ def declaracion_mode(
     if year is None or month is None:
         raise HTTPException(status_code=404, detail="No hay datos para resumir")
 
-    data = compute_period_data(db, year, month)
+    data = compute_period_data(db, year, month, mi_rfc=x_rfc)
     ingresos_total_sin_iva, iva_trasladado_sel, effective_income_source = calc_income_and_iva_sources(
         data, income_source
     )
@@ -123,7 +133,7 @@ def declaracion_mode(
         .limit(1)
     ).scalar_one_or_none()
 
-    mi_rfc = (settings.mi_rfc or "").strip() or None
+    mi_rfc = (x_rfc or "").strip() or None
     if not mi_rfc:
         mi_rfc = declaracion_pdf.rfc if declaracion_pdf and declaracion_pdf.rfc else None
     if not mi_rfc:
@@ -276,12 +286,13 @@ def sat_hoja_txt(
     year: Optional[int] = None,
     month: Optional[int] = None,
     income_source: str = "auto",
+    x_rfc: str | None = Depends(get_rfc),
     db: Session = Depends(get_db),
 ) -> Response:
     if year is None or month is None:
         raise HTTPException(status_code=400, detail="year y month son requeridos")
 
-    data = compute_period_data(db, year, month)
+    data = compute_period_data(db, year, month, mi_rfc=x_rfc)
     hoja_text, effective = build_hoja_sat_text(year, month, income_source, data, format_money)
     return text_response(
         hoja_text,
@@ -298,12 +309,13 @@ def sat_report_csv(
     year: Optional[int] = None,
     month: Optional[int] = None,
     income_source: str = "auto",
+    x_rfc: str | None = Depends(get_rfc),
     db: Session = Depends(get_db),
 ) -> Response:
     if year is None or month is None:
         raise HTTPException(status_code=400, detail="year y month son requeridos")
 
-    data = compute_period_data(db, year, month)
+    data = compute_period_data(db, year, month, mi_rfc=x_rfc)
     ingresos_total_sin_iva, iva_tras_total, _effective_income_source = calc_income_and_iva_sources(
         data, income_source
     )

@@ -66,6 +66,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'admin-sat',
+    loadComponent: () =>
+      import('./features/admin-sat/ui/admin-sat-page.component').then(
+        (m) => m.AdminSatPageComponent,
+      ),
+  },
+  {
     path: 'declaraciones',
     loadComponent: () =>
       import('./features/declaraciones/ui/declaraciones-page.component').then(
