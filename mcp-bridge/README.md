@@ -47,6 +47,6 @@ En `.vscode/mcp.json`:
 - `facturas_list`, `facturas_detail`, `facturas_xml`
 - `retenciones_list`, `retenciones_detail`
 - `declaraciones_list`, `declaraciones_detail`, `declaraciones_pdf`, `declaraciones_resumen`
-- `reportes_summary`, `reportes_summary_details`, `reportes_declaracion_mode`
-- `reportes_hoja_sat`, `reportes_sat_csv`
+- `reportes_summary`, `reportes_summary_details`, `reportes_declaracion_mode` (requieren `rfc`)
+- `reportes_hoja_sat`, `reportes_sat_csv` (requieren `rfc`)
 - `importar_xml`, `importar_pdf`

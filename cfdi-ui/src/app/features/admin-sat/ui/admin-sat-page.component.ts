@@ -1,11 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { AsyncPipe, NgClass } from '@angular/common';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCheck, lucideX, lucideTrash2 } from '@ng-icons/lucide';
+import { lucideCheck, lucidePencil, lucideSave, lucideTrash2, lucideX } from '@ng-icons/lucide';
 import { FormsModule } from '@angular/forms';
 
 import { SatCredentialsRepository } from '../data/sat-credentials.repository';
 import { satCredentials$ } from '../data/sat-credentials.queries';
+import { RfcPhonesRepository } from '../data/rfc-phones.repository';
+import { rfcPhones$ } from '../data/rfc-phones.queries';
 import { RfcService } from '../../../core/rfc/rfc.service';
 
 type UploadMode = 'pfx' | 'cerkey';
@@ -14,12 +16,13 @@ type UploadMode = 'pfx' | 'cerkey';
   selector: 'app-admin-sat-page',
   standalone: true,
   imports: [AsyncPipe, FormsModule, NgClass, NgIcon],
-  providers: [provideIcons({ lucideCheck, lucideX, lucideTrash2 })],
+  providers: [provideIcons({ lucideCheck, lucidePencil, lucideSave, lucideTrash2, lucideX })],
   templateUrl: './admin-sat-page.component.html',
   styleUrl: './admin-sat-page.component.css',
 })
 export class AdminSatPageComponent implements OnInit {
   readonly credentials$ = satCredentials$;
+  readonly rfcPhones$ = rfcPhones$;
 
   mode: UploadMode = 'pfx';
   rfc = '';
@@ -31,13 +34,25 @@ export class AdminSatPageComponent implements OnInit {
   deletingRfc: string | null = null;
   error: string | null = null;
 
+  phone = '';
+  phoneRfc = '';
+  phoneSaving = false;
+  deletingPhoneId: number | null = null;
+  phoneError: string | null = null;
+  showPhoneForm = false;
+  editingPhoneId: number | null = null;
+  editingPhone = '';
+  editingRfc = '';
+
   constructor(
     private readonly repo: SatCredentialsRepository,
+    private readonly rfcPhonesRepo: RfcPhonesRepository,
     private readonly rfcService: RfcService
   ) {}
 
   ngOnInit(): void {
     this.repo.fetch();
+    this.rfcPhonesRepo.fetch();
   }
 
   onFileChange(event: Event, kind: 'pfx' | 'cert' | 'key') {
@@ -135,11 +150,121 @@ export class AdminSatPageComponent implements OnInit {
     });
   }
 
+  savePhone(): void {
+    const phoneValue = this.normalizePhone(this.phone);
+    const rfcValue = this.phoneRfc.trim().toUpperCase();
+    this.phone = phoneValue;
+    this.phoneRfc = rfcValue;
+    if (!phoneValue) {
+      this.phoneError = 'Telefono requerido.';
+      return;
+    }
+    if (!this.isValidPhone(phoneValue)) {
+      this.phoneError = 'Telefono invalido.';
+      return;
+    }
+    if (!rfcValue) {
+      this.phoneError = 'RFC requerido.';
+      return;
+    }
+    if (!this.isValidRfc(rfcValue)) {
+      this.phoneError = 'RFC invalido.';
+      return;
+    }
+
+    this.phoneError = null;
+    this.phoneSaving = true;
+    this.rfcPhonesRepo.upsert({ phone: phoneValue, rfc: rfcValue }).subscribe({
+      next: () => {
+        this.phoneSaving = false;
+        this.phone = '';
+        this.phoneRfc = '';
+      },
+      error: () => {
+        this.phoneSaving = false;
+        this.phoneError = 'No se pudo guardar el telefono.';
+      },
+    });
+  }
+
+  removePhone(id: number): void {
+    if (!confirm('Eliminar telefono asociado?')) return;
+    this.deletingPhoneId = id;
+    this.rfcPhonesRepo.delete(id).subscribe({
+      next: () => {
+        this.deletingPhoneId = null;
+      },
+      error: () => {
+        this.deletingPhoneId = null;
+        this.phoneError = 'No se pudo eliminar.';
+      },
+    });
+  }
+
+  togglePhoneForm(): void {
+    this.showPhoneForm = !this.showPhoneForm;
+  }
+
+  startEditPhone(row: { id: number; phone: string; rfc: string }): void {
+    this.editingPhoneId = row.id;
+    this.editingPhone = row.phone;
+    this.editingRfc = row.rfc;
+    this.phoneError = null;
+  }
+
+  cancelEditPhone(): void {
+    this.editingPhoneId = null;
+    this.editingPhone = '';
+    this.editingRfc = '';
+  }
+
+  saveEditPhone(id: number): void {
+    const phoneValue = this.normalizePhone(this.editingPhone);
+    const rfcValue = this.editingRfc.trim().toUpperCase();
+    if (!phoneValue) {
+      this.phoneError = 'Telefono requerido.';
+      return;
+    }
+    if (!this.isValidPhone(phoneValue)) {
+      this.phoneError = 'Telefono invalido.';
+      return;
+    }
+    if (!rfcValue) {
+      this.phoneError = 'RFC requerido.';
+      return;
+    }
+    if (!this.isValidRfc(rfcValue)) {
+      this.phoneError = 'RFC invalido.';
+      return;
+    }
+
+    this.phoneError = null;
+    this.phoneSaving = true;
+    this.rfcPhonesRepo.upsert({ phone: phoneValue, rfc: rfcValue }).subscribe({
+      next: () => {
+        this.phoneSaving = false;
+        this.cancelEditPhone();
+      },
+      error: () => {
+        this.phoneSaving = false;
+        this.phoneError = 'No se pudo guardar el telefono.';
+      },
+    });
+  }
+
   private isValidRfc(value: string) {
     return /^[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}$/.test(value);
   }
 
   private hasExtension(file: File, ext: string) {
     return file.name.toLowerCase().endsWith(ext);
+  }
+
+  private normalizePhone(value: string) {
+    return (value || '').replace(/\D+/g, '');
+  }
+
+  private isValidPhone(value: string) {
+    return /^\d{8,15}$/.test(value);
   }
 }

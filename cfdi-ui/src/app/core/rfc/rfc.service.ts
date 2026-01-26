@@ -42,10 +42,12 @@ export class RfcService {
     this.http.get<SatCredentialResponse[]>(`${API_BASE_URL}/sat/credentials`).subscribe({
       next: (rows) => {
         const rfcs = rows.map((row) => row.rfc).filter(Boolean);
-        this.options.set(rfcs);
-        const current = this.selected();
-        if (current && !rfcs.includes(current)) {
-          this.setSelected(null);
+        const stored = this.readStored();
+        let selected = this.selected() || stored;
+        const merged = selected && !rfcs.includes(selected) ? [selected, ...rfcs] : rfcs;
+        this.options.set(merged);
+        if (selected) {
+          this.selected.set(selected);
         }
       },
       error: () => {

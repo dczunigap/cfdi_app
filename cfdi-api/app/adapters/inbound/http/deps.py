@@ -21,10 +21,21 @@ def get_db() -> Iterator[Session]:
         db.close()
 
 
-def get_rfc(x_rfc: str | None = Header(default=None, alias="X-RFC")) -> str | None:
-    value = (x_rfc or "").strip().upper()
-    if not value:
+def _normalize_rfc_value(value: str | None) -> str | None:
+    normalized = (value or "").strip().upper()
+    if not normalized:
         return None
-    if not re.match(r"^[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}$", value):
+    if not re.match(r"^[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}$", normalized):
         raise HTTPException(status_code=400, detail="RFC invalido en header X-RFC")
+    return normalized
+
+
+def get_rfc(x_rfc: str | None = Header(default=None, alias="X-RFC")) -> str | None:
+    return _normalize_rfc_value(x_rfc)
+
+
+def get_required_rfc(x_rfc: str | None = Header(default=None, alias="X-RFC")) -> str:
+    value = _normalize_rfc_value(x_rfc)
+    if not value:
+        raise HTTPException(status_code=400, detail="Header X-RFC requerido")
     return value

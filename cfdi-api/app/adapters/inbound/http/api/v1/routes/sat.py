@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from app.adapters.inbound.http.deps import get_db, get_rfc
+from app.adapters.inbound.http.deps import get_db, get_required_rfc
 from app.adapters.inbound.http.api.v1.schemas.sat import SatAuthRequest, SatCredentialResponse
 from app.adapters.outbound.db.repositories.sat_credentials import SqlSatCredentialsRepository
 from app.adapters.services.sat.crypto.crypto_service import FernetSatCrypto
@@ -101,12 +101,10 @@ def delete_credentials(rfc: str, db: Session = Depends(get_db)) -> dict:
 @router.post("/auth")
 def sat_auth(
     payload: SatAuthRequest,
-    x_rfc: str | None = Depends(get_rfc),
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> dict:
     rfc_value = _normalize_rfc(x_rfc)
-    if not rfc_value:
-        raise HTTPException(status_code=400, detail="X-RFC requerido")
 
     repo = SqlSatCredentialsRepository(db)
     crypto = FernetSatCrypto()

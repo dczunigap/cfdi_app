@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, select
 from starlette.responses import Response
 
-from app.adapters.inbound.http.deps import get_db, get_rfc
+from app.adapters.inbound.http.deps import get_db, get_required_rfc
 from app.adapters.outbound.db.period_data import compute_period_data, pick_default_period
 from app.application.reportes.periodo import (
     build_checklist,
@@ -43,7 +43,7 @@ router = APIRouter(tags=["reportes"])
 def summary(
     year: Optional[int] = None,
     month: Optional[int] = None,
-    x_rfc: str | None = Depends(get_rfc),
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ):
     if year is None or month is None:
@@ -89,7 +89,7 @@ def summary(
 def summary_details(
     year: Optional[int] = None,
     month: Optional[int] = None,
-    x_rfc: str | None = Depends(get_rfc),
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ):
     if year is None or month is None:
@@ -113,7 +113,7 @@ def declaracion_mode(
     year: Optional[int] = None,
     month: Optional[int] = None,
     income_source: Optional[str] = "auto",
-    x_rfc: str | None = Depends(get_rfc),
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ):
     if year is None or month is None:
@@ -286,7 +286,7 @@ def sat_hoja_txt(
     year: Optional[int] = None,
     month: Optional[int] = None,
     income_source: str = "auto",
-    x_rfc: str | None = Depends(get_rfc),
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> Response:
     if year is None or month is None:
@@ -309,7 +309,7 @@ def sat_report_csv(
     year: Optional[int] = None,
     month: Optional[int] = None,
     income_source: str = "auto",
-    x_rfc: str | None = Depends(get_rfc),
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> Response:
     if year is None or month is None:

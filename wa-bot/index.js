@@ -307,39 +307,99 @@ async function handleDeclaracionResumen(msg, args) {
 
 async function handleSummary(msg, args) {
   const [year, month] = args;
-  const res = await axios.get(`${API_BASE}/summary`, { params: { year, month } });
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
+  const res = await axios.get(`${API_BASE}/summary`, {
+    params: { year, month },
+    headers: buildHeaders(rfc),
+  });
   await msg.reply(formatSummary(res.data));
 }
 
 async function handleSummaryDetails(msg, args) {
   const [year, month] = args;
-  const res = await axios.get(`${API_BASE}/summary/details`, { params: { year, month } });
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
+  const res = await axios.get(`${API_BASE}/summary/details`, {
+    params: { year, month },
+    headers: buildHeaders(rfc),
+  });
   await msg.reply(formatSummaryDetails(res.data));
 }
 
 async function handleDeclaracionMode(msg, args) {
   const [year, month, income_source] = args;
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
   const res = await axios.get(`${API_BASE}/declaracion`, {
     params: { year, month, income_source: income_source || "auto" },
+    headers: buildHeaders(rfc),
   });
   await msg.reply(formatDeclaracionMode(res.data));
 }
 
 async function handleHojaSat(msg, args) {
   const [year, month, income_source] = args;
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
   const res = await axios.get(`${API_BASE}/sat_hoja.txt`, {
     params: { year, month, income_source: income_source || "auto" },
+    headers: buildHeaders(rfc),
   });
   await msg.reply(res.data || "Sin respuesta.");
 }
 
 async function handleSatCsv(msg, args) {
   const [year, month, income_source] = args;
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
   const res = await axios.get(`${API_BASE}/sat_report.csv`, {
     params: { year, month, income_source: income_source || "auto" },
+    headers: buildHeaders(rfc),
   });
   const lines = (res.data || "").split("\n").slice(0, 6).join("\n");
   await msg.reply(`CSV (primeras lineas):\n${lines}`);
+}
+
+function normalizePhone(value) {
+  return String(value || "").replace(/\D+/g, "");
+}
+
+function buildHeaders(rfc) {
+  return { "X-RFC": String(rfc || "").trim().toUpperCase() };
+}
+
+async function requireRfc(msg) {
+  const phone = normalizePhone(msg.author || msg.from);
+  if (!phone) {
+    await msg.reply("No pude identificar tu telefono para resolver el RFC.");
+    return null;
+  }
+  try {
+    const res = await axios.get(`${API_BASE}/rfc-phones/resolve`, { params: { phone } });
+    const rfc = res.data?.rfc;
+    if (!rfc) {
+      await msg.reply("No hay RFC asociado a tu telefono. Pide al admin que lo registre.");
+      return null;
+    }
+    return rfc;
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      await msg.reply("Telefono no registrado. Pide al admin que lo registre con tu RFC.");
+      return null;
+    }
+    throw err;
+  }
 }
 
 function formatJson(data) {

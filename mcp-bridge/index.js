@@ -114,60 +114,70 @@ const tools = [
   },
   {
     name: "reportes_summary",
-    description: "Resumen mensual (year, month).",
+    description: "Resumen mensual (year, month). Requiere RFC.",
     inputSchema: {
       type: "object",
       properties: {
+        rfc: { type: "string" },
         year: { type: "integer" },
         month: { type: "integer" },
       },
+      required: ["rfc"],
     },
   },
   {
     name: "reportes_summary_details",
-    description: "Resumen mensual detalle (year, month).",
+    description: "Resumen mensual detalle (year, month). Requiere RFC.",
     inputSchema: {
       type: "object",
       properties: {
+        rfc: { type: "string" },
         year: { type: "integer" },
         month: { type: "integer" },
       },
+      required: ["rfc"],
     },
   },
   {
     name: "reportes_declaracion_mode",
-    description: "Modo declaracion (year, month, income_source).",
+    description: "Modo declaracion (year, month, income_source). Requiere RFC.",
     inputSchema: {
       type: "object",
       properties: {
+        rfc: { type: "string" },
         year: { type: "integer" },
         month: { type: "integer" },
         income_source: { type: "string" },
       },
+      required: ["rfc"],
     },
   },
   {
     name: "reportes_hoja_sat",
-    description: "Hoja SAT texto (year, month, income_source).",
+    description: "Hoja SAT texto (year, month, income_source). Requiere RFC.",
     inputSchema: {
       type: "object",
       properties: {
+        rfc: { type: "string" },
         year: { type: "integer" },
         month: { type: "integer" },
         income_source: { type: "string" },
       },
+      required: ["rfc"],
     },
   },
   {
     name: "reportes_sat_csv",
-    description: "Reporte SAT CSV (year, month, income_source).",
+    description: "Reporte SAT CSV (year, month, income_source). Requiere RFC.",
     inputSchema: {
       type: "object",
       properties: {
+        rfc: { type: "string" },
         year: { type: "integer" },
         month: { type: "integer" },
         income_source: { type: "string" },
       },
+      required: ["rfc"],
     },
   },
   {
@@ -219,6 +229,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function handleTool(name, args) {
+  const cleanArgs = stripRfc(args || {});
   switch (name) {
     case "cfdi_health":
       return await fetchJson("/api/v1/");
@@ -241,15 +252,15 @@ async function handleTool(name, args) {
     case "declaraciones_resumen":
       return await fetchJson(`/api/v1/declaraciones/${args.dec_id}/resumen.json`);
     case "reportes_summary":
-      return await fetchJson("/api/v1/summary", args);
+      return await fetchJson("/api/v1/summary", cleanArgs, args.rfc);
     case "reportes_summary_details":
-      return await fetchJson("/api/v1/summary/details", args);
+      return await fetchJson("/api/v1/summary/details", cleanArgs, args.rfc);
     case "reportes_declaracion_mode":
-      return await fetchJson("/api/v1/declaracion", args);
+      return await fetchJson("/api/v1/declaracion", cleanArgs, args.rfc);
     case "reportes_hoja_sat":
-      return await fetchText("/api/v1/sat_hoja.txt", args);
+      return await fetchText("/api/v1/sat_hoja.txt", cleanArgs, args.rfc);
     case "reportes_sat_csv":
-      return await fetchText("/api/v1/sat_report.csv", args);
+      return await fetchText("/api/v1/sat_report.csv", cleanArgs, args.rfc);
     case "importar_xml":
       return await postFiles("/api/v1/importar", args.file_paths, null);
     case "importar_pdf":
@@ -275,8 +286,25 @@ function buildUrl(path, query) {
   return url.toString();
 }
 
-async function fetchJson(path, query) {
-  const res = await fetch(buildUrl(path, query));
+function buildHeaders(rfc) {
+  if (!rfc) {
+    return undefined;
+  }
+  return { "X-RFC": String(rfc).trim().toUpperCase() };
+}
+
+function stripRfc(args) {
+  if (!args) {
+    return args;
+  }
+  const { rfc, ...rest } = args;
+  return rest;
+}
+
+async function fetchJson(path, query, rfc) {
+  const res = await fetch(buildUrl(path, query), {
+    headers: buildHeaders(rfc),
+  });
   const text = await res.text();
   if (!res.ok) {
     throw new Error(`${res.status}: ${text}`);
@@ -284,8 +312,10 @@ async function fetchJson(path, query) {
   return { type: "text", text };
 }
 
-async function fetchText(path, query) {
-  const res = await fetch(buildUrl(path, query));
+async function fetchText(path, query, rfc) {
+  const res = await fetch(buildUrl(path, query), {
+    headers: buildHeaders(rfc),
+  });
   const text = await res.text();
   if (!res.ok) {
     throw new Error(`${res.status}: ${text}`);
@@ -293,8 +323,10 @@ async function fetchText(path, query) {
   return { type: "text", text };
 }
 
-async function fetchBinary(path, query) {
-  const res = await fetch(buildUrl(path, query));
+async function fetchBinary(path, query, rfc) {
+  const res = await fetch(buildUrl(path, query), {
+    headers: buildHeaders(rfc),
+  });
   const buf = Buffer.from(await res.arrayBuffer());
   if (!res.ok) {
     throw new Error(`${res.status}: ${buf.toString("utf-8")}`);

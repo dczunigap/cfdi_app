@@ -143,3 +143,12 @@ class SatCredentialModel(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+
+class RfcPhoneModel(Base):
+    __tablename__ = "rfc_phones"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    phone: Mapped[str] = mapped_column(String(32), unique=True, index=True, nullable=False)
+    rfc: Mapped[str] = mapped_column(String(20), index=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

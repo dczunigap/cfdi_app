@@ -52,4 +52,5 @@ python -m pytest -q
 ## API
 - Base: `/api/v1`
 - OpenAPI: `GET /openapi.json`
-- Header `X-RFC` en endpoints SAT y reportes
+- Header `X-RFC` requerido en endpoints SAT (auth) y reportes.
+- Telefonos/RFC: `GET /rfc-phones/resolve?phone=...`, `POST /rfc-phones` para registrar.
