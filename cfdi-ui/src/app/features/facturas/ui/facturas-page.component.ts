@@ -8,7 +8,6 @@ import { lucideFileText, lucideTrash2 } from '@ng-icons/lucide';
 import { facturas$, facturasCount$ } from '../data/facturas.queries';
 import { FacturasRepository } from '../data/facturas.repository';
 import { XmlImportComponent } from '../../../shared/ui/imports/xml-import.component';
-import { API_BASE_URL } from '../../../core/api/api-client';
 
 @Component({
   selector: 'app-facturas-page',
@@ -102,21 +101,53 @@ export class FacturasPageComponent implements OnInit {
   }
 
   downloadCsv(): void {
-    window.location.href = this.csvUrl;
-  }
-
-  get csvUrl(): string {
-    const params = new URLSearchParams();
-    if (this.year) params.set('year', String(this.year));
-    if (this.month) params.set('month', String(this.month));
-    if (this.tipo) params.set('tipo', this.tipo);
-    if (this.naturaleza) params.set('naturaleza', this.naturaleza);
-    const query = params.toString();
-    return `${API_BASE_URL}/facturas/export.csv${query ? `?${query}` : ''}`;
+    this.error = null;
+    this.repo
+      .exportCsv({
+        year: this.year ?? undefined,
+        month: this.month ?? undefined,
+        tipo: this.tipo ?? undefined,
+        naturaleza: this.naturaleza ?? undefined,
+      })
+      .subscribe({
+        next: (resp) => {
+          const blob = resp.body;
+          if (!blob) {
+            this.error = 'No se pudo descargar el CSV.';
+            return;
+          }
+          const filename =
+            this.getFilename(resp.headers.get('content-disposition')) ||
+            this.buildCsvFilename();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename;
+          link.click();
+          window.URL.revokeObjectURL(url);
+        },
+        error: () => {
+          this.error = 'No se pudo descargar el CSV.';
+        },
+      });
   }
 
   private buildYears(): number[] {
     const current = new Date().getFullYear();
     return Array.from({ length: 6 }, (_, i) => current - i);
+  }
+
+  private getFilename(contentDisposition: string | null): string | null {
+    if (!contentDisposition) return null;
+    const match = /filename=([^;]+)/i.exec(contentDisposition);
+    if (!match) return null;
+    return match[1].replace(/"/g, '').trim() || null;
+  }
+
+  private buildCsvFilename(): string {
+    if (this.year && this.month) {
+      return `facturas_${this.year}_${String(this.month).padStart(2, '0')}.csv`;
+    }
+    return 'facturas.csv';
   }
 }

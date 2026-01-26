@@ -14,7 +14,7 @@ from app.adapters.inbound.http.api.v1.mappers import (
     retencion_list_to_dto,
 )
 from app.adapters.outbound.db.repositories.retenciones import SqlRetencionRepository
-from app.adapters.inbound.http.deps import get_db
+from app.adapters.inbound.http.deps import get_db, get_required_rfc
 from app.adapters.outbound.db.models import RetencionModel
 from app.adapters.inbound.http.api.v1.routes.utils import get_or_404
 from app.application.retenciones.use_cases import (
@@ -36,11 +36,12 @@ router = APIRouter(prefix="/retenciones", tags=["retenciones"])
 def listar_retenciones(
     year: Optional[int] = None,
     month: Optional[int] = None,
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> list[RetencionListResponse]:
     repo = SqlRetencionRepository(db)
     use_case = ListRetencionesUseCase(repo)
-    data = ListRetencionesInput(year=year, month=month)
+    data = ListRetencionesInput(year=year, month=month, rfc=x_rfc)
     items = use_case.execute(data)
     return retencion_list_to_dto(items)
 
@@ -53,6 +54,7 @@ def listar_retenciones(
 )
 def detalle_retencion(
     retencion_id: int,
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> RetencionDetailResponse:
     repo = SqlRetencionRepository(db)
@@ -60,6 +62,8 @@ def detalle_retencion(
     result = use_case.execute(GetRetencionDetailInput(retencion_id=retencion_id))
     if result is None:
         raise HTTPException(status_code=404, detail="Retencion no encontrada")
+    if result.emisor_rfc != x_rfc:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     return retencion_detail_to_dto(result)
 
 
@@ -68,8 +72,14 @@ def detalle_retencion(
     summary="Eliminar retencion",
     description="Elimina una retencion por ID.",
 )
-def eliminar_retencion(retencion_id: int, db: Session = Depends(get_db)) -> dict:
+def eliminar_retencion(
+    retencion_id: int,
+    x_rfc: str = Depends(get_required_rfc),
+    db: Session = Depends(get_db),
+) -> dict:
     row = get_or_404(db, RetencionModel, retencion_id, "Retencion")
+    if row.emisor_rfc != x_rfc:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     db.delete(row)
     db.commit()
     return {"ok": True}

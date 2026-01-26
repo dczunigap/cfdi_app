@@ -52,4 +52,18 @@ export class FacturasRepository {
       })
     );
   }
+
+  exportCsv(params?: { year?: number; month?: number; tipo?: string; naturaleza?: string }) {
+    let httpParams = new HttpParams();
+    if (params?.year) httpParams = httpParams.set('year', params.year);
+    if (params?.month) httpParams = httpParams.set('month', params.month);
+    if (params?.tipo) httpParams = httpParams.set('tipo', params.tipo);
+    if (params?.naturaleza) httpParams = httpParams.set('naturaleza', params.naturaleza);
+
+    return this.http.get<Blob>(`${API_BASE_URL}/facturas/export.csv`, {
+      params: httpParams,
+      observe: 'response',
+      responseType: 'blob',
+    });
+  }
 }

@@ -5,6 +5,9 @@ import { API_BASE_URL } from './api-client';
 import { RfcService } from '../rfc/rfc.service';
 
 const RFC_ENDPOINTS = [
+  '/facturas',
+  '/retenciones',
+  '/declaraciones',
   '/sat',
   '/summary',
   '/summary/details',

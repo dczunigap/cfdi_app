@@ -21,12 +21,16 @@ class SqlDeclaracionRepository(DeclaracionRepository):
         self,
         year: Optional[int] = None,
         month: Optional[int] = None,
+        rfc: Optional[str] = None,
     ) -> list[DeclaracionListItem]:
         q = apply_optional_filters(
             select(DeclaracionModel),
             (DeclaracionModel.year, year),
             (DeclaracionModel.month, month),
         )
+        rfc_value = (rfc or "").strip().upper()
+        if rfc_value:
+            q = q.where(DeclaracionModel.rfc == rfc_value)
         rows = self._db.execute(q).scalars().all()
         return [declaracion_to_list_item(r) for r in rows]
 

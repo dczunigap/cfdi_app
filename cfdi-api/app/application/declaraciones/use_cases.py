@@ -11,6 +11,7 @@ from app.ports.declaraciones_repo import DeclaracionRepository
 class ListDeclaracionesInput:
     year: Optional[int] = None
     month: Optional[int] = None
+    rfc: Optional[str] = None
 
 
 class ListDeclaracionesUseCase:
@@ -18,7 +19,7 @@ class ListDeclaracionesUseCase:
         self._repo = repo
 
     def execute(self, data: ListDeclaracionesInput) -> list[DeclaracionListItem]:
-        return self._repo.list_declaraciones(year=data.year, month=data.month)
+        return self._repo.list_declaraciones(year=data.year, month=data.month, rfc=data.rfc)
 
 
 @dataclass
