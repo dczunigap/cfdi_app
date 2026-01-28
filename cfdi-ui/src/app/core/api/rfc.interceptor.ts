@@ -23,11 +23,15 @@ export const rfcInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  if (!req.url.startsWith(API_BASE_URL)) {
+  const url = req.url;
+  const apiIndex = url.indexOf(API_BASE_URL);
+  const isApi = apiIndex > -1 || url.startsWith('/api');
+  if (!isApi) {
     return next(req);
   }
 
-  const path = req.url.slice(API_BASE_URL.length);
+  const path =
+    apiIndex >= 0 ? url.slice(apiIndex + API_BASE_URL.length) : url.replace(/^\/api\/?/, '/');
   const shouldAttach = RFC_ENDPOINTS.some((prefix) => path.startsWith(prefix));
   if (!shouldAttach) {
     return next(req);

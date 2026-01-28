@@ -18,7 +18,7 @@ from app.adapters.inbound.http.api.v1.mappers import (
     factura_detail_to_dto,
     factura_list_to_dto,
 )
-from app.adapters.inbound.http.deps import get_db, get_required_rfc
+from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
 from app.adapters.outbound.db.repositories.facturas import SqlFacturaRepository
 from app.adapters.outbound.db.models import FacturaModel
 from app.adapters.inbound.http.api.v1.routes.utils import csv_response, get_or_404, xml_response
@@ -31,7 +31,7 @@ from app.application.facturas.use_cases import (
     ListFacturasUseCase,
 )
 
-router = APIRouter(prefix="/facturas", tags=["facturas"])
+router = APIRouter(prefix="/facturas", tags=["facturas"], dependencies=[Depends(require_user)])
 
 
 @router.get(

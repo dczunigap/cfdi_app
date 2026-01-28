@@ -5,14 +5,14 @@ import re
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.adapters.inbound.http.deps import get_db
+from app.adapters.inbound.http.deps import get_db, require_user
 from app.adapters.inbound.http.api.v1.schemas.rfc_phones import (
     RfcPhoneCreateRequest,
     RfcPhoneResponse,
 )
 from app.adapters.outbound.db.repositories.rfc_phones import SqlRfcPhoneRepository
 
-router = APIRouter(prefix="/rfc-phones", tags=["rfc-phones"])
+router = APIRouter(prefix="/rfc-phones", tags=["rfc-phones"], dependencies=[Depends(require_user)])
 
 
 def _normalize_phone(value: str | None) -> str:

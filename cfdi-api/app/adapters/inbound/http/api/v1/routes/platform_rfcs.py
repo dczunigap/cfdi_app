@@ -3,14 +3,14 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.adapters.inbound.http.deps import get_db
+from app.adapters.inbound.http.deps import get_db, require_user
 from app.adapters.inbound.http.api.v1.schemas.platform_rfcs import (
     PlatformRfcCreateRequest,
     PlatformRfcResponse,
 )
 from app.adapters.outbound.db.repositories.platform_rfcs import SqlPlatformRfcRepository
 
-router = APIRouter(prefix="/platform-rfcs", tags=["platform-rfcs"])
+router = APIRouter(prefix="/platform-rfcs", tags=["platform-rfcs"], dependencies=[Depends(require_user)])
 
 
 def _normalize_rfc(value: str | None) -> str:

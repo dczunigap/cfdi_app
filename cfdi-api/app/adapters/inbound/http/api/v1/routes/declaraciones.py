@@ -23,7 +23,7 @@ from app.adapters.inbound.http.api.v1.routes.utils import (
     pdf_inline_response,
 )
 from app.adapters.outbound.db.repositories.declaraciones import SqlDeclaracionRepository
-from app.adapters.inbound.http.deps import get_db, get_required_rfc
+from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
 from app.adapters.outbound.files.pdf_storage import LocalPdfStorage
 from app.adapters.services.parsers.pdf_parser import LocalPdfParser
 from app.application.declaraciones.use_cases import (
@@ -35,7 +35,7 @@ from app.application.declaraciones.use_cases import (
 from app.application.declaraciones.payload import build_declaracion_payload
 from app.utils.json import serialize_to_json
 
-router = APIRouter(prefix="/declaraciones", tags=["declaraciones"])
+router = APIRouter(prefix="/declaraciones", tags=["declaraciones"], dependencies=[Depends(require_user)])
 
 
 @router.get(

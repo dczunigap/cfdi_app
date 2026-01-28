@@ -1,0 +1,23 @@
+<div class="space-y-2">
+  @if (!collapsed) {
+    <div class="text-xs uppercase tracking-[0.2em] text-muted">{{ label }}</div>
+  }
+  @if (collapsed && showBadge) {
+    <div class="rounded-lg border border-border bg-bg px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-text">
+      {{ rfcService.selectedRfc() || 'Sin RFC' }}
+    </div>
+  }
+  <select
+    [ngModel]="rfcService.selectedRfc() || ''"
+    (ngModelChange)="rfcService.setSelected($event || null)"
+    class="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+    [class.px-2]="collapsed"
+    [class.text-xs]="collapsed"
+    [attr.aria-label]="collapsed ? 'RFC activo' : null"
+  >
+    <option value="">Sin RFC</option>
+    @for (rfc of rfcService.optionsList(); track rfc) {
+      <option [value]="rfc">{{ rfc }}</option>
+    }
+  </select>
+</div>

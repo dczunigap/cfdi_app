@@ -6,6 +6,9 @@ Backend Python (FastAPI) con arquitectura hexagonal ligera.
 
 ## Variables de entorno
 - `CFDI_DB_URL` (default: `sqlite:///./data/contabilidad.sqlite`)
+- `CFDI_AUTH_SECRET` (firma de tokens)
+- `CFDI_AUTH_TTL_MINUTES` (minutos de vigencia del token, default 2880)
+- `CFDI_AUTH_PBKDF2_ITER` (iteraciones de hashing, default 390000)
 - `SAT_PASSWORD_SECRET` (clave Fernet para cifrado de PFX/password)
 - `SAT_CFDI_AUTH_URL`
 - `SAT_CFDI_SOLICITUD_URL`
@@ -54,3 +57,5 @@ python -m pytest -q
 - OpenAPI: `GET /openapi.json`
 - Header `X-RFC` requerido en endpoints SAT (auth) y reportes.
 - Telefonos/RFC: `GET /rfc-phones/resolve?phone=...`, `POST /rfc-phones` para registrar.
+- Auth: `POST /auth/login`, `POST /auth/register` (requiere auth), `POST /auth/logout`, `GET /auth/me`.
+  - Nota: `POST /auth/register` permite bootstrap si no hay usuarios aún.

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, select
 from starlette.responses import Response
 
-from app.adapters.inbound.http.deps import get_db, get_required_rfc
+from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
 from app.adapters.outbound.db.period_data import compute_period_data, pick_default_period
 from app.application.reportes.periodo import (
     build_checklist,
@@ -32,7 +32,7 @@ from app.adapters.inbound.http.api.v1.mappers import (
     summary_to_payload,
 )
 
-router = APIRouter(tags=["reportes"])
+router = APIRouter(tags=["reportes"], dependencies=[Depends(require_user)])
 
 
 @router.get(
@@ -265,6 +265,7 @@ def declaracion_mode(
         ingresos_base=float(data.get("ingresos_base") or 0.0),
         isr_retenido=float(data.get("plat_isr_ret") or 0.0),
         iva_retenido=float(data.get("plat_iva_ret") or 0.0),
+        iva_acreditable=float(data.get("gastos_trasl") or 0.0),
         iva_trasladado_total=iva_trasladado_total,
         iva_trasladado_seleccion=iva_trasladado_sel,
         checks=checks,

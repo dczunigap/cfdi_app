@@ -14,7 +14,7 @@ from app.adapters.inbound.http.api.v1.mappers import (
     retencion_list_to_dto,
 )
 from app.adapters.outbound.db.repositories.retenciones import SqlRetencionRepository
-from app.adapters.inbound.http.deps import get_db, get_required_rfc
+from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
 from app.adapters.outbound.db.models import RetencionModel
 from app.adapters.inbound.http.api.v1.routes.utils import get_or_404
 from app.application.retenciones.use_cases import (
@@ -24,7 +24,7 @@ from app.application.retenciones.use_cases import (
     ListRetencionesUseCase,
 )
 
-router = APIRouter(prefix="/retenciones", tags=["retenciones"])
+router = APIRouter(prefix="/retenciones", tags=["retenciones"], dependencies=[Depends(require_user)])
 
 
 @router.get(

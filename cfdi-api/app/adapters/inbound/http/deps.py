@@ -2,15 +2,14 @@ from typing import Iterator, Optional
 
 import re
 
-from fastapi import Header, HTTPException
+from fastapi import Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
+from app.adapters.outbound.db.models import UserModel
+from app.adapters.outbound.db.repositories.users import SqlUserRepository
 from app.adapters.outbound.db.session import SessionLocal
-from app.core.security import get_current_user
-
-
-def optional_user() -> Optional[dict]:
-    return get_current_user()
+from app.core.config import settings
+from app.core.security import decode_access_token, parse_bearer_token
 
 
 def get_db() -> Iterator[Session]:
@@ -19,6 +18,43 @@ def get_db() -> Iterator[Session]:
         yield db
     finally:
         db.close()
+
+
+def get_current_user(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: Session = Depends(get_db),
+) -> UserModel | None:
+    token = parse_bearer_token(authorization)
+    if not token:
+        return None
+    payload = decode_access_token(token, settings.auth_secret)
+    if not payload:
+        return None
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+    repo = SqlUserRepository(db)
+    user = repo.get_by_id(int(user_id))
+    if not user or not user.is_active:
+        return None
+    return user
+
+
+def require_user(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: Session = Depends(get_db),
+) -> UserModel:
+    user = get_current_user(authorization=authorization, db=db)
+    if not user:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    return user
+
+
+def optional_user(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: Session = Depends(get_db),
+) -> Optional[UserModel]:
+    return get_current_user(authorization=authorization, db=db)
 
 
 def _normalize_rfc_value(value: str | None) -> str | None:

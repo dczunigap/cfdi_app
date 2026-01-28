@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from app.adapters.inbound.http.deps import get_db, get_required_rfc
+from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
 from app.adapters.inbound.http.api.v1.schemas.sat import SatAuthRequest, SatCredentialResponse
 from app.adapters.outbound.db.repositories.sat_credentials import SqlSatCredentialsRepository
 from app.adapters.services.sat.crypto.crypto_service import FernetSatCrypto
@@ -15,7 +15,7 @@ from app.application.sat.use_cases import (
     upsert_credentials as upsert_sat_credentials,
 )
 
-router = APIRouter(prefix="/sat", tags=["sat"])
+router = APIRouter(prefix="/sat", tags=["sat"], dependencies=[Depends(require_user)])
 
 
 @router.get("/credentials", response_model=list[SatCredentialResponse])

@@ -1,5 +1,6 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/api/api-client';
 import { FacturaDetail, FacturaListItem } from './facturas.model';
@@ -53,17 +54,19 @@ export class FacturasRepository {
     );
   }
 
-  exportCsv(params?: { year?: number; month?: number; tipo?: string; naturaleza?: string }) {
+  exportCsv(
+    params?: { year?: number; month?: number; tipo?: string; naturaleza?: string }
+  ): Observable<HttpResponse<Blob>> {
     let httpParams = new HttpParams();
     if (params?.year) httpParams = httpParams.set('year', params.year);
     if (params?.month) httpParams = httpParams.set('month', params.month);
     if (params?.tipo) httpParams = httpParams.set('tipo', params.tipo);
     if (params?.naturaleza) httpParams = httpParams.set('naturaleza', params.naturaleza);
 
-    return this.http.get<Blob>(`${API_BASE_URL}/facturas/export.csv`, {
+    return this.http.get(`${API_BASE_URL}/facturas/export.csv`, {
       params: httpParams,
       observe: 'response',
-      responseType: 'blob',
-    });
+      responseType: 'blob' as 'blob',
+    }) as Observable<HttpResponse<Blob>>;
   }
 }

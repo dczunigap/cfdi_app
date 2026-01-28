@@ -174,7 +174,7 @@ def compute_period_data(db: Session, year: int, month: int, mi_rfc: str | None =
         .order_by(desc(RetencionModel.fecha_exp).nullslast(), desc(RetencionModel.id))
     )
     if mi_rfc:
-        ret_query = ret_query.where(RetencionModel.emisor_rfc == mi_rfc)
+        ret_query = ret_query.where(RetencionModel.receptor_rfc == mi_rfc)
     ret_rows = db.scalars(ret_query).all()
 
     plat_ing_siva = sum(float(r.mon_tot_serv_siva or 0.0) for r in ret_rows)

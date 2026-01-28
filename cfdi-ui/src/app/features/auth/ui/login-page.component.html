@@ -1,18 +1,67 @@
-<div class="mx-auto max-w-lg space-y-6 rounded-2xl border border-border bg-surface p-8 shadow-card">
-  <div>
-    <h1 class="font-display text-2xl text-text">Acceso</h1>
-    <p class="text-sm text-muted">Mock de autenticacion para preparar el flujo.</p>
+<div class="mx-auto mt-8 grid w-full max-w-5xl gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+  <div class="rounded-3xl border border-border bg-surface/90 p-10 shadow-card">
+    <div class="text-xs uppercase tracking-[0.28em] text-muted">Acceso</div>
+    <h1 class="mt-3 font-display text-3xl text-text">Panel financiero</h1>
+    <p class="mt-3 text-sm text-muted">
+      Ingresa con tu cuenta para revisar resumenes fiscales, reportes y movimientos recientes.
+    </p>
+    <div class="mt-8 grid gap-6 text-sm text-muted">
+      <div class="rounded-2xl border border-border bg-bg p-4">
+        <div class="text-xs uppercase tracking-[0.2em] text-muted">Seguridad</div>
+        <p class="mt-2 text-sm text-muted">
+          Tu sesion se protege con tokens firmados y caducidad controlada.
+        </p>
+      </div>
+      <div class="rounded-2xl border border-border bg-bg p-4">
+        <div class="text-xs uppercase tracking-[0.2em] text-muted">Acceso rapido</div>
+        <p class="mt-2 text-sm text-muted">
+          Selecciona RFC y continua con el flujo principal en segundos.
+        </p>
+      </div>
+    </div>
   </div>
 
-  <div class="rounded-xl border border-border bg-bg p-4 text-sm text-muted">
-    Este acceso es temporal. Al habilitar `authEnabled` se activara el guard para proteger rutas.
-  </div>
+  <div class="rounded-3xl border border-border bg-surface p-10 shadow-card">
+    <div class="text-xs uppercase tracking-[0.2em] text-muted">Inicio de sesion</div>
+    <h2 class="mt-3 font-display text-2xl text-text">Bienvenido de nuevo</h2>
+    <p class="mt-2 text-sm text-muted">Usa tu correo registrado para continuar.</p>
 
-  <button
-    class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
-    type="button"
-    (click)="login()"
-  >
-    Entrar con usuario demo
-  </button>
+    <div class="mt-6 space-y-5">
+      <label class="block text-xs uppercase tracking-[0.18em] text-muted">Correo</label>
+      <input
+        class="w-full rounded-xl border border-border bg-bg px-4 py-3 text-sm text-text placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
+        type="email"
+        placeholder="correo@empresa.com"
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+      />
+      <label class="block text-xs uppercase tracking-[0.18em] text-muted">Password</label>
+      <input
+        class="w-full rounded-xl border border-border bg-bg px-4 py-3 text-sm text-text placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/30"
+        type="password"
+        placeholder="••••••••"
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+      />
+    </div>
+
+    @if (error()) {
+      <div class="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+        {{ error() }}
+      </div>
+    }
+
+    <button
+      class="btn btn-s mt-6 w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md disabled:opacity-60"
+      type="button"
+      [disabled]="loading()"
+      (click)="login()"
+    >
+      @if (loading()) {
+        Iniciando...
+      } @else {
+        Iniciar sesion
+      }
+    </button>
+  </div>
 </div>
