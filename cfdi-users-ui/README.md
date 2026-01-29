@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# cfdi-users-ui
 
-## Getting Started
+UI en Next.js para administrar usuarios del sistema CFDI (alta, edicion y baja) contra el API `/api/v1/users`.
 
-First, run the development server:
+## Requisitos
+- Node.js 18+
+- `cfdi-api` corriendo y accesible (por defecto `http://127.0.0.1:8000`)
 
+## Instalacion
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd cfdi-users-ui
+npm install
+copy .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Variables de entorno
+- `ADMIN_USER` y `ADMIN_PASS`: credenciales del superusuario (obligatorias).
+- `NEXT_PUBLIC_API_BASE_URL`: base del API (default `http://127.0.0.1:8000/api/v1`).
+- `AUTH_COOKIE_NAME`: nombre de la cookie (default `cfdi_users_auth`).
+- `AUTH_COOKIE_TTL_SECONDS`: TTL de la cookie en segundos (default `28800`).
+- `AUTH_MODE`: reservado para futuros modos (default `local`).
+- `APP_TITLE`: titulo mostrado en la pantalla de acceso (default `CFDI USERS`).
+- `APP_SUBTITLE`: subtitulo mostrado en la pantalla de acceso (default `Administracion de usuarios`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Desarrollo
+```bash
+npm run dev
+```
+La app queda en `http://localhost:3000`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Produccion
+```bash
+npm run build
+npm run start
+```
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Notas
+- La ruta `/users` requiere sesion iniciada con el superusuario.
+- Las operaciones usan los endpoints `GET/POST/PUT/DELETE /users` del `cfdi-api`.
