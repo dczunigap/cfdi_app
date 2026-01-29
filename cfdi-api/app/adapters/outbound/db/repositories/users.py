@@ -32,6 +32,9 @@ class SqlUserRepository:
             .scalar_one_or_none()
         )
 
+    def list_all(self) -> list[UserModel]:
+        return list(self._db.execute(select(UserModel).order_by(UserModel.id)).scalars().all())
+
     def create(self, username: str, email: str, password_hash: str) -> UserModel:
         model = UserModel(
             username=(username or "").strip().lower(),
@@ -42,6 +45,16 @@ class SqlUserRepository:
         self._db.commit()
         self._db.refresh(model)
         return model
+
+    def update(self, model: UserModel) -> UserModel:
+        self._db.add(model)
+        self._db.commit()
+        self._db.refresh(model)
+        return model
+
+    def delete(self, model: UserModel) -> None:
+        self._db.delete(model)
+        self._db.commit()
 
     def update_last_login(self, model: UserModel) -> None:
         model.last_login_at = datetime.now(timezone.utc)

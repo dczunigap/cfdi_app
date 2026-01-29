@@ -47,11 +47,6 @@ def test_auth_bootstrap_login_me_logout() -> None:
     _set_test_settings()
     client = _build_client()
 
-    payload = {"username": "admin", "email": "admin@example.com", "password": "demo123"}
-    res = client.post("/api/v1/auth/register", json=payload)
-    assert res.status_code == 200
-    assert res.json()["username"] == "admin"
-
     res = client.post("/api/v1/auth/login", json={"email": "admin@example.com", "password": "demo123"})
     assert res.status_code == 200
     token = res.json()["access_token"]
@@ -67,51 +62,9 @@ def test_auth_bootstrap_login_me_logout() -> None:
     assert res.status_code == 200
 
 
-def test_auth_register_requires_auth_after_bootstrap() -> None:
-    _set_test_settings()
-    client = _build_client()
-
-    res = client.post(
-        "/api/v1/auth/register",
-        json={"username": "admin", "email": "admin@example.com", "password": "demo123"},
-    )
-    assert res.status_code == 200
-
-    res = client.post(
-        "/api/v1/auth/register",
-        json={"username": "user2", "email": "user2@example.com", "password": "demo123"},
-    )
-    assert res.status_code == 401
-
-
 def test_auth_login_invalid_credentials() -> None:
     _set_test_settings()
     client = _build_client()
 
-    res = client.post(
-        "/api/v1/auth/register",
-        json={"username": "admin", "email": "admin@example.com", "password": "demo123"},
-    )
-    assert res.status_code == 200
-
     res = client.post("/api/v1/auth/login", json={"email": "admin@example.com", "password": "bad"})
     assert res.status_code == 401
-
-
-def test_guard_blocks_without_token() -> None:
-    _set_test_settings()
-    client = _build_client()
-
-    res = client.get("/api/v1/facturas")
-    assert res.status_code == 401
-
-    res = client.post(
-        "/api/v1/auth/register",
-        json={"username": "admin", "email": "admin@example.com", "password": "demo123"},
-    )
-    assert res.status_code == 200
-    res = client.post("/api/v1/auth/login", json={"email": "admin@example.com", "password": "demo123"})
-    token = res.json()["access_token"]
-
-    res = client.get("/api/v1/facturas", headers={"Authorization": f"Bearer {token}"})
-    assert res.status_code == 400

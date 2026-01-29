@@ -4,7 +4,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { API_BASE_URL } from '../api/api-client';
 
-const SKIP_AUTH_PATHS = ['/auth/login', '/auth/register'];
+const SKIP_AUTH_PATHS = ['/auth/login'];
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const url = req.url;
