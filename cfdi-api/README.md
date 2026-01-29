@@ -57,5 +57,4 @@ python -m pytest -q
 - OpenAPI: `GET /openapi.json`
 - Header `X-RFC` requerido en endpoints SAT (auth) y reportes.
 - Telefonos/RFC: `GET /rfc-phones/resolve?phone=...`, `POST /rfc-phones` para registrar.
-- Auth: `POST /auth/login`, `POST /auth/register` (requiere auth), `POST /auth/logout`, `GET /auth/me`.
-  - Nota: `POST /auth/register` permite bootstrap si no hay usuarios aún.
+- Auth: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`.
