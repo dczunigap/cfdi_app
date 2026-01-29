@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, of, switchMap, catchError, map, tap } from 'rxjs';
 
 import { AuthUser } from './auth.model';
@@ -17,10 +17,12 @@ type AuthTokenResponse = {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly http = inject(HttpClient);
+
   private readonly userSubject = new BehaviorSubject<AuthUser | null>(null);
   readonly user$ = this.userSubject.asObservable();
 
-  constructor(private readonly http: HttpClient) {
+  constructor() {
     this.restore();
   }
 

@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { DatePipe, DecimalPipe, NgClass, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -22,6 +22,11 @@ type IncomeSourceOption = {
   styleUrl: './declaracion-page.component.css',
 })
 export class DeclaracionPageComponent {
+  private readonly repo = inject(DeclaracionRepository);
+  private readonly alerts = inject(AppAlertService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly http = inject(HttpClient);
+
   summary: DeclaracionSummary | null = null;
   loading = false;
   filtersOpen = true;
@@ -38,13 +43,6 @@ export class DeclaracionPageComponent {
     { value: 'cfdi', label: 'Solo CFDI ingreso' },
     { value: 'ambos', label: 'Sumar ambos (solo si NO son las mismas ventas)' },
   ];
-
-  constructor(
-    private readonly repo: DeclaracionRepository,
-    private readonly alerts: AppAlertService,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly http: HttpClient,
-  ) {}
 
   load(): void {
     const year = Number(this.year);

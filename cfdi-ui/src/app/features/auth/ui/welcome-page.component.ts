@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, inject } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { RfcSelectorComponent } from '../../../shared/ui/rfc-selector/rfc-selector.component';
@@ -12,14 +12,15 @@ import { RfcService } from '../../../core/rfc/rfc.service';
   styleUrl: './welcome-page.component.css',
 })
 export class WelcomePageComponent {
+  private readonly router = inject(Router);
+
   protected readonly rfcService: RfcService;
   protected readonly notice = signal<string | null>(null);
   protected readonly canContinue = computed(() => !!this.rfcService.selectedRfc());
 
-  constructor(
-    rfcService: RfcService,
-    private readonly router: Router,
-  ) {
+  constructor() {
+    const rfcService = inject(RfcService);
+
     this.rfcService = rfcService;
     this.rfcService.refreshOptions();
   }

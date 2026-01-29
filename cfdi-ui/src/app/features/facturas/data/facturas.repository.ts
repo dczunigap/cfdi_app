@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/api/api-client';
@@ -10,7 +10,7 @@ import { tap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class FacturasRepository {
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   fetch(params?: { year?: number; month?: number; tipo?: string; naturaleza?: string }) {
     let httpParams = new HttpParams();
@@ -65,8 +65,8 @@ export class FacturasRepository {
 
     return this.http.get(`${API_BASE_URL}/facturas/export.csv`, {
       params: httpParams,
-      observe: 'response',
-      responseType: 'blob' as 'blob',
-    }) as Observable<HttpResponse<Blob>>;
+      observe: 'response' as const,
+      responseType: 'blob' as const,
+    });
   }
 }

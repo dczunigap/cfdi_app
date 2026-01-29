@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { AsyncPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -26,6 +26,8 @@ import { XmlImportComponent } from '../../../shared/ui/imports/xml-import.compon
   styleUrl: './facturas-page.component.css',
 })
 export class FacturasPageComponent implements OnInit {
+  private readonly repo = inject(FacturasRepository);
+
   readonly facturas$ = facturas$;
   readonly facturasCount$ = facturasCount$;
   readonly years = this.buildYears();
@@ -41,8 +43,6 @@ export class FacturasPageComponent implements OnInit {
   month: number | null = null;
   tipo: string | null = null;
   naturaleza: string | null = null;
-
-  constructor(private readonly repo: FacturasRepository) {}
 
   ngOnInit(): void {
     this.repo.fetch();

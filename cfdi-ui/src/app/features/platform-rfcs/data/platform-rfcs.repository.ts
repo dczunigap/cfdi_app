@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { deleteEntities, setEntities, upsertEntities } from '@ngneat/elf-entities';
 import { tap } from 'rxjs';
 
@@ -14,7 +14,7 @@ interface PlatformRfcCreatePayload {
 
 @Injectable({ providedIn: 'root' })
 export class PlatformRfcsRepository {
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   fetch() {
     return this.http.get<PlatformRfc[]>(`${API_BASE_URL}/platform-rfcs`).subscribe((items) => {

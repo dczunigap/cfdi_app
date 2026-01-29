@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -16,6 +16,11 @@ import { AppAlertService } from '../../../shared/ui/alert/alert.service';
   styleUrl: './summary-page.component.css',
 })
 export class SummaryPageComponent implements OnInit {
+  private readonly repo = inject(SummaryRepository);
+  private readonly alerts = inject(AppAlertService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly http = inject(HttpClient);
+
   summary: SummaryData | null = null;
   loading = false;
   filtersOpen = true;
@@ -25,13 +30,6 @@ export class SummaryPageComponent implements OnInit {
 
   readonly years = this.buildYears();
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
-
-  constructor(
-    private readonly repo: SummaryRepository,
-    private readonly alerts: AppAlertService,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly http: HttpClient,
-  ) {}
 
   ngOnInit(): void {
     this.fetch();

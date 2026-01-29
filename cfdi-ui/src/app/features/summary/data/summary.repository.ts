@@ -1,12 +1,12 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 
 import { API_BASE_URL } from '../../../core/api/api-client';
 import { SummaryData, SummaryDetails } from './summary.model';
 
 @Injectable({ providedIn: 'root' })
 export class SummaryRepository {
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   fetch(year?: number | null, month?: number | null) {
     let params = new HttpParams();

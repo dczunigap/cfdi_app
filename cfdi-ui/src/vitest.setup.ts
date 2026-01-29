@@ -2,8 +2,8 @@ import { getTestBed } from '@angular/core/testing';
 import { setupTestBed } from '@analogjs/vitest-angular/setup-testbed';
 
 // Access internal platform property to check initialization status
-const testBed = getTestBed();
-if (!(testBed as any)._instantiated) {
+const testBed = getTestBed() as unknown as { _instantiated?: boolean };
+if (!testBed._instantiated) {
   setupTestBed();
 }
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
@@ -12,15 +12,13 @@ import { AuthService } from '../../../core/auth/auth.service';
   styleUrl: './login-page.component.css',
 })
 export class LoginPageComponent implements OnInit {
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
   protected readonly email = signal('');
   protected readonly password = signal('');
   protected readonly error = signal<string | null>(null);
   protected readonly loading = signal(false);
-
-  constructor(
-    private readonly auth: AuthService,
-    private readonly router: Router,
-  ) {}
 
   ngOnInit(): void {
     this.auth.ensureAuthenticated().subscribe((ok) => {

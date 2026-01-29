@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
@@ -22,16 +22,17 @@ import { AuthService } from '../core/auth/auth.service';
   styleUrl: './main-shell.component.css'
 })
 export class MainShellComponent {
+  private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+
   protected readonly title = signal('cfdi-ui');
   protected readonly sidebarCollapsed = signal(false);
   protected readonly rfcService: RfcService;
   protected readonly rfcNotice = signal<string | null>(null);
 
-  constructor(
-    rfcService: RfcService,
-    private readonly router: Router,
-    private readonly auth: AuthService,
-  ) {
+  constructor() {
+    const rfcService = inject(RfcService);
+
     this.rfcService = rfcService;
     this.rfcService.refreshOptions();
   }

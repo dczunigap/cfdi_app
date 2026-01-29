@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { deleteEntities, setEntities } from '@ngneat/elf-entities';
 import { tap } from 'rxjs';
 
@@ -9,7 +9,7 @@ import { retencionesStore, RetencionesFilters } from './retenciones.store';
 
 @Injectable({ providedIn: 'root' })
 export class RetencionesRepository {
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   fetch() {
     return this.http.get<RetencionListItem[]>(`${API_BASE_URL}/retenciones`).subscribe((items) => {

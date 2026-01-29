@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { AsyncPipe, NgClass } from '@angular/common';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucidePencil, lucideSave, lucideTrash2, lucideX } from '@ng-icons/lucide';
@@ -21,6 +21,10 @@ type UploadMode = 'pfx' | 'cerkey';
   styleUrl: './admin-sat-page.component.css',
 })
 export class AdminSatPageComponent implements OnInit {
+  private readonly repo = inject(SatCredentialsRepository);
+  private readonly rfcPhonesRepo = inject(RfcPhonesRepository);
+  private readonly rfcService = inject(RfcService);
+
   readonly credentials$ = satCredentials$;
   readonly rfcPhones$ = rfcPhones$;
 
@@ -43,12 +47,6 @@ export class AdminSatPageComponent implements OnInit {
   editingPhoneId: number | null = null;
   editingPhone = '';
   editingRfc = '';
-
-  constructor(
-    private readonly repo: SatCredentialsRepository,
-    private readonly rfcPhonesRepo: RfcPhonesRepository,
-    private readonly rfcService: RfcService
-  ) {}
 
   ngOnInit(): void {
     this.repo.fetch();
@@ -218,7 +216,7 @@ export class AdminSatPageComponent implements OnInit {
     this.editingRfc = '';
   }
 
-  saveEditPhone(id: number): void {
+  saveEditPhone(): void {
     const phoneValue = this.normalizePhone(this.editingPhone);
     const rfcValue = this.editingRfc.trim().toUpperCase();
     if (!phoneValue) {

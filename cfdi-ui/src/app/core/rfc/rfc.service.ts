@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 
 import { API_BASE_URL } from '../api/api-client';
 
@@ -15,10 +15,10 @@ type SatCredentialResponse = {
 
 @Injectable({ providedIn: 'root' })
 export class RfcService {
+  private readonly http = inject(HttpClient);
+
   private readonly selected = signal<string | null>(this.readStored());
   private readonly options = signal<string[]>([]);
-
-  constructor(private readonly http: HttpClient) {}
 
   selectedRfc() {
     return this.selected();
@@ -43,7 +43,7 @@ export class RfcService {
       next: (rows) => {
         const rfcs = rows.map((row) => row.rfc).filter(Boolean);
         const stored = this.readStored();
-        let selected = this.selected() || stored;
+        const selected = this.selected() || stored;
         const merged = selected && !rfcs.includes(selected) ? [selected, ...rfcs] : rfcs;
         this.options.set(merged);
         if (selected) {

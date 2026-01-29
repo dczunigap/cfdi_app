@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
 
 import { AppAlertComponent } from './app-alert.component';
@@ -12,7 +12,7 @@ import { ToastService } from './toast.service';
   styleUrl: './toast-container.component.css',
 })
 export class ToastContainerComponent {
-  constructor(private readonly toastService: ToastService) {}
+  private readonly toastService = inject(ToastService);
 
   get toasts$() {
     return this.toastService.stream;
