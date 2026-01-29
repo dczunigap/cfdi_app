@@ -3,6 +3,8 @@ const qrcode = require("qrcode-terminal");
 const axios = require("axios");
 
 const API_BASE = process.env.CFDI_API_BASE || "http://127.0.0.1:8000/api/v1";
+const API_TOKEN = process.env.CFDI_API_TOKEN || "";
+const api = axios.create({ baseURL: API_BASE });
 
 const client = new Client({
   authStrategy: new LocalAuth(),
@@ -129,8 +131,13 @@ function helpText() {
 
 async function handleFacturas(msg, args) {
   const [year, month, tipo, naturaleza] = args;
-  const res = await axios.get(`${API_BASE}/facturas`, {
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
+  const res = await api.get("/facturas", {
     params: { year, month, tipo, naturaleza },
+    headers: buildHeaders(rfc),
   });
   const items = res.data || [];
   if (!items.length) {
@@ -150,9 +157,13 @@ async function handleFacturasRango(msg, args) {
     await msg.reply("Uso: /facturas_rango <year_from> <month_from> <year_to> <month_to>");
     return;
   }
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
   const from = `${yearFrom}-${String(monthFrom).padStart(2, "0")}`;
   const to = `${yearTo}-${String(monthTo).padStart(2, "0")}`;
-  const res = await axios.get(`${API_BASE}/facturas`);
+  const res = await api.get("/facturas", { headers: buildHeaders(rfc) });
   let items = res.data || [];
   items = items.filter((f) => {
     const key = `${f.year}-${String(f.month).padStart(2, "0")}`;
@@ -176,7 +187,14 @@ async function handleFacturasRango(msg, args) {
 }
 async function handleRetenciones(msg, args) {
   const [year, month] = args;
-  const res = await axios.get(`${API_BASE}/retenciones`, { params: { year, month } });
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
+  const res = await api.get("/retenciones", {
+    params: { year, month },
+    headers: buildHeaders(rfc),
+  });
   const items = res.data || [];
   if (!items.length) {
     await msg.reply("Sin retenciones para ese periodo.");
@@ -194,9 +212,13 @@ async function handleRetencionesRango(msg, args) {
     await msg.reply("Uso: /retenciones_rango <year_from> <month_from> <year_to> <month_to>");
     return;
   }
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
   const from = `${yearFrom}-${String(monthFrom).padStart(2, "0")}`;
   const to = `${yearTo}-${String(monthTo).padStart(2, "0")}`;
-  const res = await axios.get(`${API_BASE}/retenciones`);
+  const res = await api.get("/retenciones", { headers: buildHeaders(rfc) });
   const items = res.data || [];
   const filtered = items.filter((r) => {
     const key = `${r.year}-${String(r.month).padStart(2, "0")}`;
@@ -214,7 +236,14 @@ async function handleRetencionesRango(msg, args) {
 
 async function handleDeclaraciones(msg, args) {
   const [year, month] = args;
-  const res = await axios.get(`${API_BASE}/declaraciones`, { params: { year, month } });
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
+  const res = await api.get("/declaraciones", {
+    params: { year, month },
+    headers: buildHeaders(rfc),
+  });
   const items = res.data || [];
   if (!items.length) {
     await msg.reply("Sin declaraciones para ese periodo.");
@@ -232,9 +261,13 @@ async function handleDeclaracionesRango(msg, args) {
     await msg.reply("Uso: /declaraciones_rango <year_from> <month_from> <year_to> <month_to>");
     return;
   }
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
   const from = `${yearFrom}-${String(monthFrom).padStart(2, "0")}`;
   const to = `${yearTo}-${String(monthTo).padStart(2, "0")}`;
-  const res = await axios.get(`${API_BASE}/declaraciones`);
+  const res = await api.get("/declaraciones", { headers: buildHeaders(rfc) });
   const items = res.data || [];
   const filtered = items.filter((d) => {
     const key = `${d.year}-${String(d.month).padStart(2, "0")}`;
@@ -255,7 +288,11 @@ async function handleFacturaDetail(msg, args) {
     await msg.reply("Uso: /factura <factura_id>");
     return;
   }
-  const res = await axios.get(`${API_BASE}/facturas/${facturaId}`);
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
+  const res = await api.get(`/facturas/${facturaId}`, { headers: buildHeaders(rfc) });
   await msg.reply(`Factura ${facturaId}:\n${formatObject(res.data)}`);
 }
 
@@ -265,7 +302,11 @@ async function handleFacturaXml(msg, args) {
     await msg.reply("Uso: /factura_xml <factura_id>");
     return;
   }
-  const res = await axios.get(`${API_BASE}/facturas/${facturaId}/xml`);
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
+  const res = await api.get(`/facturas/${facturaId}/xml`, { headers: buildHeaders(rfc) });
   const text = res.data || "";
   const preview = text.length > 3500 ? text.slice(0, 3500) + "\n...[truncado]" : text;
   await msg.reply(preview || "XML vacio.");
@@ -277,8 +318,13 @@ async function handleDeclaracionPdf(msg, args) {
     await msg.reply("Uso: /declaracion_pdf <dec_id> <filename>");
     return;
   }
-  const res = await axios.get(`${API_BASE}/declaraciones/${decId}/archivo/${filename}`, {
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
+  const res = await api.get(`/declaraciones/${decId}/archivo/${filename}`, {
     responseType: "arraybuffer",
+    headers: buildHeaders(rfc),
   });
   const data = Buffer.from(res.data);
   const media = new MessageMedia("application/pdf", data.toString("base64"), filename);
@@ -291,7 +337,11 @@ async function handleRetencionDetail(msg, args) {
     await msg.reply("Uso: /retencion <retencion_id>");
     return;
   }
-  const res = await axios.get(`${API_BASE}/retenciones/${retencionId}`);
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
+  const res = await api.get(`/retenciones/${retencionId}`, { headers: buildHeaders(rfc) });
   await msg.reply(`Retencion ${retencionId}:\n${formatObject(res.data)}`);
 }
 
@@ -301,7 +351,11 @@ async function handleDeclaracionResumen(msg, args) {
     await msg.reply("Uso: /declaracion_resumen <dec_id>");
     return;
   }
-  const res = await axios.get(`${API_BASE}/declaraciones/${decId}/resumen.json`);
+  const rfc = await requireRfc(msg);
+  if (!rfc) {
+    return;
+  }
+  const res = await api.get(`/declaraciones/${decId}/resumen.json`, { headers: buildHeaders(rfc) });
   await msg.reply(`Resumen declaracion ${decId}:\n${formatObject(res.data)}`);
 }
 
@@ -311,7 +365,7 @@ async function handleSummary(msg, args) {
   if (!rfc) {
     return;
   }
-  const res = await axios.get(`${API_BASE}/summary`, {
+  const res = await api.get("/summary", {
     params: { year, month },
     headers: buildHeaders(rfc),
   });
@@ -324,7 +378,7 @@ async function handleSummaryDetails(msg, args) {
   if (!rfc) {
     return;
   }
-  const res = await axios.get(`${API_BASE}/summary/details`, {
+  const res = await api.get("/summary/details", {
     params: { year, month },
     headers: buildHeaders(rfc),
   });
@@ -337,7 +391,7 @@ async function handleDeclaracionMode(msg, args) {
   if (!rfc) {
     return;
   }
-  const res = await axios.get(`${API_BASE}/declaracion`, {
+  const res = await api.get("/declaracion", {
     params: { year, month, income_source: income_source || "auto" },
     headers: buildHeaders(rfc),
   });
@@ -350,7 +404,7 @@ async function handleHojaSat(msg, args) {
   if (!rfc) {
     return;
   }
-  const res = await axios.get(`${API_BASE}/sat_hoja.txt`, {
+  const res = await api.get("/sat_hoja.txt", {
     params: { year, month, income_source: income_source || "auto" },
     headers: buildHeaders(rfc),
   });
@@ -363,7 +417,7 @@ async function handleSatCsv(msg, args) {
   if (!rfc) {
     return;
   }
-  const res = await axios.get(`${API_BASE}/sat_report.csv`, {
+  const res = await api.get("/sat_report.csv", {
     params: { year, month, income_source: income_source || "auto" },
     headers: buildHeaders(rfc),
   });
@@ -376,7 +430,13 @@ function normalizePhone(value) {
 }
 
 function buildHeaders(rfc) {
-  return { "X-RFC": String(rfc || "").trim().toUpperCase() };
+  const headers = {
+    "X-RFC": String(rfc || "").trim().toUpperCase(),
+  };
+  if (API_TOKEN) {
+    headers.Authorization = `Bearer ${API_TOKEN}`;
+  }
+  return headers;
 }
 
 async function requireRfc(msg) {
@@ -386,7 +446,7 @@ async function requireRfc(msg) {
     return null;
   }
   try {
-    const res = await axios.get(`${API_BASE}/rfc-phones/resolve`, { params: { phone } });
+    const res = await api.get("/rfc-phones/resolve", { params: { phone } });
     const rfc = res.data?.rfc;
     if (!rfc) {
       await msg.reply("No hay RFC asociado a tu telefono. Pide al admin que lo registre.");
