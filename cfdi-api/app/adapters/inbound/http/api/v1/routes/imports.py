@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
-from app.adapters.inbound.http.deps import get_db
+from app.adapters.inbound.http.deps import get_db, require_user
 from app.adapters.outbound.db.repositories.declaraciones import SqlDeclaracionRepository
 from app.adapters.outbound.db.repositories.facturas import SqlFacturaRepository
 from app.adapters.outbound.db.repositories.platform_rfcs import SqlPlatformRfcRepository
@@ -35,7 +35,7 @@ from app.adapters.inbound.http.api.v1.mappers import (
 from app.domain.declaraciones.entities import DeclaracionPDF
 from app.utils.files import safe_pdf_filename, sha256_bytes
 
-router = APIRouter(tags=["import"])
+router = APIRouter(tags=["import"], dependencies=[Depends(require_user)])
 
 
 def _update_factura_model(model: FacturaModel, parsed: dict) -> None:

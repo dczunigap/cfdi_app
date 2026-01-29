@@ -1,7 +1,8 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { DatePipe, DecimalPipe, NgClass, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 
 import { API_BASE_URL } from '../../../core/api/api-client';
 import { DeclaracionRepository } from '../data/declaracion.repository';
@@ -21,6 +22,11 @@ type IncomeSourceOption = {
   styleUrl: './declaracion-page.component.css',
 })
 export class DeclaracionPageComponent {
+  private readonly repo = inject(DeclaracionRepository);
+  private readonly alerts = inject(AppAlertService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly http = inject(HttpClient);
+
   summary: DeclaracionSummary | null = null;
   loading = false;
   filtersOpen = true;
@@ -37,12 +43,6 @@ export class DeclaracionPageComponent {
     { value: 'cfdi', label: 'Solo CFDI ingreso' },
     { value: 'ambos', label: 'Sumar ambos (solo si NO son las mismas ventas)' },
   ];
-
-  constructor(
-    private readonly repo: DeclaracionRepository,
-    private readonly alerts: AppAlertService,
-    private readonly cdr: ChangeDetectorRef,
-  ) {}
 
   load(): void {
     const year = Number(this.year);
@@ -96,6 +96,22 @@ export class DeclaracionPageComponent {
     return `${API_BASE_URL}/sat_hoja.txt?year=${year}&month=${month}&income_source=${this.incomeSource}`;
   }
 
+  downloadCsv(): void {
+    if (!this.csvUrl) return;
+    this.http.get(this.csvUrl, { responseType: 'blob' }).subscribe({
+      next: (blob) => this.downloadBlob(blob, `sat_report_${this.periodLabelFromInputs()}.csv`),
+      error: () => this.alerts.error('No se pudo descargar el CSV SAT.'),
+    });
+  }
+
+  downloadHoja(): void {
+    if (!this.hojaUrl) return;
+    this.http.get(this.hojaUrl, { responseType: 'blob' }).subscribe({
+      next: (blob) => this.downloadBlob(blob, `hoja_sat_${this.periodLabelFromInputs()}.txt`),
+      error: () => this.alerts.error('No se pudo generar la hoja SAT.'),
+    });
+  }
+
   periodLabel(data: DeclaracionSummary): string {
     return `${data.year}-${String(data.month).padStart(2, '0')}`;
   }
@@ -132,6 +148,37 @@ export class DeclaracionPageComponent {
 
   pdfUrl(pdf: DeclaracionPdf): string {
     return `${API_BASE_URL}/declaraciones/${pdf.id}/archivo/${encodeURIComponent(pdf.filename)}`;
+  }
+
+  openPdf(pdf: DeclaracionPdf): void {
+    const url = this.pdfUrl(pdf);
+    this.http.get(url, { responseType: 'blob' }).subscribe({
+      next: (blob) => this.openBlob(blob),
+      error: () => this.alerts.error('No se pudo abrir el PDF.'),
+    });
+  }
+
+  private openBlob(blob: Blob): void {
+    const url = window.URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener');
+    setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+  }
+
+  private periodLabelFromInputs(): string {
+    const year = Number(this.year);
+    const month = Number(this.month);
+    const safeYear = Number.isFinite(year) ? year : new Date().getFullYear();
+    const safeMonth = Number.isFinite(month) ? month : 1;
+    return `${safeYear}-${String(safeMonth).padStart(2, '0')}`;
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    window.URL.revokeObjectURL(url);
   }
 
   private buildYears(): number[] {

@@ -48,12 +48,13 @@
         {{ loading ? 'Cargando...' : 'Ver' }}
       </button>
       @if (csvUrl) {
-        <a
+        <button
           class="btn btn-s rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
-          [href]="csvUrl"
-          >
+          type="button"
+          (click)="downloadCsv()"
+        >
           Exportar CSV SAT
-        </a>
+        </button>
       }
       <a
         class="btn btn-s rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"

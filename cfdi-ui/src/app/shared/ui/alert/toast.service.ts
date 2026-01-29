@@ -1,4 +1,4 @@
-import { Injectable, Injector } from '@angular/core';
+import { Injectable, Injector, inject } from '@angular/core';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { BehaviorSubject } from 'rxjs';
@@ -17,11 +17,12 @@ export interface ToastItem {
 
 @Injectable({ providedIn: 'root' })
 export class ToastService {
+  private readonly overlay = inject(Overlay);
+  private readonly injector = inject(Injector);
+
   private readonly items$ = new BehaviorSubject<ToastItem[]>([]);
   private overlayRef: OverlayRef | null = null;
   private nextId = 1;
-
-  constructor(private readonly overlay: Overlay, private readonly injector: Injector) {}
 
   get stream() {
     return this.items$.asObservable();

@@ -23,7 +23,7 @@ from app.adapters.inbound.http.api.v1.routes.utils import (
     pdf_inline_response,
 )
 from app.adapters.outbound.db.repositories.declaraciones import SqlDeclaracionRepository
-from app.adapters.inbound.http.deps import get_db
+from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
 from app.adapters.outbound.files.pdf_storage import LocalPdfStorage
 from app.adapters.services.parsers.pdf_parser import LocalPdfParser
 from app.application.declaraciones.use_cases import (
@@ -35,7 +35,7 @@ from app.application.declaraciones.use_cases import (
 from app.application.declaraciones.payload import build_declaracion_payload
 from app.utils.json import serialize_to_json
 
-router = APIRouter(prefix="/declaraciones", tags=["declaraciones"])
+router = APIRouter(prefix="/declaraciones", tags=["declaraciones"], dependencies=[Depends(require_user)])
 
 
 @router.get(
@@ -47,11 +47,12 @@ router = APIRouter(prefix="/declaraciones", tags=["declaraciones"])
 def listar_declaraciones(
     year: Optional[int] = None,
     month: Optional[int] = None,
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> list[DeclaracionListResponse]:
     repo = SqlDeclaracionRepository(db)
     use_case = ListDeclaracionesUseCase(repo)
-    data = ListDeclaracionesInput(year=year, month=month)
+    data = ListDeclaracionesInput(year=year, month=month, rfc=x_rfc)
     items = use_case.execute(data)
     return declaracion_list_to_dto(items)
 
@@ -62,12 +63,18 @@ def listar_declaraciones(
     summary="Detalle de declaracion",
     description="Devuelve el detalle de la declaracion PDF.",
 )
-def detalle_declaracion(dec_id: int, db: Session = Depends(get_db)) -> DeclaracionDetailResponse:
+def detalle_declaracion(
+    dec_id: int,
+    x_rfc: str = Depends(get_required_rfc),
+    db: Session = Depends(get_db),
+) -> DeclaracionDetailResponse:
     repo = SqlDeclaracionRepository(db)
     use_case = GetDeclaracionDetailUseCase(repo)
     result = use_case.execute(GetDeclaracionDetailInput(declaracion_id=dec_id))
     if result is None:
         raise HTTPException(status_code=404, detail="No encontrada")
+    if result.rfc != x_rfc:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     return declaracion_detail_to_dto(result)
 
 
@@ -79,9 +86,12 @@ def detalle_declaracion(dec_id: int, db: Session = Depends(get_db)) -> Declaraci
 def descargar_declaracion_pdf(
     dec_id: int,
     filename: str,
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> Response:
     dec = get_or_404(db, DeclaracionModel, dec_id, "Declaracion")
+    if dec.rfc != x_rfc:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
 
     base_dir = Path(__file__).resolve().parents[7]
     storage = LocalPdfStorage(base_dir / "database" / "pdfs")
@@ -102,8 +112,14 @@ def descargar_declaracion_pdf(
     summary="Resumen de declaracion",
     description="Devuelve el payload JSON extraido del PDF de declaracion.",
 )
-def declaracion_pdf_resumen_json(dec_id: int, db: Session = Depends(get_db)) -> Response:
+def declaracion_pdf_resumen_json(
+    dec_id: int,
+    x_rfc: str = Depends(get_required_rfc),
+    db: Session = Depends(get_db),
+) -> Response:
     dec = get_or_404(db, DeclaracionModel, dec_id, "Declaracion")
+    if dec.rfc != x_rfc:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
 
     dec_entity = declaracion_model_to_entity(dec)
 
@@ -117,8 +133,14 @@ def declaracion_pdf_resumen_json(dec_id: int, db: Session = Depends(get_db)) -> 
     summary="Eliminar declaracion",
     description="Elimina una declaracion por ID.",
 )
-def eliminar_declaracion(dec_id: int, db: Session = Depends(get_db)) -> dict:
+def eliminar_declaracion(
+    dec_id: int,
+    x_rfc: str = Depends(get_required_rfc),
+    db: Session = Depends(get_db),
+) -> dict:
     dec = get_or_404(db, DeclaracionModel, dec_id, "Declaracion")
+    if dec.rfc != x_rfc:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
 
     if dec.filename:
         base_dir = Path(__file__).resolve().parents[7]

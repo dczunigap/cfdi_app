@@ -11,6 +11,7 @@ from app.ports.retenciones_repo import RetencionRepository
 class ListRetencionesInput:
     year: Optional[int] = None
     month: Optional[int] = None
+    rfc: Optional[str] = None
 
 
 class ListRetencionesUseCase:
@@ -18,7 +19,7 @@ class ListRetencionesUseCase:
         self._repo = repo
 
     def execute(self, data: ListRetencionesInput) -> list[RetencionListItem]:
-        return self._repo.list_retenciones(year=data.year, month=data.month)
+        return self._repo.list_retenciones(year=data.year, month=data.month, rfc=data.rfc)
 
 
 @dataclass

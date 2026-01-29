@@ -1,5 +1,8 @@
 export interface AuthUser {
-  id: string;
-  name: string;
-  role: string;
+  id: number;
+  username: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+  last_login_at?: string | null;
 }

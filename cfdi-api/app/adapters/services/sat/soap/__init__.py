@@ -1,0 +1,1 @@
+"""SAT SOAP adapters."""

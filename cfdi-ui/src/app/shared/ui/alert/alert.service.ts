@@ -1,11 +1,11 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { ToastService } from './toast.service';
 
 export type AlertAppearance = 'info' | 'positive' | 'negative' | 'warning';
 
 @Injectable({ providedIn: 'root' })
 export class AppAlertService {
-  constructor(private readonly toasts: ToastService) {}
+  private readonly toasts = inject(ToastService);
 
   info(message: string, title = 'Info'): void {
     this.show(message, 'info', title);

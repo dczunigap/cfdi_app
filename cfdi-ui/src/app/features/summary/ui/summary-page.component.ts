@@ -1,7 +1,8 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 
 import { SummaryRepository } from '../data/summary.repository';
 import { SummaryData } from '../data/summary.model';
@@ -15,6 +16,11 @@ import { AppAlertService } from '../../../shared/ui/alert/alert.service';
   styleUrl: './summary-page.component.css',
 })
 export class SummaryPageComponent implements OnInit {
+  private readonly repo = inject(SummaryRepository);
+  private readonly alerts = inject(AppAlertService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly http = inject(HttpClient);
+
   summary: SummaryData | null = null;
   loading = false;
   filtersOpen = true;
@@ -24,12 +30,6 @@ export class SummaryPageComponent implements OnInit {
 
   readonly years = this.buildYears();
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
-
-  constructor(
-    private readonly repo: SummaryRepository,
-    private readonly alerts: AppAlertService,
-    private readonly cdr: ChangeDetectorRef,
-  ) {}
 
   ngOnInit(): void {
     this.fetch();
@@ -104,6 +104,14 @@ export class SummaryPageComponent implements OnInit {
     return `/api/v1/sat_report.csv?year=${this.summary.year}&month=${this.summary.month}`;
   }
 
+  downloadCsv(): void {
+    if (!this.csvUrl) return;
+    this.http.get(this.csvUrl, { responseType: 'blob' }).subscribe({
+      next: (blob) => this.downloadBlob(blob, `sat_report_${this.periodLabel(this.summary!)}.csv`),
+      error: () => this.alerts.error('No se pudo descargar el CSV SAT.'),
+    });
+  }
+
   get declaracionParams(): { year: number; month: number } | null {
     if (!this.summary) return null;
     return { year: this.summary.year, month: this.summary.month };
@@ -112,5 +120,14 @@ export class SummaryPageComponent implements OnInit {
   private buildYears(): number[] {
     const current = new Date().getFullYear();
     return Array.from({ length: 6 }, (_, i) => current - i);
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    window.URL.revokeObjectURL(url);
   }
 }

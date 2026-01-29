@@ -5,3 +5,5 @@ pydantic
 pydantic-settings
 pypdf
 python-multipart
+cryptography
+lxml

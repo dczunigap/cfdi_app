@@ -18,7 +18,7 @@ from app.adapters.inbound.http.api.v1.mappers import (
     factura_detail_to_dto,
     factura_list_to_dto,
 )
-from app.adapters.inbound.http.deps import get_db
+from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
 from app.adapters.outbound.db.repositories.facturas import SqlFacturaRepository
 from app.adapters.outbound.db.models import FacturaModel
 from app.adapters.inbound.http.api.v1.routes.utils import csv_response, get_or_404, xml_response
@@ -31,7 +31,7 @@ from app.application.facturas.use_cases import (
     ListFacturasUseCase,
 )
 
-router = APIRouter(prefix="/facturas", tags=["facturas"])
+router = APIRouter(prefix="/facturas", tags=["facturas"], dependencies=[Depends(require_user)])
 
 
 @router.get(
@@ -45,11 +45,18 @@ def listar_facturas(
     month: Optional[int] = None,
     tipo: Optional[str] = None,
     naturaleza: Optional[str] = None,
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> list[FacturaListResponse]:
     repo = SqlFacturaRepository(db)
     use_case = ListFacturasUseCase(repo)
-    data = ListFacturasInput(year=year, month=month, tipo=tipo, naturaleza=naturaleza)
+    data = ListFacturasInput(
+        year=year,
+        month=month,
+        tipo=tipo,
+        naturaleza=naturaleza,
+        rfc=x_rfc,
+    )
     items = use_case.execute(data)
     return factura_list_to_dto(items)
 
@@ -64,11 +71,18 @@ def export_facturas_csv(
     month: Optional[int] = None,
     tipo: Optional[str] = None,
     naturaleza: Optional[str] = None,
+    x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> Response:
     repo = SqlFacturaRepository(db)
     use_case = ListFacturasUseCase(repo)
-    data = ListFacturasInput(year=year, month=month, tipo=tipo, naturaleza=naturaleza)
+    data = ListFacturasInput(
+        year=year,
+        month=month,
+        tipo=tipo,
+        naturaleza=naturaleza,
+        rfc=x_rfc,
+    )
     items = use_case.execute(data)
 
     out = io.StringIO()
@@ -121,7 +135,11 @@ def export_facturas_csv(
     summary="Detalle de factura",
     description="Devuelve factura con sus conceptos y pagos.",
 )
-def detalle_factura(factura_id: int, db: Session = Depends(get_db)) -> FacturaDetailResponse:
+def detalle_factura(
+    factura_id: int,
+    x_rfc: str = Depends(get_required_rfc),
+    db: Session = Depends(get_db),
+) -> FacturaDetailResponse:
     factura_repo = SqlFacturaRepository(db)
     concepto_repo = SqlConceptoRepository(db)
     pago_repo = SqlPagoRepository(db)
@@ -129,6 +147,8 @@ def detalle_factura(factura_id: int, db: Session = Depends(get_db)) -> FacturaDe
     result = use_case.execute(GetFacturaDetailInput(factura_id=factura_id))
     if result is None:
         raise HTTPException(status_code=404, detail="Factura no encontrada")
+    if result.factura.emisor_rfc != x_rfc and result.factura.receptor_rfc != x_rfc:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
 
     return factura_detail_to_dto(result)
 
@@ -138,8 +158,14 @@ def detalle_factura(factura_id: int, db: Session = Depends(get_db)) -> FacturaDe
     summary="XML de CFDI",
     description="Devuelve el XML crudo de la factura.",
 )
-def factura_xml(factura_id: int, db: Session = Depends(get_db)) -> Response:
+def factura_xml(
+    factura_id: int,
+    x_rfc: str = Depends(get_required_rfc),
+    db: Session = Depends(get_db),
+) -> Response:
     row = get_or_404(db, FacturaModel, factura_id, "Factura")
+    if row.emisor_rfc != x_rfc and row.receptor_rfc != x_rfc:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     return xml_response(row.xml_text or "")
 
 
@@ -148,8 +174,14 @@ def factura_xml(factura_id: int, db: Session = Depends(get_db)) -> Response:
     summary="Eliminar factura",
     description="Elimina una factura por ID.",
 )
-def eliminar_factura(factura_id: int, db: Session = Depends(get_db)) -> dict:
+def eliminar_factura(
+    factura_id: int,
+    x_rfc: str = Depends(get_required_rfc),
+    db: Session = Depends(get_db),
+) -> dict:
     row = get_or_404(db, FacturaModel, factura_id, "Factura")
+    if row.emisor_rfc != x_rfc and row.receptor_rfc != x_rfc:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     db.delete(row)
     db.commit()
     return {"ok": True}

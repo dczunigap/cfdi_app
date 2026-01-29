@@ -17,6 +17,10 @@ import { AppAlertService } from '../alert/alert.service';
   styleUrl: './xml-import.component.css',
 })
 export class XmlImportComponent {
+  private readonly repo = inject(ImportacionRepository);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly alerts = inject(AppAlertService);
+
   @ViewChild('xmlInput') xmlInput?: ElementRef<HTMLInputElement>;
   readonly dialogRef = inject<DialogRef<void> | null>(DialogRef, { optional: true });
   readonly dialogData = inject<{ showCard?: boolean } | null>(DIALOG_DATA, { optional: true });
@@ -27,12 +31,6 @@ export class XmlImportComponent {
   xmlLoading = false;
 
   @Output() completed = new EventEmitter<boolean>();
-
-  constructor(
-    private readonly repo: ImportacionRepository,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly alerts: AppAlertService,
-  ) {}
 
   closeDialog(): void {
     this.dialogRef?.close();

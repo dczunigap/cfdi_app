@@ -12,6 +12,18 @@ ng serve
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
+## Admin SAT
+
+- Ruta: `/admin-sat`
+- Permite subir credenciales SAT (PFX o CER/KEY) y administrar RFCs.
+- El selector global de RFC en el sidebar envía `X-RFC` a los endpoints SAT y reportes.
+
+## Environment
+
+- `apiBaseUrl`: base URL del API (default `/api/v1`)
+- `authEnabled`: habilita guard de autenticación (default `true`)
+- `authValidationMode`: `local` (solo exp del JWT) o `server` (valida con `GET /auth/me`)
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -16,6 +16,8 @@ import { PlatformRfcsRepository } from '../data/platform-rfcs.repository';
   styleUrl: './platform-rfcs-page.component.css',
 })
 export class PlatformRfcsPageComponent implements OnInit {
+  private readonly repo = inject(PlatformRfcsRepository);
+
   readonly platformRfcs$ = platformRfcs$;
 
   newRfc = '';
@@ -23,8 +25,6 @@ export class PlatformRfcsPageComponent implements OnInit {
   saving = false;
   deletingId: number | null = null;
   error: string | null = null;
-
-  constructor(private readonly repo: PlatformRfcsRepository) {}
 
   ngOnInit(): void {
     this.repo.fetch();

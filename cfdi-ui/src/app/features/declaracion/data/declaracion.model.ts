@@ -25,6 +25,7 @@ export interface DeclaracionSummary {
   ingresos_base: number;
   isr_retenido: number;
   iva_retenido: number;
+  iva_acreditable: number;
   iva_trasladado_total: number;
   iva_trasladado_seleccion: number;
   checks: DeclaracionCheck[];

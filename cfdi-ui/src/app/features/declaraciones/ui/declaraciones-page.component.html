@@ -115,16 +115,16 @@
                     <div class="text-xs text-muted">{{ d.summary?.nombre || 'Sin nombre' }}</div>
                   </td>
                   <td class="px-5 py-4 text-right">
-                    {{ d.summary?.ingresos_totales_mes != null ? (d.summary?.ingresos_totales_mes | number: '1.2-2') : '-' }}
+                    {{ d.summary?.ingresos_totales_mes !== null ? (d.summary?.ingresos_totales_mes | number: '1.2-2') : '-' }}
                   </td>
                   <td class="px-5 py-4 text-right">
-                    {{ d.summary?.iva_a_cargo_16 != null ? (d.summary?.iva_a_cargo_16 | number: '1.2-2') : '-' }}
+                    {{ d.summary?.iva_a_cargo_16 !== null ? (d.summary?.iva_a_cargo_16 | number: '1.2-2') : '-' }}
                   </td>
                   <td class="px-5 py-4 text-right">
-                    {{ d.summary?.iva_retenido != null ? (d.summary?.iva_retenido | number: '1.2-2') : '-' }}
+                    {{ d.summary?.iva_retenido !== null ? (d.summary?.iva_retenido | number: '1.2-2') : '-' }}
                   </td>
                   <td class="px-5 py-4 text-right">
-                    {{ d.summary?.retenciones_plataformas != null ? (d.summary?.retenciones_plataformas | number: '1.2-2') : '-' }}
+                    {{ d.summary?.retenciones_plataformas !== null ? (d.summary?.retenciones_plataformas | number: '1.2-2') : '-' }}
                   </td>
                   <td class="px-5 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">

@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { deleteEntities, setEntities } from '@ngneat/elf-entities';
 import { tap } from 'rxjs';
 
@@ -9,7 +9,7 @@ import { declaracionesStore, DeclaracionesFilters } from './declaraciones.store'
 
 @Injectable({ providedIn: 'root' })
 export class DeclaracionesRepository {
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   fetch() {
     return this.http
@@ -42,10 +42,11 @@ export class DeclaracionesRepository {
     return this.http.delete<{ ok: boolean }>(`${API_BASE_URL}/declaraciones/${id}`).pipe(
       tap(() => {
         declaracionesStore.update((state) => {
-          const { [id]: _removed, ...rest } = state.summaries;
+          const summaries = { ...state.summaries };
+          delete summaries[id];
           return {
             ...state,
-            summaries: rest,
+            summaries,
           };
         });
         declaracionesStore.update(deleteEntities(id));

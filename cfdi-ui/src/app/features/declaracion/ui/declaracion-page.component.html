@@ -85,36 +85,28 @@
           </button>
         </div>
         <div class="flex items-end">
-          <a
-            class="btn btn-s w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface text-center"
-            [href]="csvUrl"
-            [attr.aria-disabled]="!csvUrl"
-            target="_blank"
-            rel="noopener"
-            >
+          <button
+            class="btn btn-s w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
+            type="button"
+            (click)="downloadCsv()"
+            [disabled]="!csvUrl"
+          >
             Exportar CSV SAT
-          </a>
+          </button>
         </div>
         <div class="flex items-end">
-          <a
-            class="btn btn-s w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-bg text-center"
-            [href]="hojaUrl"
-            [attr.aria-disabled]="!hojaUrl"
-            target="_blank"
-            rel="noopener"
-            >
+          <button
+            class="btn btn-s w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-bg"
+            type="button"
+            (click)="downloadHoja()"
+            [disabled]="!hojaUrl"
+          >
             Generar hoja SAT
-          </a>
+          </button>
         </div>
       </div>
     }
   </div>
-
-  @if (summary?.mi_rfc) {
-    <div class="text-sm text-muted">
-      RFC: <span class="text-text">{{ summary?.mi_rfc }}</span>
-    </div>
-  }
 
   @if (summary) {
     <div class="grid gap-4 md:grid-cols-2">
@@ -129,11 +121,11 @@
         <div class="text-sm text-muted">
           CFDI ingreso (subtotal-descuento aprox.): {{ summary.ingresos_base | number: '1.2-2' }}
         </div>
-        <div class="mt-2 text-xs text-muted">
+        <div class="mt-3 text-xs text-muted">
           Fuente usada: <span class="text-text">{{ summary.effective_income_source | uppercase }}</span>
           (selector: {{ summary.income_source }})
         </div>
-        <div class="mt-3 text-xs text-muted">
+        <div class="text-xs text-muted">
           Si tus CFDI de ingreso corresponden a las mismas ventas de plataforma, no los sumes.
         </div>
       </div>
@@ -144,6 +136,9 @@
         </div>
         <div class="mt-2 text-sm text-muted">
           IVA retenido: {{ summary.iva_retenido | number: '1.2-2' }}
+        </div>
+        <div class="text-sm text-muted">
+          IVA acreditable: {{ summary.iva_acreditable | number: '1.2-2' }}
         </div>
         <div class="text-sm text-muted">
           IVA trasladado del periodo (control): {{ summary.iva_trasladado_total | number: '1.2-2' }}
@@ -162,6 +157,17 @@
         <div class="mt-3 text-xs text-muted">
           Este modo no calcula ISR a cargo; solo muestra numeros y controles.
         </div>
+
+        @if (summary) {
+        
+          <div class="mt-10 text-xs uppercase tracking-[0.18em] text-muted">Respaldo / Control</div>
+          <ul class="mt-3 list-disc space-y-2 pl-5 text-sm text-text">
+            <li><strong>Retenciones (plataforma):</strong> {{ summary.retenciones_count }} archivo(s) detectados.</li>
+            <li><strong>CFDI de ingresos (I/E):</strong> {{ summary.docs_count }} CFDI (incluye P).</li>
+            <li><strong>Complementos P (por FechaPago en el mes):</strong> {{ summary.pagos_count }} renglones.</li>
+          </ul>
+        
+      }
       </div>
       <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
         <div class="text-xs uppercase tracking-[0.18em] text-muted">Checklist automatico</div>
@@ -178,54 +184,6 @@
             </div>
           }
         </div>
-      </div>
-      <div class="rounded-2xl border border-border bg-surface p-5 shadow-card md:col-span-2">
-        <div class="text-xs uppercase tracking-[0.18em] text-muted">Declaracion presentada (PDF)</div>
-        @if (summary.declaracion_pdf) {
-          <div class="mt-3 text-sm text-text">
-            Archivo: <span class="text-muted">{{ pdfLabel(summary.declaracion_pdf) }}</span>
-          </div>
-          @if (summary.declaracion_pdf.fecha_presentacion) {
-            <div class="text-sm text-text">
-              Fecha presentacion:
-              <span class="text-muted">{{ summary.declaracion_pdf.fecha_presentacion | date: 'yyyy-MM-dd' }}</span>
-            </div>
-          }
-          <div class="text-sm text-text">
-            Folio/Operacion: <span class="text-muted">{{ summary.declaracion_pdf.folio || '-' }}</span>
-          </div>
-          <div class="mt-3 flex flex-wrap gap-3 text-sm">
-            <a
-              class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
-              [routerLink]="['/declaraciones', summary.declaracion_pdf.id]"
-              >
-              Ver detalle
-            </a>
-            <a
-              class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
-              [href]="pdfUrl(summary.declaracion_pdf)"
-              target="_blank"
-              rel="noopener"
-              >
-              Abrir PDF
-            </a>
-          </div>
-          @if (summary.declaracion_pdf.text_excerpt) {
-            <div class="mt-4 text-xs text-muted">
-              <strong>Resumen (texto detectado):</strong>
-              {{ summary.declaracion_pdf.text_excerpt }}
-            </div>
-          }
-          @if (!summary.declaracion_pdf.text_excerpt) {
-            <div class="mt-4 text-xs text-muted">
-              No se pudo extraer texto (posible PDF escaneado).
-            </div>
-          }
-        } @else {
-          <div class="mt-3 text-sm text-muted">
-            No hay PDF importado para este periodo. Puedes importarlo desde la pantalla principal.
-          </div>
-        }
       </div>
       <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
         <div class="text-xs uppercase tracking-[0.18em] text-muted">Conciliacion con acuse SAT (PDF)</div>
@@ -270,16 +228,53 @@
           </div>
         }
       </div>
-      @if (summary) {
-        <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-          <div class="text-xs uppercase tracking-[0.18em] text-muted">Respaldo / Control</div>
-          <ul class="mt-3 list-disc space-y-2 pl-5 text-sm text-text">
-            <li><strong>Retenciones (plataforma):</strong> {{ summary.retenciones_count }} archivo(s) detectados.</li>
-            <li><strong>CFDI de ingresos (I/E):</strong> {{ summary.docs_count }} CFDI (incluye P).</li>
-            <li><strong>Complementos P (por FechaPago en el mes):</strong> {{ summary.pagos_count }} renglones.</li>
-          </ul>
-        </div>
-      }
+      <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <div class="text-xs uppercase tracking-[0.18em] text-muted">Declaracion presentada (PDF)</div>
+        @if (summary.declaracion_pdf) {
+          <div class="mt-3 text-sm text-text">
+            Archivo: <span class="text-muted">{{ pdfLabel(summary.declaracion_pdf) }}</span>
+          </div>
+          @if (summary.declaracion_pdf.fecha_presentacion) {
+            <div class="text-sm text-text">
+              Fecha presentacion:
+              <span class="text-muted">{{ summary.declaracion_pdf.fecha_presentacion | date: 'yyyy-MM-dd' }}</span>
+            </div>
+          }
+          <div class="text-sm text-text">
+            Folio/Operacion: <span class="text-muted">{{ summary.declaracion_pdf.folio || '-' }}</span>
+          </div>
+          <div class="mt-3 flex flex-wrap gap-3 text-sm">
+            <a
+              class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
+              [routerLink]="['/declaraciones', summary.declaracion_pdf.id]"
+              >
+              Ver detalle
+            </a>
+            <button
+              class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
+              type="button"
+              (click)="openPdf(summary.declaracion_pdf)"
+              >
+              Abrir PDF
+            </button>
+          </div>
+          @if (summary.declaracion_pdf.text_excerpt) {
+            <div class="mt-4 text-xs text-muted">
+              <strong>Resumen (texto detectado):</strong>
+              {{ summary.declaracion_pdf.text_excerpt }}
+            </div>
+          }
+          @if (!summary.declaracion_pdf.text_excerpt) {
+            <div class="mt-4 text-xs text-muted">
+              No se pudo extraer texto (posible PDF escaneado).
+            </div>
+          }
+        } @else {
+          <div class="mt-3 text-sm text-muted">
+            No hay PDF importado para este periodo. Puedes importarlo desde la pantalla principal.
+          </div>
+        }
+      </div>
     </div>
   }
 </div>
