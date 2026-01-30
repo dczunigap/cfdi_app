@@ -10,16 +10,11 @@ Backend Python (FastAPI) con arquitectura hexagonal ligera.
 - `CFDI_AUTH_TTL_MINUTES` (minutos de vigencia del token, default 2880)
 - `CFDI_AUTH_PASSWORD_ITERATIONS` (iteraciones de hashing, default 390000)
 - `SAT_PASSWORD_SECRET` (clave Fernet para cifrado de PFX/password)
-- `SAT_CFDI_AUTH_URL`
-- `SAT_CFDI_SOLICITUD_URL`
-- `SAT_CFDI_VERIFICACION_URL`
-- `SAT_CFDI_DESCARGA_URL`
-- `SAT_RET_AUTH_URL`
-- `SAT_RET_SOLICITUD_URL`
-- `SAT_RET_VERIFICACION_URL`
-- `SAT_RET_DESCARGA_URL`
+- `SAT_ENV` (`uat` o `prod`, default `uat`)
 - `CFDI_TIMEOUT_SAT_SECONDS`
-- `SAT_SOAP_ACTION_DESCARGA`
+
+Tip: usa `cfdi-api/.env.example` como plantilla y ajusta `SAT_ENV` si quieres alternar UAT/PROD sin tocar código.
+Nota: los endpoints SAT se toman exclusivamente de `SAT_ENDPOINTS`; no hay overrides por URL.
 
 ## Instalacion (dev)
 ```
@@ -31,6 +26,17 @@ pip install -r requirements.txt
 ## Ejecutar
 ```
 uvicorn app.main:app --reload
+```
+
+## Check rapido de endpoints SAT
+```
+$env:SAT_ENV = "uat"
+python -c "from app.core.config import settings; print(settings.sat_cfdi_auth_url); print(settings.sat_ret_auth_url)"
+```
+
+```
+$env:SAT_ENV = "prod"
+python -c "from app.core.config import settings; print(settings.sat_cfdi_auth_url); print(settings.sat_ret_auth_url)"
 ```
 
 ## Pruebas (pytest)

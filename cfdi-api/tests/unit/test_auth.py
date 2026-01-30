@@ -10,10 +10,12 @@ from app.adapters.inbound.http.api.v1.routes import api_router
 from app.adapters.inbound.http.deps import get_db
 from app.adapters.outbound.db.session import Base
 from app.adapters.outbound.db import models  # noqa: F401
+from app.adapters.outbound.db.repositories.users import SqlUserRepository
 from app.core.config import settings
+from app.core.security import hash_password
 
 
-def _build_client() -> TestClient:
+def _build_client(seed_user: bool = True) -> TestClient:
     engine = create_engine(
         "sqlite://",
         future=True,
@@ -22,6 +24,15 @@ def _build_client() -> TestClient:
     )
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+
+    if seed_user:
+        with SessionLocal() as db:
+            repo = SqlUserRepository(db)
+            repo.create(
+                username="admin",
+                email="admin@example.com",
+                password_hash=hash_password("demo123", settings.auth_password_iterations),
+            )
 
     app = FastAPI()
     app.include_router(api_router, prefix="/api/v1")
