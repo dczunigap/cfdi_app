@@ -10,12 +10,12 @@ from app.adapters.inbound.http.api.v1.schemas.sat_descargas import (
 )
 from app.adapters.outbound.db.repositories.sat_credentials import SqlSatCredentialsRepository
 from app.adapters.outbound.db.repositories.sat_descargas import SqlSatDescargasRepository
+from app.adapters.outbound.db.repositories.user_rfcs import SqlUserRfcsRepository
 from app.adapters.outbound.files.sat_storage_fs import SatStorageFs
 from app.adapters.services.sat.crypto.crypto_service import FernetSatCrypto
 from app.adapters.services.sat.gateway_factory import build_sat_gateway
 from app.application.sat.descargas_service import crear_solicitud_descarga
 from app.application.sat.dto import SolicitudDescargaParams
-from app.infra.queue.rq_tasks import verificar_descarga_job
 
 router = APIRouter(prefix="/sat/descargas", tags=["sat-descargas"], dependencies=[Depends(require_user)])
 
@@ -45,14 +45,19 @@ def _to_response(model) -> SatDescargaResponse:
 def crear_descarga(
     payload: SatDescargaCreateRequest,
     x_rfc: str = Depends(get_required_rfc),
+    user=Depends(require_user),
     db: Session = Depends(get_db),
 ) -> SatDescargaResponse:
     rfc_value = (x_rfc or "").strip().upper()
 
     repo = SqlSatDescargasRepository(db)
     cred_repo = SqlSatCredentialsRepository(db)
+    rfc_repo = SqlUserRfcsRepository(db)
     crypto = FernetSatCrypto()
     gateway = build_sat_gateway()
+
+    if not rfc_repo.is_allowed(user.id, rfc_value):
+        raise HTTPException(status_code=403, detail="RFC no autorizado para el usuario.")
 
     params = SolicitudDescargaParams(
         rfc_solicitante=rfc_value,
@@ -80,7 +85,11 @@ def crear_descarga(
             kind=payload.kind,
             params=params,
         )
-        verificar_descarga_job(descarga.id, schedule_next=False)
+        try:
+            from app.infra.queue.rq_tasks import verificar_descarga_job
+            verificar_descarga_job(descarga.id, schedule_next=False)
+        except ModuleNotFoundError:
+            pass
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _to_response(descarga)
@@ -102,14 +111,18 @@ def get_descarga(
 def download_zip(
     descarga_id: int,
     x_rfc: str = Depends(get_required_rfc),
+    user=Depends(require_user),
     db: Session = Depends(get_db),
 ) -> Response:
     repo = SqlSatDescargasRepository(db)
+    rfc_repo = SqlUserRfcsRepository(db)
     descarga = repo.get_by_id(descarga_id)
     if not descarga:
         raise HTTPException(status_code=404, detail="Descarga no encontrada.")
     if descarga.rfc != (x_rfc or "").strip().upper():
         raise HTTPException(status_code=403, detail="RFC no autorizado.")
+    if not rfc_repo.is_allowed(user.id, descarga.rfc):
+        raise HTTPException(status_code=403, detail="RFC no autorizado para el usuario.")
     if not descarga.paquetes:
         raise HTTPException(status_code=409, detail="Descarga sin paquetes.")
     if len(descarga.paquetes) != 1:

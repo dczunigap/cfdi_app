@@ -13,9 +13,10 @@ from app.adapters.inbound.http.deps import get_db, require_user
 from app.adapters.outbound.db.session import Base
 from app.adapters.outbound.db import models  # noqa: F401
 from app.domain.sat.entities import SatDescarga
+from app.adapters.outbound.db.repositories.user_rfcs import SqlUserRfcsRepository
 
 
-def _build_client() -> TestClient:
+def _build_client(allow_rfc: bool = True) -> TestClient:
     engine = create_engine(
         "sqlite://",
         future=True,
@@ -35,8 +36,16 @@ def _build_client() -> TestClient:
         finally:
             db.close()
 
+    def _override_user():
+        return type("User", (), {"id": 1})()
+
     app.dependency_overrides[get_db] = _override_db
-    app.dependency_overrides[require_user] = lambda: object()
+    app.dependency_overrides[require_user] = _override_user
+
+    if allow_rfc:
+        with SessionLocal() as db:
+            repo = SqlUserRfcsRepository(db)
+            repo.add(user_id=1, rfc="AAA010101AAA")
     return TestClient(app)
 
 
@@ -65,7 +74,7 @@ def test_create_descarga_basica(monkeypatch) -> None:
     from app.adapters.inbound.http.api.v1.routes import sat_descargas as routes
 
     monkeypatch.setattr(routes, "crear_solicitud_descarga", lambda **kwargs: fake)
-    monkeypatch.setattr(routes, "verificar_descarga_job", lambda *args, **kwargs: None)
+    monkeypatch.setattr(routes, "verificar_descarga_job", lambda *args, **kwargs: None, raising=False)
 
     res = client.post(
         "/api/v1/sat/descargas",
@@ -83,3 +92,25 @@ def test_create_descarga_basica(monkeypatch) -> None:
     assert body["id"] == 1
     assert body["rfc"] == "AAA010101AAA"
     assert body["estado"] == "SOLICITADA"
+
+
+def test_create_descarga_forbidden_without_permission(monkeypatch) -> None:
+    client = _build_client(allow_rfc=False)
+
+    from app.adapters.inbound.http.api.v1.routes import sat_descargas as routes
+
+    monkeypatch.setattr(routes, "crear_solicitud_descarga", lambda **kwargs: None)
+    monkeypatch.setattr(routes, "verificar_descarga_job", lambda *args, **kwargs: None, raising=False)
+
+    res = client.post(
+        "/api/v1/sat/descargas",
+        headers={"X-RFC": "AAA010101AAA"},
+        json={
+            "kind": "cfdi",
+            "tipo_solicitud": "emitidos",
+            "fecha_inicial": "2024-01-01T00:00:00Z",
+            "fecha_final": "2024-01-31T23:59:59Z",
+        },
+    )
+
+    assert res.status_code == 403
