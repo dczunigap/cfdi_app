@@ -12,6 +12,8 @@ Backend Python (FastAPI) con arquitectura hexagonal ligera.
 - `SAT_PASSWORD_SECRET` (clave Fernet para cifrado de PFX/password)
 - `SAT_ENV` (`uat` o `prod`, default `uat`)
 - `CFDI_TIMEOUT_SAT_SECONDS`
+- `SAT_DOWNLOAD_DIR` (ruta local para ZIPs, default `C:\cfdi\xml`)
+- `REDIS_URL` (RQ broker, default `redis://localhost:6379/0`)
 
 Tip: usa `cfdi-api/.env.example` como plantilla y ajusta `SAT_ENV` si quieres alternar UAT/PROD sin tocar código.
 Nota: los endpoints SAT se toman exclusivamente de `SAT_ENDPOINTS`; no hay overrides por URL.
@@ -51,6 +53,16 @@ $env:PYTHONPATH = (Get-Location).Path
 $env:RUN_SAT_INTEGRATION = "1"
 python -m pytest -q
 ```
+
+## RQ (jobs SAT)
+Worker:
+```
+rq worker --url redis://localhost:6379/0
+```
+
+Flujo:
+- `POST /api/v1/sat/descargas` crea solicitud y hace verificacion inicial.
+- RQ reintenta verificacion y dispara descarga cuando esta LISTA.
 
 ## Estructura
 - `app/domain`: entidades y reglas puras
