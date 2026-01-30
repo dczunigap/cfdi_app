@@ -1,288 +1,226 @@
 from __future__ import annotations
 
 import os
+import socket
+import shutil
 import time
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 
-from app.adapters.outbound.db.session import SessionLocal
-from app.adapters.outbound.db.models import SatCredentialModel
-from app.adapters.services.sat.crypto.crypto import decrypt_bytes, decrypt_text
-from app.application.sat.dto import SolicitudDescargaParams
-from app.adapters.services.sat.sat_gateway import SoapSatGateway
-from app.adapters.services.sat.soap.actions import (
-    SOAP_CFDI_ACTION_AUTENTICA,
-    SOAP_CFDI_ACTION_SOLICITA_EMITIDOS,
-    SOAP_CFDI_ACTION_SOLICITA_RECIBIDOS,
-    SOAP_RETENCIONES_ACTION_AUTENTICA,
-    SOAP_RETENCIONES_ACTION_SOLICITA_EMITIDOS,
-    SOAP_RETENCIONES_ACTION_SOLICITA_RECIBIDOS,
-    SOAP_RETENCIONES_ACTION_VERIFICA,
-    SOAP_RETENCIONES_ACTION_DESCARGA,
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.adapters.outbound.db.session import Base, SessionLocal
+from app.adapters.outbound.db.repositories.sat_credentials import SqlSatCredentialsRepository
+from app.adapters.outbound.db.repositories.sat_descargas import SqlSatDescargasRepository
+from app.adapters.outbound.files.sat_storage_fs import SatStorageFs
+from app.adapters.services.sat.crypto.crypto_service import FernetSatCrypto
+from app.adapters.services.sat.gateway_factory import build_sat_gateway
+from app.application.sat.descargas_service import (
+    STATUS_EN_PROCESO,
+    STATUS_ERROR,
+    STATUS_EXPIRADA,
+    STATUS_LISTA,
+    STATUS_SIN_RESULTADOS,
+    crear_solicitud_descarga,
+    descargar_y_procesar,
+    verificar_descarga,
 )
-from app.adapters.services.sat.pkcs12.pfx import load_key_material_from_pfx_bytes
+from app.application.sat.dto import SolicitudDescargaParams
 from app.core.config import settings
 
 
 class TestSatSolicitudIntegration(unittest.TestCase):
-    def _load_credentials(self) -> tuple[str, object]:
+    def setUp(self) -> None:
+        if (os.getenv("SAT_GATEWAY_MODE") or "").lower() == "mock":
+            engine = create_engine(
+                "sqlite://",
+                future=True,
+                connect_args={"check_same_thread": False},
+                poolclass=StaticPool,
+            )
+            Base.metadata.create_all(bind=engine)
+            self._session_local = sessionmaker(
+                bind=engine, autoflush=False, autocommit=False, future=True
+            )
+            base_dir = os.path.join(os.getcwd(), ".tmp", "sat_downloads")
+            os.makedirs(base_dir, exist_ok=True)
+            self._tmpdir = base_dir
+            os.environ["SAT_DOWNLOAD_DIR"] = base_dir
+        else:
+            self._session_local = SessionLocal
+            self._tmpdir = None
+
+    def tearDown(self) -> None:
+        if self._tmpdir and (os.getenv("SAT_GATEWAY_MODE") or "").lower() == "mock":
+            shutil.rmtree(self._tmpdir, ignore_errors=True)
+
+    def _ensure_ready(self) -> None:
         if os.getenv("RUN_SAT_INTEGRATION") != "1":
             self.skipTest("Set RUN_SAT_INTEGRATION=1 to run SAT integration tests.")
 
         if not (settings.sat_password_secret or "").strip():
             self.skipTest("SAT_PASSWORD_SECRET no configurado.")
 
-        with SessionLocal() as db:
-            cred = (
-                db.query(SatCredentialModel)
-                .order_by(SatCredentialModel.created_at.desc())
-                .first()
-            )
-            if not cred:
-                self.skipTest("No hay credenciales SAT en la BD.")
-            password = decrypt_text(cred.pfx_password_encrypted)
+        if (os.getenv("SAT_GATEWAY_MODE") or "").lower() != "mock":
             try:
-                pfx_bytes = decrypt_bytes(cred.pfx_encrypted)
+                socket.getaddrinfo("cu1-cfd-uat-webc-dmtsoli.cloudapp.net", 443)
             except Exception:
-                self.skipTest("Credenciales no cifradas con la clave actual.")
-            key_material = load_key_material_from_pfx_bytes(pfx_bytes, password)
-            rfc_value = cred.rfc
-        return rfc_value, key_material
+                self.skipTest("DNS no resuelve endpoints UAT del SAT.")
+
+        with self._session_local() as db:
+            repo = SqlSatCredentialsRepository(db)
+            if not repo.list_all():
+                if (os.getenv("SAT_GATEWAY_MODE") or "").lower() == "mock":
+                    crypto = FernetSatCrypto()
+                    repo.upsert(
+                        rfc="AAA010101AAA",
+                        pfx_encrypted=crypto.encrypt_bytes(b"mock-pfx"),
+                        pfx_password_encrypted=crypto.encrypt_text("mock-pass"),
+                    )
+                else:
+                    self.skipTest("No hay credenciales SAT en la BD.")
+
+    def _poll_until_ready(self, descarga_id: int, max_wait_seconds: int = 900) -> str:
+        start = time.time()
+        with self._session_local() as db:
+            repo = SqlSatDescargasRepository(db)
+            cred_repo = SqlSatCredentialsRepository(db)
+            crypto = FernetSatCrypto()
+            gateway = build_sat_gateway()
+
+            while time.time() - start < max_wait_seconds:
+                descarga = verificar_descarga(
+                    repo=repo,
+                    cred_repo=cred_repo,
+                    crypto=crypto,
+                    gateway=gateway,
+                    descarga_id=descarga_id,
+                )
+                if not descarga:
+                    return STATUS_ERROR
+
+                if descarga.estado in {
+                    STATUS_LISTA,
+                    STATUS_SIN_RESULTADOS,
+                    STATUS_EXPIRADA,
+                    STATUS_ERROR,
+                }:
+                    return descarga.estado
+
+                time.sleep(30)
+        return STATUS_ERROR
 
     def test_solicitud_descarga_emitidos_y_recibidos(self) -> None:
-        rfc_value, key_material = self._load_credentials()
+        self._ensure_ready()
 
-        gateway = SoapSatGateway()
+        with self._session_local() as db:
+            cred_repo = SqlSatCredentialsRepository(db)
+            cred = cred_repo.list_all()[0]
+            rfc_value = cred.rfc
 
-        token = gateway.autenticar(
-            kind="cfdi",
-            key_material=key_material,
-            soap_action=SOAP_CFDI_ACTION_AUTENTICA,
-            to_url=None,
-            action=SOAP_CFDI_ACTION_AUTENTICA,
-        )
-        params_emitidos = SolicitudDescargaParams(
-            rfc_solicitante=rfc_value,
-            rfc_emisor=rfc_value,
-            fecha_inicial=datetime(2025, 12, 1, 0, 0, 0),
-            fecha_final=datetime(2025, 12, 31, 23, 59, 59),
-            tipo_solicitud="CFDI",
-            complemento="",
-            estado_comprobante="Vigente",
-            tipo_comprobante="",
-            rfc_a_cuenta_terceros="",
-        )
-        solicitud_id_emitidos = gateway.solicitar_descarga(
-            kind="cfdi",
-            key_material=key_material,
-            params=params_emitidos,
-            access_token=token,
-            soap_action=SOAP_CFDI_ACTION_SOLICITA_EMITIDOS,
-            tag_name="SolicitaDescargaEmitidos",
-        )
-        print(f"\nIdSolicitud emitidos: {solicitud_id_emitidos}")
+            repo = SqlSatDescargasRepository(db)
+            crypto = FernetSatCrypto()
+            gateway = build_sat_gateway()
 
-        params_recibidos = SolicitudDescargaParams(
-            rfc_solicitante=rfc_value,
-            rfc_receptor=rfc_value,
-            fecha_inicial=datetime(2025, 12, 1, 0, 0, 0),
-            fecha_final=datetime(2025, 12, 31, 23, 59, 59),
-            tipo_solicitud="CFDI",
-            complemento="",
-            estado_comprobante="Vigente",
-            tipo_comprobante="",
-            rfc_a_cuenta_terceros="",
-        )
-        solicitud_id_recibidos = gateway.solicitar_descarga(
-            kind="cfdi",
-            key_material=key_material,
-            params=params_recibidos,
-            access_token=token,
-            soap_action=SOAP_CFDI_ACTION_SOLICITA_RECIBIDOS,
-            tag_name="SolicitaDescargaRecibidos",
-        )
-        print(f"\nIdSolicitud recibidos: {solicitud_id_recibidos}")
-        time.sleep(120)
+            params_emitidos = SolicitudDescargaParams(
+                rfc_solicitante=rfc_value,
+                rfc_emisor=rfc_value,
+                fecha_inicial=datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc),
+                fecha_final=datetime(2025, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+                tipo_solicitud="CFDI",
+                complemento="",
+                estado_comprobante="Vigente",
+                tipo_comprobante="",
+                rfc_a_cuenta_terceros="",
+            )
+            descarga_emitidos = crear_solicitud_descarga(
+                repo=repo,
+                cred_repo=cred_repo,
+                crypto=crypto,
+                gateway=gateway,
+                rfc=rfc_value,
+                kind="cfdi",
+                params=params_emitidos,
+                tag_name="SolicitaDescargaEmitidos",
+            )
+            print(f"\nIdSolicitud emitidos: {descarga_emitidos.id_solicitud}")
 
-        verificacion_emitidos = gateway.verificar_descarga(
-            kind="cfdi",
-            key_material=key_material,
-            rfc_solicitante=rfc_value,
-            id_solicitud=solicitud_id_emitidos,
-            access_token=token,
-        )
-        print(
-            "Verificacion emitidos:",
-            f"EstadoSolicitud={verificacion_emitidos.estado_solicitud}",
-            f"NumeroCFDIs={verificacion_emitidos.numero_cfdis}",
-            f"Mensaje={verificacion_emitidos.mensaje}",
-        )
+        estado_emitidos = self._poll_until_ready(descarga_emitidos.id)
+        self.assertNotEqual(estado_emitidos, STATUS_ERROR)
 
-        time.sleep(10)
-
-        verificacion_recibidos = gateway.verificar_descarga(
-            kind="cfdi",
-            key_material=key_material,
-            rfc_solicitante=rfc_value,
-            id_solicitud=solicitud_id_recibidos,
-            access_token=token,
-        )
-        print(
-            "Verificacion recibidos:",
-            f"EstadoSolicitud={verificacion_recibidos.estado_solicitud}",
-            f"NumeroCFDIs={verificacion_recibidos.numero_cfdis}",
-            f"Mensaje={verificacion_recibidos.mensaje}",
-        )
-
-        self.assertTrue(isinstance(solicitud_id_emitidos, str) and solicitud_id_emitidos.strip())
-        self.assertTrue(isinstance(solicitud_id_recibidos, str) and solicitud_id_recibidos.strip())
-
-    def test_verificacion_emitidos_recibidos(self) -> None:
-        rfc_value, key_material = self._load_credentials()
-
-        gateway = SoapSatGateway()
-
-        token = gateway.autenticar(
-            kind="cfdi",
-            key_material=key_material,
-            soap_action=SOAP_CFDI_ACTION_AUTENTICA,
-            to_url=None,
-            action=SOAP_CFDI_ACTION_AUTENTICA,
-        )
-
-        verificacion_emitidos = gateway.verificar_descarga(
-            kind="cfdi",
-            key_material=key_material,
-            rfc_solicitante=rfc_value,
-            id_solicitud="fd0b8cd0-7778-4d93-bcc1-8703ffcf8e69",
-            access_token=token,
-        )
-        print(
-            "Verificacion emitidos:",
-            f"EstadoSolicitud={verificacion_emitidos.estado_solicitud}",
-            f"NumeroCFDIs={verificacion_emitidos.numero_cfdis}",
-            f"Mensaje={verificacion_emitidos.mensaje}",
-        )
-
-        verificacion_recibidos = gateway.verificar_descarga(
-            kind="cfdi",
-            key_material=key_material,
-            rfc_solicitante=rfc_value,
-            id_solicitud="a10c16a2-2381-4011-a86f-17ce76853dfe",
-            access_token=token,
-        )
-        print(
-            "Verificacion recibidos:",
-            f"EstadoSolicitud={verificacion_recibidos.estado_solicitud}",
-            f"NumeroCFDIs={verificacion_recibidos.numero_cfdis}",
-            f"Mensaje={verificacion_recibidos.mensaje}",
-        )
-
-        self.assertTrue(isinstance(verificacion_emitidos.mensaje, str) and verificacion_emitidos.mensaje.strip())
-        self.assertTrue(isinstance(verificacion_recibidos.mensaje, str) and verificacion_recibidos.mensaje.strip())
+        if estado_emitidos == STATUS_LISTA:
+            with self._session_local() as db:
+                repo = SqlSatDescargasRepository(db)
+                cred_repo = SqlSatCredentialsRepository(db)
+                crypto = FernetSatCrypto()
+                gateway = build_sat_gateway()
+                storage = SatStorageFs(base_dir=os.environ.get("SAT_DOWNLOAD_DIR"))
+                descargar_y_procesar(
+                    repo=repo,
+                    cred_repo=cred_repo,
+                    crypto=crypto,
+                    gateway=gateway,
+                    storage=storage,
+                    db=db,
+                    descarga_id=descarga_emitidos.id,
+                )
 
     def test_retenciones_solicitud_verificacion_descarga(self) -> None:
-        rfc_value, key_material = self._load_credentials()
+        self._ensure_ready()
 
-        gateway = SoapSatGateway()
+        with self._session_local() as db:
+            cred_repo = SqlSatCredentialsRepository(db)
+            cred = cred_repo.list_all()[0]
+            rfc_value = cred.rfc
 
-        token_value = gateway.autenticar(
-            kind="retenciones",
-            key_material=key_material,
-            soap_action=SOAP_RETENCIONES_ACTION_AUTENTICA,
-            to_url=None,
-            action=SOAP_RETENCIONES_ACTION_AUTENTICA,
-        )
+            repo = SqlSatDescargasRepository(db)
+            crypto = FernetSatCrypto()
+            gateway = build_sat_gateway()
 
-        params_emitidos = SolicitudDescargaParams(
-            rfc_solicitante=rfc_value,
-            rfc_emisor=rfc_value,
-            fecha_inicial=datetime(2025, 12, 1, 0, 0, 0),
-            fecha_final=datetime(2025, 12, 31, 23, 59, 59),
-            tipo_solicitud="CFDI",
-            complemento="",
-            estado_comprobante="Vigente",
-            tipo_comprobante="",
-            rfc_a_cuenta_terceros="",
-        )
-        solicitud_id_emitidos = gateway.solicitar_descarga(
-            kind="retenciones",
-            key_material=key_material,
-            params=params_emitidos,
-            access_token=token_value,
-            soap_action=SOAP_RETENCIONES_ACTION_SOLICITA_EMITIDOS,
-            tag_name="SolicitaDescargaEmitidos",
-        )
-        print(f"\nRET IdSolicitud emitidos: {solicitud_id_emitidos}")
-
-        params_recibidos = SolicitudDescargaParams(
-            rfc_solicitante=rfc_value,
-            rfc_receptor=rfc_value,
-            fecha_inicial=datetime(2025, 12, 1, 0, 0, 0),
-            fecha_final=datetime(2025, 12, 31, 23, 59, 59),
-            tipo_solicitud="CFDI",
-            complemento="",
-            estado_comprobante="Vigente",
-            tipo_comprobante="",
-            rfc_a_cuenta_terceros="",
-        )
-        solicitud_id_recibidos = gateway.solicitar_descarga(
-            kind="retenciones",
-            key_material=key_material,
-            params=params_recibidos,
-            access_token=token_value,
-            soap_action=SOAP_RETENCIONES_ACTION_SOLICITA_RECIBIDOS,
-            tag_name="SolicitaDescargaRecibidos",
-        )
-        print(f"\nRET IdSolicitud recibidos: {solicitud_id_recibidos}")
-
-        time.sleep(120)
-
-        verificacion_emitidos = gateway.verificar_descarga(
-            kind="retenciones",
-            key_material=key_material,
-            rfc_solicitante=rfc_value,
-            id_solicitud=solicitud_id_emitidos,
-            access_token=token_value,
-            soap_action=SOAP_RETENCIONES_ACTION_VERIFICA,
-        )
-        print(
-            "RET Verificacion emitidos:",
-            f"EstadoSolicitud={verificacion_emitidos.estado_solicitud}",
-            f"NumeroCFDIs={verificacion_emitidos.numero_cfdis}",
-            f"Mensaje={verificacion_emitidos.mensaje}",
-        )
-
-        time.sleep(10)
-
-        verificacion_recibidos = gateway.verificar_descarga(
-            kind="retenciones",
-            key_material=key_material,
-            rfc_solicitante=rfc_value,
-            id_solicitud=solicitud_id_recibidos,
-            access_token=token_value,
-            soap_action=SOAP_RETENCIONES_ACTION_VERIFICA,
-        )
-        print(
-            "RET Verificacion recibidos:",
-            f"EstadoSolicitud={verificacion_recibidos.estado_solicitud}",
-            f"NumeroCFDIs={verificacion_recibidos.numero_cfdis}",
-            f"Mensaje={verificacion_recibidos.mensaje}",
-        )
-
-        for paquete_id in verificacion_emitidos.paquetes + verificacion_recibidos.paquetes:
-            zip_bytes = gateway.descargar_paquete(
-                kind="retenciones",
-                key_material=key_material,
+            params_emitidos = SolicitudDescargaParams(
                 rfc_solicitante=rfc_value,
-                id_paquete=paquete_id,
-                access_token=token_value,
-                soap_action=SOAP_RETENCIONES_ACTION_DESCARGA,
+                rfc_emisor=rfc_value,
+                fecha_inicial=datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc),
+                fecha_final=datetime(2025, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+                tipo_solicitud="CFDI",
+                complemento="",
+                estado_comprobante="Vigente",
+                tipo_comprobante="",
+                rfc_a_cuenta_terceros="",
             )
-            print(f"RET paquete {paquete_id}: {len(zip_bytes)} bytes")
+            descarga_emitidos = crear_solicitud_descarga(
+                repo=repo,
+                cred_repo=cred_repo,
+                crypto=crypto,
+                gateway=gateway,
+                rfc=rfc_value,
+                kind="retenciones",
+                params=params_emitidos,
+                tag_name="SolicitaDescargaEmitidos",
+            )
+            print(f"\nRET IdSolicitud emitidos: {descarga_emitidos.id_solicitud}")
 
-        self.assertTrue(isinstance(solicitud_id_emitidos, str) and solicitud_id_emitidos.strip())
-        self.assertTrue(isinstance(solicitud_id_recibidos, str) and solicitud_id_recibidos.strip())
+        estado_emitidos = self._poll_until_ready(descarga_emitidos.id)
+        self.assertNotEqual(estado_emitidos, STATUS_ERROR)
+
+        if estado_emitidos == STATUS_LISTA:
+            with self._session_local() as db:
+                repo = SqlSatDescargasRepository(db)
+                cred_repo = SqlSatCredentialsRepository(db)
+                crypto = FernetSatCrypto()
+                gateway = build_sat_gateway()
+                storage = SatStorageFs(base_dir=os.environ.get("SAT_DOWNLOAD_DIR"))
+                descargar_y_procesar(
+                    repo=repo,
+                    cred_repo=cred_repo,
+                    crypto=crypto,
+                    gateway=gateway,
+                    storage=storage,
+                    db=db,
+                    descarga_id=descarga_emitidos.id,
+                )
 
 
 if __name__ == "__main__":

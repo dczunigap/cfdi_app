@@ -12,7 +12,7 @@ from app.adapters.outbound.db.repositories.sat_credentials import SqlSatCredenti
 from app.adapters.outbound.db.repositories.sat_descargas import SqlSatDescargasRepository
 from app.adapters.outbound.files.sat_storage_fs import SatStorageFs
 from app.adapters.services.sat.crypto.crypto_service import FernetSatCrypto
-from app.adapters.services.sat.sat_gateway import SoapSatGateway
+from app.adapters.services.sat.gateway_factory import build_sat_gateway
 from app.application.sat.descargas_service import crear_solicitud_descarga
 from app.application.sat.dto import SolicitudDescargaParams
 from app.infra.queue.rq_tasks import verificar_descarga_job
@@ -52,7 +52,7 @@ def crear_descarga(
     repo = SqlSatDescargasRepository(db)
     cred_repo = SqlSatCredentialsRepository(db)
     crypto = FernetSatCrypto()
-    gateway = SoapSatGateway()
+    gateway = build_sat_gateway()
 
     params = SolicitudDescargaParams(
         rfc_solicitante=rfc_value,

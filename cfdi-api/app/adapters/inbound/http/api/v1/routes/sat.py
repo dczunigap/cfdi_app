@@ -7,7 +7,7 @@ from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_use
 from app.adapters.inbound.http.api.v1.schemas.sat import SatAuthRequest, SatCredentialResponse
 from app.adapters.outbound.db.repositories.sat_credentials import SqlSatCredentialsRepository
 from app.adapters.services.sat.crypto.crypto_service import FernetSatCrypto
-from app.adapters.services.sat.sat_gateway import SoapSatGateway
+from app.adapters.services.sat.gateway_factory import build_sat_gateway
 from app.application.sat.use_cases import (
     authenticate,
     delete_credentials,
@@ -66,7 +66,7 @@ async def upsert_credentials_route(
 
     repo = SqlSatCredentialsRepository(db)
     crypto = FernetSatCrypto()
-    gateway = SoapSatGateway()
+    gateway = build_sat_gateway()
     try:
         upsert_sat_credentials(
             repo=repo,
@@ -108,7 +108,7 @@ def sat_auth(
 
     repo = SqlSatCredentialsRepository(db)
     crypto = FernetSatCrypto()
-    gateway = SoapSatGateway()
+    gateway = build_sat_gateway()
     try:
         token = authenticate(
             repo=repo,

@@ -14,6 +14,7 @@ Backend Python (FastAPI) con arquitectura hexagonal ligera.
 - `CFDI_TIMEOUT_SAT_SECONDS`
 - `SAT_DOWNLOAD_DIR` (ruta local para ZIPs, default `C:\cfdi\xml`)
 - `REDIS_URL` (RQ broker, default `redis://localhost:6379/0`)
+- `SAT_GATEWAY_MODE` (`soap` o `mock`, default `soap`)
 
 Tip: usa `cfdi-api/.env.example` como plantilla y ajusta `SAT_ENV` si quieres alternar UAT/PROD sin tocar código.
 Nota: los endpoints SAT se toman exclusivamente de `SAT_ENDPOINTS`; no hay overrides por URL.
@@ -44,14 +45,14 @@ python -c "from app.core.config import settings; print(settings.sat_cfdi_auth_ur
 ## Pruebas (pytest)
 ```
 $env:PYTHONPATH = (Get-Location).Path
-python -m pytest -q
+python -m pytest -q --basetemp .tmp
 ```
 
 Integracion SAT:
 ```
 $env:PYTHONPATH = (Get-Location).Path
 $env:RUN_SAT_INTEGRATION = "1"
-python -m pytest -q
+python -m pytest -q --basetemp .tmp
 ```
 
 ## RQ (jobs SAT)
@@ -63,6 +64,15 @@ rq worker --url redis://localhost:6379/0
 Flujo:
 - `POST /api/v1/sat/descargas` crea solicitud y hace verificacion inicial.
 - RQ reintenta verificacion y dispara descarga cuando esta LISTA.
+
+## Modo mock (sin SAT real)
+```
+$env:SAT_GATEWAY_MODE = "mock"
+$env:PYTHONPATH = (Get-Location).Path
+$env:RUN_SAT_INTEGRATION = "1"
+python -m pytest -q --basetemp .tmp tests/integration/test_sat_solicitud.py
+```
+Esto usa un gateway fake que devuelve ZIPs con XML de ejemplo.
 
 ## Estructura
 - `app/domain`: entidades y reglas puras
