@@ -156,7 +156,7 @@ class TestSatSolicitudIntegration(unittest.TestCase):
                 cred_repo = SqlSatCredentialsRepository(db)
                 crypto = FernetSatCrypto()
                 gateway = build_sat_gateway()
-                storage = SatStorageFs(base_dir=os.environ.get("SAT_DOWNLOAD_DIR"))
+                storage = None
                 descargar_y_procesar(
                     repo=repo,
                     cred_repo=cred_repo,
@@ -211,7 +211,7 @@ class TestSatSolicitudIntegration(unittest.TestCase):
                 cred_repo = SqlSatCredentialsRepository(db)
                 crypto = FernetSatCrypto()
                 gateway = build_sat_gateway()
-                storage = SatStorageFs(base_dir=os.environ.get("SAT_DOWNLOAD_DIR"))
+                storage = None
                 descargar_y_procesar(
                     repo=repo,
                     cred_repo=cred_repo,

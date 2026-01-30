@@ -114,3 +114,47 @@ def test_create_descarga_forbidden_without_permission(monkeypatch) -> None:
     )
 
     assert res.status_code == 403
+
+
+def test_verify_descarga_manual(monkeypatch) -> None:
+    client = _build_client()
+
+    fake = SatDescarga(
+        id=1,
+        rfc="AAA010101AAA",
+        kind="cfdi",
+        tipo_solicitud="emitidos",
+        anio_filtro=2024,
+        mes_filtro=1,
+        id_solicitud="SAT-123",
+        estado="LISTA",
+        paquetes=["pkg1"],
+        link_descarga="/api/v1/sat/descargas/1/zip",
+        zip_path=None,
+        attempts=1,
+        next_check_at=None,
+        last_error=None,
+        created_at=datetime.now(timezone.utc),
+        updated_at=None,
+    )
+
+    from app.adapters.inbound.http.api.v1.routes import sat_descargas as routes
+
+    class _Repo:
+        def get_by_id(self, _id):
+            return fake
+
+    monkeypatch.setattr(routes, "SqlSatDescargasRepository", lambda db: _Repo())
+    monkeypatch.setattr(routes, "SqlSatCredentialsRepository", lambda db: object())
+    monkeypatch.setattr(routes, "build_sat_gateway", lambda: object())
+    monkeypatch.setattr(routes, "FernetSatCrypto", lambda: object())
+    monkeypatch.setattr(routes, "verificar_descarga", lambda **kwargs: fake)
+
+    res = client.post(
+        "/api/v1/sat/descargas/1/verify",
+        headers={"X-RFC": "AAA010101AAA"},
+    )
+
+    assert res.status_code == 200
+    body = res.json()
+    assert body["estado"] == "LISTA"

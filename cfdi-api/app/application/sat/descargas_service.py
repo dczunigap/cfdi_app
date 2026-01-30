@@ -12,6 +12,7 @@ from app.adapters.outbound.db.models import ConceptoModel, FacturaModel, PagoMod
 from app.adapters.outbound.db.repositories.facturas import SqlFacturaRepository
 from app.adapters.outbound.db.repositories.platform_rfcs import SqlPlatformRfcRepository
 from app.adapters.outbound.db.repositories.retenciones import SqlRetencionRepository
+from app.adapters.outbound.files.storage_factory import build_storage
 from app.adapters.services.parsers.xml_parser import LocalXmlParser
 from app.application.imports.facturas import (
     create_factura_from_parsed,
@@ -120,7 +121,7 @@ def descargar_y_procesar(
     cred_repo: SatCredentialsRepository,
     crypto: SatCrypto,
     gateway: SatGateway,
-    storage: SatStorage,
+    storage: SatStorage | None,
     db: Session,
     descarga_id: int,
     soap_action: str | None = None,
@@ -134,6 +135,7 @@ def descargar_y_procesar(
     repo.update(descarga.id, estado=STATUS_DESCARGANDO)
 
     key_material, token = _authenticate(cred_repo, crypto, gateway, descarga.rfc, descarga.kind)
+    storage = storage or build_storage()
     last_zip_path: str | None = None
 
     for id_paquete in descarga.paquetes:

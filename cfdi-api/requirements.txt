@@ -9,3 +9,4 @@ cryptography
 lxml
 redis
 rq
+minio

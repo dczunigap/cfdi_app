@@ -11,6 +11,7 @@ DEFAULT_AUTH_TTL_MINUTES = os.getenv("CFDI_AUTH_TTL_MINUTES") or 2880  # 2 days
 DEFAULT_AUTH_PASSWORD_ITERATIONS = os.getenv("CFDI_AUTH_PASSWORD_ITERATIONS") or 390000 # Sube a 300k–600k en prod).
 DEFAULT_TIMEOUT_SAT_SECONDS = os.getenv("CFDI_TIMEOUT_SAT_SECONDS") or 200
 DEFAULT_SAT_DOWNLOAD_DIR = os.getenv("SAT_DOWNLOAD_DIR") or r"C:\cfdi\xml"
+DEFAULT_SAT_AUTOVERIFY = os.getenv("SAT_AUTOVERIFY", "1").strip().lower() in {"1", "true", "yes", "y"}
 
 SAT_ENV = os.getenv("SAT_ENV", "uat").lower()
 if SAT_ENV not in {"uat", "prod"}:
@@ -74,6 +75,7 @@ class Settings(BaseSettings):
     )
     sat_timeout_seconds: int = DEFAULT_TIMEOUT_SAT_SECONDS
     sat_download_dir: str = DEFAULT_SAT_DOWNLOAD_DIR
+    sat_autoverify: bool = DEFAULT_SAT_AUTOVERIFY
     sat_soap_action_descarga: str = (
         "http://DescargaMasivaTerceros.sat.gob.mx/IDescargaMasivaTercerosService/Descargar"
     )
