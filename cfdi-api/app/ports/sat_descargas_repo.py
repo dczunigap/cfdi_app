@@ -1,0 +1,35 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Protocol
+
+from app.domain.sat.entities import SatDescarga
+
+
+class SatDescargasRepository(Protocol):
+    def create(
+        self,
+        rfc: str,
+        kind: str,
+        tipo_solicitud: str,
+        anio_filtro: int | None,
+        mes_filtro: int | None,
+        id_solicitud: str | None,
+        estado: str,
+        paquetes: list[str],
+        link_descarga: str | None,
+        zip_path: str | None,
+        attempts: int,
+        next_check_at: datetime | None,
+        last_error: str | None,
+    ) -> SatDescarga:
+        ...
+
+    def get_by_id(self, descarga_id: int) -> SatDescarga | None:
+        ...
+
+    def update(self, descarga_id: int, **fields) -> SatDescarga | None:
+        ...
+
+    def list_pending(self, now: datetime) -> list[SatDescarga]:
+        ...

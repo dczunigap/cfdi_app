@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.adapters.outbound.db.session import Base
@@ -137,6 +137,31 @@ class SatCredentialModel(Base):
     rfc: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=False)
     pfx_encrypted: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     pfx_password_encrypted: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class SatDescargaModel(Base):
+    __tablename__ = "sat_descargas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rfc: Mapped[str] = mapped_column(String(20), index=True, nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    tipo_solicitud: Mapped[str] = mapped_column(String(20), nullable=False)
+    anio_filtro: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
+    mes_filtro: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
+    id_solicitud: Mapped[str | None] = mapped_column(String(80), index=True, nullable=True)
+    estado: Mapped[str] = mapped_column(String(30), index=True, nullable=False)
+    paquetes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    link_descarga: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    zip_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_check_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
