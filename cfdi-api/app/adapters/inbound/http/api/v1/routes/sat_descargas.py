@@ -13,11 +13,9 @@ from app.adapters.outbound.db.repositories.sat_descargas import SqlSatDescargasR
 from app.adapters.outbound.files.sat_storage_fs import SatStorageFs
 from app.adapters.services.sat.crypto.crypto_service import FernetSatCrypto
 from app.adapters.services.sat.sat_gateway import SoapSatGateway
-from app.application.sat.descargas_service import (
-    crear_solicitud_descarga,
-    descargar_y_procesar,
-)
+from app.application.sat.descargas_service import crear_solicitud_descarga
 from app.application.sat.dto import SolicitudDescargaParams
+from app.infra.queue.rq_tasks import verificar_descarga_job
 
 router = APIRouter(prefix="/sat/descargas", tags=["sat-descargas"], dependencies=[Depends(require_user)])
 
@@ -82,6 +80,7 @@ def crear_descarga(
             kind=payload.kind,
             params=params,
         )
+        verificar_descarga_job(descarga.id, schedule_next=False)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _to_response(descarga)

@@ -7,3 +7,5 @@ pypdf
 python-multipart
 cryptography
 lxml
+redis
+rq
