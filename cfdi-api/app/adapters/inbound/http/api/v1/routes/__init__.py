@@ -8,6 +8,7 @@ from .reportes import router as reportes_router
 from .platform_rfcs import router as platform_rfcs_router
 from .rfc_phones import router as rfc_phones_router
 from .sat import router as sat_router
+from .sat_descargas import router as sat_descargas_router
 from .auth import router as auth_router
 from .users import router as users_router
 
@@ -21,5 +22,6 @@ api_router.include_router(reportes_router)
 api_router.include_router(platform_rfcs_router)
 api_router.include_router(rfc_phones_router)
 api_router.include_router(sat_router)
+api_router.include_router(sat_descargas_router)
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
