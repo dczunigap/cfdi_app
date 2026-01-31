@@ -98,6 +98,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'sat-descargas',
+        loadComponent: () =>
+          import('./features/sat-descargas/ui/sat-descargas-page.component').then(
+            (m) => m.SatDescargasPageComponent,
+          ),
+      },
+      {
         path: 'declaraciones',
         loadComponent: () =>
           import('./features/declaraciones/ui/declaraciones-page.component').then(

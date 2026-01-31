@@ -33,3 +33,12 @@ class SatDescargasRepository(Protocol):
 
     def list_pending(self, now: datetime) -> list[SatDescarga]:
         ...
+
+    def list_by_rfc(
+        self,
+        rfc: str,
+        estado: str | None,
+        limit: int,
+        offset: int,
+    ) -> list[SatDescarga]:
+        ...

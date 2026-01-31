@@ -78,6 +78,27 @@ class SqlSatDescargasRepository(SatDescargasRepository):
         )
         return [self._to_entity(row) for row in rows]
 
+    def list_by_rfc(
+        self,
+        rfc: str,
+        estado: str | None,
+        limit: int,
+        offset: int,
+    ) -> list[SatDescarga]:
+        query = select(SatDescargaModel).where(SatDescargaModel.rfc == rfc)
+        if estado:
+            query = query.where(SatDescargaModel.estado == estado)
+        rows = (
+            self._db.execute(
+                query.order_by(SatDescargaModel.created_at.desc(), SatDescargaModel.id.desc())
+                .offset(offset)
+                .limit(limit)
+            )
+            .scalars()
+            .all()
+        )
+        return [self._to_entity(row) for row in rows]
+
     @staticmethod
     def _to_entity(model: SatDescargaModel) -> SatDescarga:
         return SatDescarga(

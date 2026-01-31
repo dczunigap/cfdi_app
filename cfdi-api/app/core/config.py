@@ -1,9 +1,16 @@
 import logging
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 from pydantic_settings import BaseSettings
 
 logger = logging.getLogger(__name__)
+
+_env_path = Path(__file__).resolve().parents[2] / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path)
 
 DEFAULT_SAT_PASSWORD_SECRET = os.getenv("SAT_PASSWORD_SECRET") or "CjtwIZ6dGe5cwHgrLpW-YowE56KQYd9Uc9onVAO3WCw="
 DEFAULT_AUTH_SECRET = os.getenv("CFDI_AUTH_SECRET") or "LaNT9KXAyIgtfHg61SdXK28os1ey1z0nKVkeqvxBXWXD0dOCdgraVq9tgEGOIUS3"

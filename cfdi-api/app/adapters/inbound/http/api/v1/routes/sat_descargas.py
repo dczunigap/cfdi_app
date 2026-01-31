@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
@@ -14,7 +14,12 @@ from app.adapters.outbound.db.repositories.user_rfcs import SqlUserRfcsRepositor
 from app.adapters.outbound.files.storage_factory import build_storage
 from app.adapters.services.sat.crypto.crypto_service import FernetSatCrypto
 from app.adapters.services.sat.gateway_factory import build_sat_gateway
-from app.application.sat.descargas_service import crear_solicitud_descarga, verificar_descarga
+from app.application.sat.descargas_service import (
+    STATUS_LISTA,
+    crear_solicitud_descarga,
+    descargar_y_procesar,
+    verificar_descarga,
+)
 from app.application.sat.dto import SolicitudDescargaParams
 from app.core.config import settings
 
@@ -97,6 +102,25 @@ def crear_descarga(
     return _to_response(descarga)
 
 
+@router.get("", response_model=list[SatDescargaResponse])
+def list_descargas(
+    estado: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    x_rfc: str = Depends(get_required_rfc),
+    user=Depends(require_user),
+    db: Session = Depends(get_db),
+) -> list[SatDescargaResponse]:
+    rfc_value = (x_rfc or "").strip().upper()
+    rfc_repo = SqlUserRfcsRepository(db)
+    if not rfc_repo.is_allowed(user.id, rfc_value):
+        raise HTTPException(status_code=403, detail="RFC no autorizado para el usuario.")
+
+    repo = SqlSatDescargasRepository(db)
+    rows = repo.list_by_rfc(rfc_value, estado, limit, offset)
+    return [_to_response(row) for row in rows]
+
+
 @router.get("/{descarga_id}", response_model=SatDescargaResponse)
 def get_descarga(
     descarga_id: int,
@@ -170,3 +194,49 @@ def download_zip(
         media_type="application/zip",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+
+@router.post("/{descarga_id}/process", response_model=SatDescargaResponse)
+def process_descarga(
+    descarga_id: int,
+    x_rfc: str = Depends(get_required_rfc),
+    user=Depends(require_user),
+    db: Session = Depends(get_db),
+) -> SatDescargaResponse:
+    repo = SqlSatDescargasRepository(db)
+    rfc_repo = SqlUserRfcsRepository(db)
+    descarga = repo.get_by_id(descarga_id)
+    if not descarga:
+        raise HTTPException(status_code=404, detail="Descarga no encontrada.")
+    if descarga.rfc != (x_rfc or "").strip().upper():
+        raise HTTPException(status_code=403, detail="RFC no autorizado.")
+    if not rfc_repo.is_allowed(user.id, descarga.rfc):
+        raise HTTPException(status_code=403, detail="RFC no autorizado para el usuario.")
+
+    cred_repo = SqlSatCredentialsRepository(db)
+    crypto = FernetSatCrypto()
+    gateway = build_sat_gateway()
+    storage = build_storage()
+
+    updated = verificar_descarga(
+        repo=repo,
+        cred_repo=cred_repo,
+        crypto=crypto,
+        gateway=gateway,
+        descarga_id=descarga_id,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Descarga no encontrada.")
+
+    if updated.estado == STATUS_LISTA:
+        updated = descargar_y_procesar(
+            repo=repo,
+            cred_repo=cred_repo,
+            crypto=crypto,
+            gateway=gateway,
+            storage=storage,
+            db=db,
+            descarga_id=descarga_id,
+        ) or updated
+
+    return _to_response(updated)

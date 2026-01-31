@@ -153,6 +153,23 @@
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
+          routerLink="/sat-descargas"
+          (click)="onNavClick($event)"
+          routerLinkActive="bg-primary/10 text-primary"
+          [class.justify-center]="sidebarCollapsed()"
+          [class.px-2]="sidebarCollapsed()"
+          [class.px-4]="!sidebarCollapsed()"
+          [attr.title]="sidebarCollapsed() ? 'Descargas SAT' : null"
+          >
+          @if (!sidebarCollapsed()) {
+            <span>Descargas SAT</span>
+          }
+          @if (sidebarCollapsed()) {
+            <span class="text-xs uppercase tracking-[0.2em]">Zip</span>
+          }
+        </a>
+        <a
+          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
           routerLink="/declaraciones"
           (click)="onNavClick($event)"
           routerLinkActive="bg-primary/10 text-primary"

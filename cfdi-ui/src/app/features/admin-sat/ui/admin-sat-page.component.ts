@@ -8,6 +8,10 @@ import { SatCredentialsRepository } from '../data/sat-credentials.repository';
 import { satCredentials$ } from '../data/sat-credentials.queries';
 import { RfcPhonesRepository } from '../data/rfc-phones.repository';
 import { rfcPhones$ } from '../data/rfc-phones.queries';
+import { UserRfcsRepository } from '../data/user-rfcs.repository';
+import { userRfcs$ } from '../data/user-rfcs.queries';
+import { AdminUsersRepository } from '../data/users.repository';
+import { adminUsers$ } from '../data/users.queries';
 import { RfcService } from '../../../core/rfc/rfc.service';
 
 type UploadMode = 'pfx' | 'cerkey';
@@ -23,10 +27,14 @@ type UploadMode = 'pfx' | 'cerkey';
 export class AdminSatPageComponent implements OnInit {
   private readonly repo = inject(SatCredentialsRepository);
   private readonly rfcPhonesRepo = inject(RfcPhonesRepository);
+  private readonly userRfcsRepo = inject(UserRfcsRepository);
+  private readonly usersRepo = inject(AdminUsersRepository);
   private readonly rfcService = inject(RfcService);
 
   readonly credentials$ = satCredentials$;
   readonly rfcPhones$ = rfcPhones$;
+  readonly userRfcs$ = userRfcs$;
+  readonly users$ = adminUsers$;
 
   mode: UploadMode = 'pfx';
   rfc = '';
@@ -48,9 +56,16 @@ export class AdminSatPageComponent implements OnInit {
   editingPhone = '';
   editingRfc = '';
 
+  selectedUserId: number | null = null;
+  userRfc = '';
+  userRfcError: string | null = null;
+  userRfcSaving = false;
+  deletingUserRfcKey: string | null = null;
+
   ngOnInit(): void {
     this.repo.fetch();
     this.rfcPhonesRepo.fetch();
+    this.usersRepo.fetch().subscribe();
   }
 
   onFileChange(event: Event, kind: 'pfx' | 'cert' | 'key') {
@@ -246,6 +261,61 @@ export class AdminSatPageComponent implements OnInit {
       error: () => {
         this.phoneSaving = false;
         this.phoneError = 'No se pudo guardar el telefono.';
+      },
+    });
+  }
+
+  onUserChange(value: string) {
+    const userId = Number(value);
+    if (!userId || Number.isNaN(userId)) {
+      this.selectedUserId = null;
+      this.userRfcsRepo.clear();
+      return;
+    }
+    this.selectedUserId = userId;
+    this.userRfcsRepo.fetch(userId).subscribe();
+  }
+
+  addUserRfc(): void {
+    if (!this.selectedUserId) {
+      this.userRfcError = 'Selecciona un usuario.';
+      return;
+    }
+    const rfcValue = this.userRfc.trim().toUpperCase();
+    if (!rfcValue) {
+      this.userRfcError = 'RFC requerido.';
+      return;
+    }
+    if (!this.isValidRfc(rfcValue)) {
+      this.userRfcError = 'RFC invalido.';
+      return;
+    }
+    this.userRfcError = null;
+    this.userRfcSaving = true;
+    this.userRfcsRepo.add(this.selectedUserId, rfcValue).subscribe({
+      next: () => {
+        this.userRfcSaving = false;
+        this.userRfc = '';
+      },
+      error: () => {
+        this.userRfcSaving = false;
+        this.userRfcError = 'No se pudo asociar el RFC.';
+      },
+    });
+  }
+
+  removeUserRfc(rfc: string): void {
+    if (!this.selectedUserId) return;
+    if (!confirm(`Eliminar RFC ${rfc} del usuario?`)) return;
+    const key = `${this.selectedUserId}:${rfc}`;
+    this.deletingUserRfcKey = key;
+    this.userRfcsRepo.remove(this.selectedUserId, rfc).subscribe({
+      next: () => {
+        this.deletingUserRfcKey = null;
+      },
+      error: () => {
+        this.deletingUserRfcKey = null;
+        this.userRfcError = 'No se pudo eliminar el RFC.';
       },
     });
   }
