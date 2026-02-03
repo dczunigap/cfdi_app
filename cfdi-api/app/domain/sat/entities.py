@@ -23,11 +23,12 @@ class SatDescarga:
     mes_filtro: int | None
     id_solicitud: str | None
     estado: str
+    codigo_estado: str | None
+    mensaje_estado: str | None
     paquetes: list[str]
     link_descarga: str | None
     zip_path: str | None
     attempts: int
     next_check_at: datetime | None
-    last_error: str | None
     created_at: datetime
     updated_at: datetime | None

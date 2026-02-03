@@ -30,7 +30,10 @@ class SqlRetencionRepository(RetencionRepository):
         )
         rfc_value = (rfc or "").strip().upper()
         if rfc_value:
-            q = q.where(RetencionModel.emisor_rfc == rfc_value)
+            q = q.where(
+                (RetencionModel.emisor_rfc == rfc_value)
+                | (RetencionModel.receptor_rfc == rfc_value)
+            )
         rows = self._db.execute(q).scalars().all()
         return [retencion_to_list_item(r) for r in rows]
 

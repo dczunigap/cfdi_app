@@ -5,7 +5,12 @@ import zipfile
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from app.application.sat.dto import SolicitudDescargaParams, VerificacionResult
+from app.application.sat.dto import (
+    DescargaPaqueteResult,
+    SolicitudDescargaParams,
+    SolicitudDescargaResult,
+    VerificacionResult,
+)
 from app.ports.sat_gateway import SatGateway
 
 
@@ -31,8 +36,12 @@ class MockSatGateway(SatGateway):
         access_token: str,
         soap_action: str | None = None,
         tag_name: str = "SolicitaDescargaEmitidos",
-    ) -> str:
-        return f"mock-solicitud-{uuid4()}"
+    ) -> SolicitudDescargaResult:
+        return SolicitudDescargaResult(
+            id_solicitud=f"mock-solicitud-{uuid4()}",
+            codigo_estado="5000",
+            mensaje="Mock ok",
+        )
 
     def verificar_descarga(
         self,
@@ -59,7 +68,7 @@ class MockSatGateway(SatGateway):
         id_paquete: str,
         access_token: str,
         soap_action: str | None = None,
-    ) -> bytes:
+    ) -> DescargaPaqueteResult:
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
         if kind == "retenciones":
             xml = _retenciones_xml(now)
@@ -69,7 +78,11 @@ class MockSatGateway(SatGateway):
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             zf.writestr("mock.xml", xml)
-        return buffer.getvalue()
+        return DescargaPaqueteResult(
+            zip_bytes=buffer.getvalue(),
+            codigo_estado=None,
+            mensaje=None,
+        )
 
 
 def _cfdi_xml(now: str) -> str:

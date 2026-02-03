@@ -55,11 +55,17 @@ export class SatDescargasPageComponent implements OnInit {
   fechaInicial = this.toDateInput(this.firstDayOfMonth());
   fechaFinal = this.toDateInput(new Date());
 
+  rfcEmisor = '';
+  rfcReceptor = '';
+  uuid = '';
+  rfcReceptores = '';
+
   lookupId = '';
   loading = false;
   loadingList = false;
   verifyingId: number | null = null;
   processingId: number | null = null;
+  deletingId: number | null = null;
   formError: string | null = null;
   lookupError: string | null = null;
   estadoFiltro: EstadoFiltro = 'TODOS';
@@ -88,11 +94,23 @@ export class SatDescargasPageComponent implements OnInit {
       return;
     }
 
+    const selectedRfc = this.selectedRfc();
     const payload: SatDescargaCreatePayload = {
       kind: this.kind,
       tipo_solicitud: this.tipoSolicitud,
       fecha_inicial: start,
-      fecha_final: end
+      fecha_final: end,
+      estado_comprobante: 'Vigente',
+      rfc_emisor:
+        this.tipoSolicitud === 'emitidos'
+          ? this.normalizeRfc(this.rfcEmisor) || selectedRfc
+          : this.normalizeRfc(this.rfcEmisor),
+      rfc_receptor:
+        this.tipoSolicitud === 'recibidos'
+          ? this.normalizeRfc(this.rfcReceptor) || selectedRfc
+          : this.normalizeRfc(this.rfcReceptor),
+      uuid: this.uuid.trim() || null,
+      rfc_receptores: this.parseRfcList(this.rfcReceptores),
     };
 
     this.formError = null;
@@ -170,6 +188,19 @@ export class SatDescargasPageComponent implements OnInit {
       },
       error: () => {
         this.processingId = null;
+      },
+    });
+  }
+
+  delete(id: number): void {
+    if (!confirm('Eliminar solicitud?')) return;
+    this.deletingId = id;
+    this.repo.delete(id).subscribe({
+      next: () => {
+        this.deletingId = null;
+      },
+      error: () => {
+        this.deletingId = null;
       },
     });
   }

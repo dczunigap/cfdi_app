@@ -23,12 +23,13 @@ class SqlSatDescargasRepository(SatDescargasRepository):
         mes_filtro: int | None,
         id_solicitud: str | None,
         estado: str,
+        codigo_estado: str | None,
+        mensaje_estado: str | None,
         paquetes: list[str],
         link_descarga: str | None,
         zip_path: str | None,
         attempts: int,
         next_check_at: datetime | None,
-        last_error: str | None,
     ) -> SatDescarga:
         row = SatDescargaModel(
             rfc=rfc,
@@ -38,12 +39,13 @@ class SqlSatDescargasRepository(SatDescargasRepository):
             mes_filtro=mes_filtro,
             id_solicitud=id_solicitud,
             estado=estado,
+            codigo_estado=codigo_estado,
+            mensaje_estado=mensaje_estado,
             paquetes=paquetes,
             link_descarga=link_descarga,
             zip_path=zip_path,
             attempts=attempts,
             next_check_at=next_check_at,
-            last_error=last_error,
         )
         self._db.add(row)
         self._db.commit()
@@ -99,6 +101,13 @@ class SqlSatDescargasRepository(SatDescargasRepository):
         )
         return [self._to_entity(row) for row in rows]
 
+    def delete(self, descarga_id: int) -> None:
+        row = self._db.get(SatDescargaModel, descarga_id)
+        if not row:
+            return
+        self._db.delete(row)
+        self._db.commit()
+
     @staticmethod
     def _to_entity(model: SatDescargaModel) -> SatDescarga:
         return SatDescarga(
@@ -110,12 +119,13 @@ class SqlSatDescargasRepository(SatDescargasRepository):
             mes_filtro=model.mes_filtro,
             id_solicitud=model.id_solicitud,
             estado=model.estado,
+            codigo_estado=model.codigo_estado,
+            mensaje_estado=model.mensaje_estado,
             paquetes=list(model.paquetes or []),
             link_descarga=model.link_descarga,
             zip_path=model.zip_path,
             attempts=int(model.attempts or 0),
             next_check_at=model.next_check_at,
-            last_error=model.last_error,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )

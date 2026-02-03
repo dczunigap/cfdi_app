@@ -4,7 +4,12 @@ from typing import Protocol
 
 from typing import Any
 
-from app.application.sat.dto import SolicitudDescargaParams, VerificacionResult
+from app.application.sat.dto import (
+    DescargaPaqueteResult,
+    SolicitudDescargaParams,
+    SolicitudDescargaResult,
+    VerificacionResult,
+)
 
 
 class SatGateway(Protocol):
@@ -29,7 +34,7 @@ class SatGateway(Protocol):
         access_token: str,
         soap_action: str | None = None,
         tag_name: str = "SolicitaDescargaEmitidos",
-    ) -> str:
+    ) -> SolicitudDescargaResult:
         ...
 
     def verificar_descarga(
@@ -51,5 +56,5 @@ class SatGateway(Protocol):
         id_paquete: str,
         access_token: str,
         soap_action: str | None = None,
-    ) -> bytes:
+    ) -> DescargaPaqueteResult:
         ...

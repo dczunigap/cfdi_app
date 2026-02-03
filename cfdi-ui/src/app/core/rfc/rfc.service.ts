@@ -48,6 +48,8 @@ export class RfcService {
         this.options.set(merged);
         if (selected) {
           this.selected.set(selected);
+        } else if (merged.length > 0) {
+          this.setSelected(merged[0]);
         }
       },
       error: () => {

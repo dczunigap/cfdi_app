@@ -9,6 +9,7 @@ class SolicitudDescargaParams:
     rfc_solicitante: str
     fecha_inicial: datetime
     fecha_final: datetime
+    kind: str
     tipo_solicitud: str
     rfc_emisor: str | None = None
     rfc_receptor: str | None = None
@@ -22,9 +23,23 @@ class SolicitudDescargaParams:
 
 
 @dataclass
+class SolicitudDescargaResult:
+    id_solicitud: str | None
+    codigo_estado: str | None
+    mensaje: str | None
+
+
+@dataclass
 class VerificacionResult:
     estado_solicitud: str | None
     codigo_estado: str | None
     numero_cfdis: str | None
     mensaje: str | None
     paquetes: list[str]
+
+
+@dataclass
+class DescargaPaqueteResult:
+    zip_bytes: bytes | None
+    codigo_estado: str | None
+    mensaje: str | None

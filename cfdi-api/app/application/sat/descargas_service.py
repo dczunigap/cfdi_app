@@ -50,7 +50,7 @@ def crear_solicitud_descarga(
     tag_name: str = "SolicitaDescargaEmitidos",
 ) -> SatDescarga:
     key_material, token = _authenticate(cred_repo, crypto, gateway, rfc, kind)
-    id_solicitud = gateway.solicitar_descarga(
+    solicitud = gateway.solicitar_descarga(
         kind=kind,
         key_material=key_material,
         params=params,
@@ -58,6 +58,8 @@ def crear_solicitud_descarga(
         soap_action=soap_action,
         tag_name=tag_name,
     )
+    if not solicitud.id_solicitud:
+        raise ValueError(solicitud.mensaje or "Respuesta sin IdSolicitud.")
     now = datetime.now(timezone.utc)
     return repo.create(
         rfc=rfc,
@@ -65,14 +67,15 @@ def crear_solicitud_descarga(
         tipo_solicitud=params.tipo_solicitud,
         anio_filtro=params.fecha_inicial.year if params.fecha_inicial else None,
         mes_filtro=params.fecha_inicial.month if params.fecha_inicial else None,
-        id_solicitud=id_solicitud,
+        id_solicitud=solicitud.id_solicitud,
         estado=STATUS_SOLICITADA,
+        codigo_estado=solicitud.codigo_estado,
+        mensaje_estado=solicitud.mensaje,
         paquetes=[],
         link_descarga=None,
         zip_path=None,
         attempts=0,
         next_check_at=now,
-        last_error=None,
     )
 
 
@@ -111,8 +114,9 @@ def verificar_descarga(
         paquetes=result.paquetes or [],
         attempts=attempts,
         next_check_at=next_check_at,
-        last_error=None,
         link_descarga=link_descarga,
+        codigo_estado=result.codigo_estado,
+        mensaje_estado=result.mensaje,
     )
 
 
@@ -139,7 +143,7 @@ def descargar_y_procesar(
     last_zip_path: str | None = None
 
     for id_paquete in descarga.paquetes:
-        zip_bytes = gateway.descargar_paquete(
+        descarga_result = gateway.descargar_paquete(
             kind=descarga.kind,
             key_material=key_material,
             rfc_solicitante=descarga.rfc,
@@ -147,14 +151,20 @@ def descargar_y_procesar(
             access_token=token,
             soap_action=soap_action,
         )
-        last_zip_path = storage.save_zip(descarga.rfc, id_paquete, zip_bytes)
-        _process_zip_xml(db, zip_bytes)
+        if not descarga_result.zip_bytes:
+            return repo.update(
+                descarga.id,
+                estado=STATUS_ERROR,
+                codigo_estado=descarga_result.codigo_estado,
+                mensaje_estado=descarga_result.mensaje,
+            )
+        last_zip_path = storage.save_zip(descarga.rfc, id_paquete, descarga_result.zip_bytes)
+        _process_zip_xml(db, descarga_result.zip_bytes)
 
     return repo.update(
         descarga.id,
         estado=STATUS_COMPLETADA,
         zip_path=last_zip_path if len(descarga.paquetes) == 1 else descarga.zip_path,
-        last_error=None,
     )
 
 

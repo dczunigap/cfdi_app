@@ -136,6 +136,7 @@
         <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
           <tr>
             <th class="px-5 py-3">ID</th>
+            <th class="px-5 py-3">ID Solicitud</th>
             <th class="px-5 py-3">Estado</th>
             <th class="px-5 py-3">Tipo</th>
             <th class="px-5 py-3">Paquetes</th>
@@ -148,6 +149,7 @@
             @for (row of rows; track row) {
               <tr>
                 <td class="px-5 py-4 font-medium text-text">{{ row.id }}</td>
+                <td class="px-5 py-4 text-muted">{{ row.id_solicitud || '-' }}</td>
                 <td class="px-5 py-4">
                   <span class="rounded-full border border-border bg-bg px-3 py-1 text-xs text-muted">
                     {{ row.estado }}
@@ -175,6 +177,14 @@
                       [disabled]="processingId === row.id"
                     >
                       {{ processingId === row.id ? 'Procesando...' : 'Procesar ZIP' }}
+                    </button>
+                    <button
+                      class="btn btn-xs rounded-lg border border-border bg-rose-50 text-rose-700 hover:bg-rose-100"
+                      type="button"
+                      (click)="delete(row.id)"
+                      [disabled]="deletingId === row.id"
+                    >
+                      {{ deletingId === row.id ? 'Eliminando...' : 'Eliminar' }}
                     </button>
                   </div>
                 </td>

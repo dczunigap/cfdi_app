@@ -20,7 +20,7 @@ export class FacturasRepository {
     if (params?.naturaleza) httpParams = httpParams.set('naturaleza', params.naturaleza);
 
     return this.http
-      .get<FacturaListItem[]>(`${API_BASE_URL}/facturas`, { params: httpParams })
+      .get<FacturaListItem[]>(`${API_BASE_URL}/facturas/`, { params: httpParams })
       .subscribe((items) => {
         const normalized: FacturaListItem[] = items.filter(
           (item): item is FacturaListItem => typeof item.id === 'number'

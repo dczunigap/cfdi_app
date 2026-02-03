@@ -29,11 +29,12 @@ class SatDescargaResponse(BaseModel):
     mes_filtro: int | None = None
     id_solicitud: str | None = None
     estado: str
+    codigo_estado: str | None = None
+    mensaje_estado: str | None = None
     paquetes: list[str] = Field(default_factory=list)
     link_descarga: str | None = None
     zip_path: str | None = None
     attempts: int
     next_check_at: datetime | None = None
-    last_error: str | None = None
     created_at: datetime
     updated_at: datetime | None = None

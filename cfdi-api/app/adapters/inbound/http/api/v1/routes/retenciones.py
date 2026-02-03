@@ -62,7 +62,7 @@ def detalle_retencion(
     result = use_case.execute(GetRetencionDetailInput(retencion_id=retencion_id))
     if result is None:
         raise HTTPException(status_code=404, detail="Retencion no encontrada")
-    if result.emisor_rfc != x_rfc:
+    if result.emisor_rfc != x_rfc and result.receptor_rfc != x_rfc:
         raise HTTPException(status_code=403, detail="Acceso denegado")
     return retencion_detail_to_dto(result)
 
@@ -78,7 +78,7 @@ def eliminar_retencion(
     db: Session = Depends(get_db),
 ) -> dict:
     row = get_or_404(db, RetencionModel, retencion_id, "Retencion")
-    if row.emisor_rfc != x_rfc:
+    if row.emisor_rfc != x_rfc and row.receptor_rfc != x_rfc:
         raise HTTPException(status_code=403, detail="Acceso denegado")
     db.delete(row)
     db.commit()

@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { setEntities, upsertEntities } from '@ngneat/elf-entities';
+import { deleteEntities, setEntities, upsertEntities } from '@ngneat/elf-entities';
 import { tap } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/api/api-client';
@@ -59,5 +59,13 @@ export class SatDescargasRepository {
 
   downloadZip(id: number) {
     return this.http.get(`${API_BASE_URL}/sat/descargas/${id}/zip`, { responseType: 'blob' });
+  }
+
+  delete(id: number) {
+    return this.http.delete<{ ok: boolean }>(`${API_BASE_URL}/sat/descargas/${id}`).pipe(
+      tap(() => {
+        satDescargasStore.update(deleteEntities(id));
+      })
+    );
   }
 }

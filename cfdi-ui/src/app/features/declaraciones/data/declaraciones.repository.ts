@@ -13,7 +13,7 @@ export class DeclaracionesRepository {
 
   fetch() {
     return this.http
-      .get<DeclaracionListItem[]>(`${API_BASE_URL}/declaraciones`)
+      .get<DeclaracionListItem[]>(`${API_BASE_URL}/declaraciones/`)
       .subscribe((items) => {
         const normalized = items.filter(
           (item): item is DeclaracionListItem => typeof item.id === 'number'

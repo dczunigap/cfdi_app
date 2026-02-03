@@ -36,12 +36,13 @@ def _to_response(model) -> SatDescargaResponse:
         mes_filtro=model.mes_filtro,
         id_solicitud=model.id_solicitud,
         estado=model.estado,
+        codigo_estado=model.codigo_estado,
+        mensaje_estado=model.mensaje_estado,
         paquetes=model.paquetes,
         link_descarga=model.link_descarga,
         zip_path=model.zip_path,
         attempts=model.attempts,
         next_check_at=model.next_check_at,
-        last_error=model.last_error,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -69,6 +70,7 @@ def crear_descarga(
         rfc_solicitante=rfc_value,
         fecha_inicial=payload.fecha_inicial,
         fecha_final=payload.fecha_final,
+        kind=payload.kind,
         tipo_solicitud=payload.tipo_solicitud,
         rfc_emisor=payload.rfc_emisor,
         rfc_receptor=payload.rfc_receptor,
@@ -81,6 +83,11 @@ def crear_descarga(
         rfc_receptores=payload.rfc_receptores or [],
     )
 
+    tag_name = (
+        "SolicitaDescargaRecibidos"
+        if (payload.tipo_solicitud or "").strip().lower() == "recibidos"
+        else "SolicitaDescargaEmitidos"
+    )
     try:
         descarga = crear_solicitud_descarga(
             repo=repo,
@@ -90,6 +97,7 @@ def crear_descarga(
             rfc=rfc_value,
             kind=payload.kind,
             params=params,
+            tag_name=tag_name,
         )
         if settings.sat_autoverify:
             try:
@@ -240,3 +248,24 @@ def process_descarga(
         ) or updated
 
     return _to_response(updated)
+
+
+@router.delete("/{descarga_id}")
+def delete_descarga(
+    descarga_id: int,
+    x_rfc: str = Depends(get_required_rfc),
+    user=Depends(require_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    repo = SqlSatDescargasRepository(db)
+    rfc_repo = SqlUserRfcsRepository(db)
+    descarga = repo.get_by_id(descarga_id)
+    if not descarga:
+        raise HTTPException(status_code=404, detail="Descarga no encontrada.")
+    if descarga.rfc != (x_rfc or "").strip().upper():
+        raise HTTPException(status_code=403, detail="RFC no autorizado.")
+    if not rfc_repo.is_allowed(user.id, descarga.rfc):
+        raise HTTPException(status_code=403, detail="RFC no autorizado para el usuario.")
+
+    repo.delete(descarga_id)
+    return {"ok": True}

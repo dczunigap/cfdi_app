@@ -156,12 +156,13 @@ class SatDescargaModel(Base):
     mes_filtro: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
     id_solicitud: Mapped[str | None] = mapped_column(String(80), index=True, nullable=True)
     estado: Mapped[str] = mapped_column(String(30), index=True, nullable=False)
+    codigo_estado: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    mensaje_estado: Mapped[str | None] = mapped_column(Text, nullable=True)
     paquetes: Mapped[list[str]] = mapped_column(JSON, default=list)
     link_descarga: Mapped[str | None] = mapped_column(String(500), nullable=True)
     zip_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     next_check_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,

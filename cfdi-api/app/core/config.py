@@ -83,9 +83,5 @@ class Settings(BaseSettings):
     sat_timeout_seconds: int = DEFAULT_TIMEOUT_SAT_SECONDS
     sat_download_dir: str = DEFAULT_SAT_DOWNLOAD_DIR
     sat_autoverify: bool = DEFAULT_SAT_AUTOVERIFY
-    sat_soap_action_descarga: str = (
-        "http://DescargaMasivaTerceros.sat.gob.mx/IDescargaMasivaTercerosService/Descargar"
-    )
-
 
 settings = Settings()
