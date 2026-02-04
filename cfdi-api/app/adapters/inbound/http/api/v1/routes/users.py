@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.adapters.inbound.http.api.v1.schemas.users import (
@@ -30,6 +30,7 @@ def _to_response(model) -> UserResponse:
         username=model.username,
         email=model.email,
         is_active=model.is_active,
+        is_admin=model.is_admin,
         created_at=model.created_at,
         updated_at=model.updated_at,
         last_login_at=model.last_login_at,
@@ -38,10 +39,11 @@ def _to_response(model) -> UserResponse:
 
 @router.get("", response_model=list[UserResponse], summary="Listado de usuarios")
 def list_users(
+    include_admin: bool = Query(False),
     db: Session = Depends(get_db),
 ) -> list[UserResponse]:
     repo = SqlUserRepository(db)
-    users = repo.list_all()
+    users = repo.list_all() if include_admin else repo.list_non_admin()
     return [_to_response(user) for user in users]
 
 
@@ -68,7 +70,12 @@ def create_user(
         raise HTTPException(status_code=409, detail="Correo ya registrado")
 
     password_hash = hash_password(password, settings.auth_password_iterations)
-    user = repo.create(username=username, email=email, password_hash=password_hash)
+    user = repo.create(
+        username=username,
+        email=email,
+        password_hash=password_hash,
+        is_admin=False,
+    )
     if payload.is_active is not None and user.is_active != payload.is_active:
         user.is_active = payload.is_active
         user = repo.update(user)

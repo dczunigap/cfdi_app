@@ -35,11 +35,29 @@ class SqlUserRepository:
     def list_all(self) -> list[UserModel]:
         return list(self._db.execute(select(UserModel).order_by(UserModel.id)).scalars().all())
 
-    def create(self, username: str, email: str, password_hash: str) -> UserModel:
+    def list_non_admin(self) -> list[UserModel]:
+        return list(
+            self._db.execute(
+                select(UserModel)
+                .where(UserModel.is_admin == False)  # noqa: E712
+                .order_by(UserModel.id)
+            )
+            .scalars()
+            .all()
+        )
+
+    def create(
+        self,
+        username: str,
+        email: str,
+        password_hash: str,
+        is_admin: bool = False,
+    ) -> UserModel:
         model = UserModel(
             username=(username or "").strip().lower(),
             email=(email or "").strip().lower(),
             password_hash=password_hash,
+            is_admin=is_admin,
         )
         self._db.add(model)
         self._db.commit()
