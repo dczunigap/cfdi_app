@@ -43,6 +43,7 @@ export class FacturasPageComponent implements OnInit {
   month: number | null = null;
   tipo: string | null = null;
   naturaleza: string | null = null;
+  usoCfdi: string | null = null;
 
   ngOnInit(): void {
     this.repo.fetch();
@@ -54,6 +55,7 @@ export class FacturasPageComponent implements OnInit {
       month: this.month,
       tipo: this.tipo,
       naturaleza: this.naturaleza,
+      uso_cfdi: this.usoCfdi,
     });
   }
 
@@ -62,11 +64,13 @@ export class FacturasPageComponent implements OnInit {
     this.month = null;
     this.tipo = null;
     this.naturaleza = null;
+    this.usoCfdi = null;
     this.repo.setFilters({
       year: null,
       month: null,
       tipo: null,
       naturaleza: null,
+      uso_cfdi: null,
     });
   }
 
@@ -108,6 +112,7 @@ export class FacturasPageComponent implements OnInit {
         month: this.month ?? undefined,
         tipo: this.tipo ?? undefined,
         naturaleza: this.naturaleza ?? undefined,
+        uso_cfdi: this.usoCfdi ?? undefined,
       })
       .subscribe({
         next: (resp) => {

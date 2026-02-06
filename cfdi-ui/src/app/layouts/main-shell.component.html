@@ -119,40 +119,6 @@
         </a>
         <a
           class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
-          routerLink="/platform-rfcs"
-          (click)="onNavClick($event)"
-          routerLinkActive="bg-primary/10 text-primary"
-          [class.justify-center]="sidebarCollapsed()"
-          [class.px-2]="sidebarCollapsed()"
-          [class.px-4]="!sidebarCollapsed()"
-          [attr.title]="sidebarCollapsed() ? 'RFCs de plataforma' : null"
-          >
-          @if (!sidebarCollapsed()) {
-            <span>RFCs de plataforma</span>
-          }
-          @if (sidebarCollapsed()) {
-            <span class="text-xs uppercase tracking-[0.2em]">RFC</span>
-          }
-        </a>
-        <a
-          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
-          routerLink="/admin-sat"
-          (click)="onNavClick($event)"
-          routerLinkActive="bg-primary/10 text-primary"
-          [class.justify-center]="sidebarCollapsed()"
-          [class.px-2]="sidebarCollapsed()"
-          [class.px-4]="!sidebarCollapsed()"
-          [attr.title]="sidebarCollapsed() ? 'Admin SAT' : null"
-          >
-          @if (!sidebarCollapsed()) {
-            <span>Admin SAT</span>
-          }
-          @if (sidebarCollapsed()) {
-            <span class="text-xs uppercase tracking-[0.2em]">SAT</span>
-          }
-        </a>
-        <a
-          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
           routerLink="/sat-descargas"
           (click)="onNavClick($event)"
           routerLinkActive="bg-primary/10 text-primary"

@@ -1,6 +1,8 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideCheck, lucidePackage, lucideTrash2 } from '@ng-icons/lucide';
 import { map } from 'rxjs';
 
 import { satDescargas$ } from '../data/sat-descargas.queries';
@@ -24,7 +26,8 @@ type EstadoFiltro =
 @Component({
   selector: 'app-sat-descargas-page',
   standalone: true,
-  imports: [AsyncPipe, FormsModule],
+  imports: [AsyncPipe, FormsModule, NgIcon],
+  providers: [provideIcons({ lucideCheck, lucidePackage, lucideTrash2 })],
   templateUrl: './sat-descargas-page.component.html',
   styleUrl: './sat-descargas-page.component.css',
 })

@@ -23,6 +23,7 @@ class SqlFacturaRepository(FacturaRepository):
         month: Optional[int] = None,
         tipo: Optional[str] = None,
         naturaleza: Optional[str] = None,
+        uso_cfdi: Optional[str] = None,
         rfc: Optional[str] = None,
     ) -> list[FacturaListItem]:
         q = apply_optional_filters(
@@ -31,6 +32,7 @@ class SqlFacturaRepository(FacturaRepository):
             (FacturaModel.month_emision, month),
             (FacturaModel.naturaleza, naturaleza),
             (FacturaModel.tipo_comprobante, tipo.upper() if tipo else None),
+            (FacturaModel.uso_cfdi, uso_cfdi.upper() if uso_cfdi else None),
         )
         rfc_value = (rfc or "").strip().upper()
         if rfc_value:

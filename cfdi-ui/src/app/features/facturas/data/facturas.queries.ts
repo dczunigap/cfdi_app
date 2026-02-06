@@ -9,6 +9,7 @@ const filters$ = facturasStore.pipe(
     month: state.month,
     tipo: state.tipo,
     naturaleza: state.naturaleza,
+    uso_cfdi: state.uso_cfdi,
   }))
 );
 
@@ -19,6 +20,7 @@ export const facturas$ = combineLatest([facturasEntities$, filters$]).pipe(
       if (filters.month !== null && f.month_emision !== filters.month) return false;
       if (filters.tipo !== null && f.tipo_comprobante !== filters.tipo) return false;
       if (filters.naturaleza !== null && f.naturaleza !== filters.naturaleza) return false;
+      if (filters.uso_cfdi !== null && f.uso_cfdi !== filters.uso_cfdi) return false;
       return true;
     })
   )

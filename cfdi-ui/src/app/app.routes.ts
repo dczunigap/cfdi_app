@@ -84,20 +84,6 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'platform-rfcs',
-        loadComponent: () =>
-          import('./features/platform-rfcs/ui/platform-rfcs-page.component').then(
-            (m) => m.PlatformRfcsPageComponent,
-          ),
-      },
-      {
-        path: 'admin-sat',
-        loadComponent: () =>
-          import('./features/admin-sat/ui/admin-sat-page.component').then(
-            (m) => m.AdminSatPageComponent,
-          ),
-      },
-      {
         path: 'sat-descargas',
         loadComponent: () =>
           import('./features/sat-descargas/ui/sat-descargas-page.component').then(

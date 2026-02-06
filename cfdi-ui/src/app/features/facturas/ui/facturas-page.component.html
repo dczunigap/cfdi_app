@@ -99,17 +99,23 @@
             }
           </select>
         </label>
+        <label class="text-xs uppercase tracking-[0.18em] text-muted">
+          Uso CFDI
+          <input
+            class="mt-2 w-full"
+            [(ngModel)]="usoCfdi"
+            placeholder="G01, P01..."
+          />
+        </label>
         <div class="flex items-end gap-3">
           <button
-            class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+            class="btn btn-s w-1/2 rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
             (click)="applyFilters()"
             >
             Aplicar
           </button>
-        </div>
-        <div class="flex items-end">
           <button
-            class="btn btn-s w-full rounded-xl border border-border bg-bg text-text hover:bg-surface"
+            class="btn btn-s w-1/2 rounded-xl border border-border bg-bg text-text hover:bg-surface"
             (click)="resetFilters()"
             >
             Limpiar

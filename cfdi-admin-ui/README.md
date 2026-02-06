@@ -28,6 +28,11 @@ npm run dev
 ```
 La app queda en `http://localhost:3000`.
 
+## Flujo de login y proxy
+1. El login llama a `POST /api/auth/login` (route de Next).
+2. Esa route autentica contra `cfdi-api` (`/api/v1/auth/login`) y guarda el JWT en una cookie httpOnly.
+3. El cliente hace requests a `/api/proxy/*`, y el proxy adjunta el JWT desde la cookie.
+
 ## Produccion
 ```bash
 npm run build

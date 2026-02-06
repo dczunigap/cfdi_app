@@ -5,7 +5,7 @@ Este repositorio contiene el backend y el frontend separados:
 ## Proyectos
 - `cfdi-api/`: API en Python (FastAPI) con arquitectura hexagonal. Maneja la importacion de XML/PDF, el acceso a BD y la logica de reportes. Ver `cfdi-api/README.md`.
 - `cfdi-ui/`: UI en Angular. Consume la API, presenta listados, filtros y dashboards. Ver `cfdi-ui/README.md`.
-- `cfdi-users-ui/`: UI en Next.js para administracion de usuarios (alta/edicion/baja) contra `/api/v1/users`. Ver `cfdi-users-ui/README.md`.
+- `cfdi-admin-ui/`: UI en Next.js para administracion de usuarios y catalogos SAT (incluye Admin SAT y Platform RFCs). Ver `cfdi-admin-ui/README.md`.
 - `mcp-bridge/`: Servidor MCP en Node que expone los endpoints de `cfdi-api` como tools para clientes MCP (VS Code/Claude Desktop). Ver `mcp-bridge/README.md`.
 - `wa-bot/`: Bot de WhatsApp en Node para integraciones y automatizaciones relacionadas con el flujo CFDI. Ver `wa-bot/README.md`.
 

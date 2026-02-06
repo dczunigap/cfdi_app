@@ -12,12 +12,13 @@ import { tap } from 'rxjs';
 export class FacturasRepository {
   private readonly http = inject(HttpClient);
 
-  fetch(params?: { year?: number; month?: number; tipo?: string; naturaleza?: string }) {
+  fetch(params?: { year?: number; month?: number; tipo?: string; naturaleza?: string; uso_cfdi?: string }) {
     let httpParams = new HttpParams();
     if (params?.year) httpParams = httpParams.set('year', params.year);
     if (params?.month) httpParams = httpParams.set('month', params.month);
     if (params?.tipo) httpParams = httpParams.set('tipo', params.tipo);
     if (params?.naturaleza) httpParams = httpParams.set('naturaleza', params.naturaleza);
+    if (params?.uso_cfdi) httpParams = httpParams.set('uso_cfdi', params.uso_cfdi);
 
     return this.http
       .get<FacturaListItem[]>(`${API_BASE_URL}/facturas/`, { params: httpParams })
@@ -55,13 +56,14 @@ export class FacturasRepository {
   }
 
   exportCsv(
-    params?: { year?: number; month?: number; tipo?: string; naturaleza?: string }
+    params?: { year?: number; month?: number; tipo?: string; naturaleza?: string; uso_cfdi?: string }
   ): Observable<HttpResponse<Blob>> {
     let httpParams = new HttpParams();
     if (params?.year) httpParams = httpParams.set('year', params.year);
     if (params?.month) httpParams = httpParams.set('month', params.month);
     if (params?.tipo) httpParams = httpParams.set('tipo', params.tipo);
     if (params?.naturaleza) httpParams = httpParams.set('naturaleza', params.naturaleza);
+    if (params?.uso_cfdi) httpParams = httpParams.set('uso_cfdi', params.uso_cfdi);
 
     return this.http.get(`${API_BASE_URL}/facturas/export.csv`, {
       params: httpParams,

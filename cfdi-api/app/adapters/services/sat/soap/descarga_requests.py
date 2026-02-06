@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import datetime
 from lxml import etree
 
-from app.adapters.services.sat.soap.kind import is_retenciones_kind, normalize_sat_kind
 from app.adapters.services.sat.wsse.xml_signature import sign_enveloped_element
 from app.adapters.services.sat.wsse.ws_security import SOAP_ENV, SatKeyMaterial
 from app.application.sat.dto import SolicitudDescargaParams
@@ -103,7 +102,7 @@ def build_descarga_paquete_envelope(
 
 
 def _solicitud_attribs(params: SolicitudDescargaParams) -> dict[str, str]:
-    tipo_solicitud = _normalize_tipo_solicitud(params.tipo_solicitud, params.kind)
+    tipo_solicitud = _normalize_tipo_solicitud(params.tipo_solicitud)
     attrs = {
         "RfcSolicitante": params.rfc_solicitante,
         "FechaInicial": _format_dt(params.fecha_inicial),
@@ -135,13 +134,8 @@ def _solicitud_attribs(params: SolicitudDescargaParams) -> dict[str, str]:
     return attrs
 
 
-def _normalize_tipo_solicitud(value: str, kind: str) -> str:
-    normalized_kind = normalize_sat_kind(kind)
-    if is_retenciones_kind(kind):
-        return "RETENCION"
-    if normalized_kind in {"cfdi", "cfd"}:
-        return "CFDI"
-    normalized = (value or "").strip()
+def _normalize_tipo_solicitud(value: str) -> str:
+    normalized = (value or "CFDI").upper().strip()
     return normalized
 
 

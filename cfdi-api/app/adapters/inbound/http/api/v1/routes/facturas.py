@@ -45,6 +45,7 @@ def listar_facturas(
     month: Optional[int] = None,
     tipo: Optional[str] = None,
     naturaleza: Optional[str] = None,
+    uso_cfdi: Optional[str] = None,
     x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> list[FacturaListResponse]:
@@ -55,6 +56,7 @@ def listar_facturas(
         month=month,
         tipo=tipo,
         naturaleza=naturaleza,
+        uso_cfdi=uso_cfdi,
         rfc=x_rfc,
     )
     items = use_case.execute(data)
@@ -71,6 +73,7 @@ def export_facturas_csv(
     month: Optional[int] = None,
     tipo: Optional[str] = None,
     naturaleza: Optional[str] = None,
+    uso_cfdi: Optional[str] = None,
     x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> Response:
@@ -81,6 +84,7 @@ def export_facturas_csv(
         month=month,
         tipo=tipo,
         naturaleza=naturaleza,
+        uso_cfdi=uso_cfdi,
         rfc=x_rfc,
     )
     items = use_case.execute(data)
