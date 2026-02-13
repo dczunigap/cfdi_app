@@ -35,6 +35,35 @@ from app.adapters.inbound.http.api.v1.mappers import (
 router = APIRouter(tags=["reportes"], dependencies=[Depends(require_user)])
 
 
+def _previous_period(year: int, month: int) -> tuple[int, int]:
+    if month <= 1:
+        return year - 1, 12
+    return year, month - 1
+
+
+def _fetch_saldos(
+    db: Session, year: int, month: int, rfc: str | None
+) -> tuple[float, float]:
+    q = (
+        select(DeclaracionModel)
+        .where(DeclaracionModel.year == year, DeclaracionModel.month == month)
+        .order_by(desc(DeclaracionModel.fecha_presentacion).nullslast(), desc(DeclaracionModel.id))
+        .limit(1)
+    )
+    rfc_value = (rfc or "").strip()
+    if rfc_value:
+        q = q.where(DeclaracionModel.rfc == rfc_value)
+    row = db.execute(q).scalar_one_or_none()
+    if not row:
+        return 0.0, 0.0
+    try:
+        saldo_a_favor = float(row.saldo_a_favor) if row.saldo_a_favor is not None else 0.0
+        saldo_a_pagar = float(row.saldo_a_pagar) if row.saldo_a_pagar is not None else 0.0
+        return saldo_a_favor, saldo_a_pagar
+    except Exception:
+        return 0.0, 0.0
+
+
 @router.get(
     "/summary",
     summary="Resumen mensual",
@@ -69,6 +98,11 @@ def summary(
         ret_rows = data.get("ret_rows") or []
         mi_rfc = (ret_rows[0].receptor_rfc if ret_rows else None) or None
 
+    prev_year, prev_month = _previous_period(year, month)
+    saldo_a_favor_anterior, saldo_a_pagar_anterior = _fetch_saldos(
+        db, prev_year, prev_month, mi_rfc
+    )
+
     return summary_to_payload(
         year=year,
         month=month,
@@ -78,6 +112,8 @@ def summary(
         iva_acreditable_sugerido=iva_acreditable_sugerido,
         iva_retenido_plat=iva_retenido_plat,
         iva_neto_sugerido=iva_neto_sugerido,
+        saldo_a_favor_anterior=saldo_a_favor_anterior,
+        saldo_a_pagar_anterior=saldo_a_pagar_anterior,
     )
 
 
@@ -254,6 +290,11 @@ def declaracion_mode(
             ),
         ]
 
+    prev_year, prev_month = _previous_period(year, month)
+    saldo_a_favor_anterior, saldo_a_pagar_anterior = _fetch_saldos(
+        db, prev_year, prev_month, mi_rfc
+    )
+
     return declaracion_mode_to_payload(
         year=year,
         month=month,
@@ -268,6 +309,8 @@ def declaracion_mode(
         iva_acreditable=float(data.get("gastos_trasl") or 0.0),
         iva_trasladado_total=iva_trasladado_total,
         iva_trasladado_seleccion=iva_trasladado_sel,
+        saldo_a_favor_anterior=saldo_a_favor_anterior,
+        saldo_a_pagar_anterior=saldo_a_pagar_anterior,
         checks=checks,
         acuse_payload=acuse_payload,
         acuse_checks=acuse_checks,

@@ -22,6 +22,8 @@ export interface SummaryData {
   iva_acreditable_sugerido: number;
   iva_retenido_plat: number;
   iva_neto_sugerido: number;
+  saldo_a_favor_anterior: number;
+  saldo_a_pagar_anterior: number;
 }
 
 export interface SummaryDocItem {

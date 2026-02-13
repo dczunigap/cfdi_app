@@ -143,6 +143,9 @@
         <div class="text-sm text-muted">
           IVA trasladado del periodo (control): {{ summary.iva_trasladado_total | number: '1.2-2' }}
         </div>
+        <div class="text-sm text-muted">
+          Saldo a favor periodo anterior: {{ summary.saldo_a_favor_anterior | number: '1.2-2' }}
+        </div>
       </div>
       <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
         <div class="text-xs uppercase tracking-[0.18em] text-muted">Que capturar en el portal SAT</div>

@@ -28,6 +28,8 @@ export interface DeclaracionSummary {
   iva_acreditable: number;
   iva_trasladado_total: number;
   iva_trasladado_seleccion: number;
+  saldo_a_favor_anterior: number;
+  saldo_a_pagar_anterior: number;
   checks: DeclaracionCheck[];
   acuse_payload: DeclaracionAcusePayload | null;
   acuse_checks: DeclaracionAcuseCheck[];

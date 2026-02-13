@@ -57,6 +57,8 @@ def summary_to_payload(
     iva_acreditable_sugerido: float,
     iva_retenido_plat: float,
     iva_neto_sugerido: float,
+    saldo_a_favor_anterior: float,
+    saldo_a_pagar_anterior: float,
 ) -> dict:
     return {
         "year": year,
@@ -82,6 +84,8 @@ def summary_to_payload(
         "iva_acreditable_sugerido": iva_acreditable_sugerido,
         "iva_retenido_plat": iva_retenido_plat,
         "iva_neto_sugerido": iva_neto_sugerido,
+        "saldo_a_favor_anterior": saldo_a_favor_anterior,
+        "saldo_a_pagar_anterior": saldo_a_pagar_anterior,
     }
 
 
@@ -165,6 +169,8 @@ def declaracion_mode_to_payload(
     iva_acreditable: float,
     iva_trasladado_total: float,
     iva_trasladado_seleccion: float,
+    saldo_a_favor_anterior: float,
+    saldo_a_pagar_anterior: float,
     checks: list[dict],
     acuse_payload: dict | None,
     acuse_checks: list[dict],
@@ -187,6 +193,8 @@ def declaracion_mode_to_payload(
         "iva_acreditable": iva_acreditable,
         "iva_trasladado_total": iva_trasladado_total,
         "iva_trasladado_seleccion": iva_trasladado_seleccion,
+        "saldo_a_favor_anterior": saldo_a_favor_anterior,
+        "saldo_a_pagar_anterior": saldo_a_pagar_anterior,
         "checks": checks,
         "acuse_payload": acuse_payload,
         "acuse_checks": acuse_checks,

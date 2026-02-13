@@ -136,6 +136,10 @@
         <strong>IVA neto</strong> (causado - acreditable - retenido):
         <strong>{{ summary.iva_neto_sugerido | number: '1.2-2' }}</strong>
       </div>
+      <div class="text-sm text-muted">
+        <strong>Saldo a favor periodo anterior</strong>:
+        {{ summary.saldo_a_favor_anterior | number: '1.2-2' }}
+      </div>
     </div>
   </div>
 }

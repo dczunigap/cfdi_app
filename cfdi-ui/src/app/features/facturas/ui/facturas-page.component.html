@@ -50,7 +50,7 @@
       </button>
     </div>
     @if (!filtersCollapsed) {
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
         <label class="text-xs uppercase tracking-[0.18em] text-muted">
           Año
           <select
@@ -106,6 +106,17 @@
             [(ngModel)]="usoCfdi"
             placeholder="G01, P01..."
           />
+        </label>
+        <label class="text-xs uppercase tracking-[0.18em] text-muted">
+          Receptor
+          <select
+            class="mt-2 w-full"
+            [(ngModel)]="receptorScope"
+            >
+            @for (option of receptorScopes; track option.value) {
+              <option [ngValue]="option.value">{{ option.label }}</option>
+            }
+          </select>
         </label>
         <div class="flex items-end gap-3">
           <button
@@ -188,6 +199,13 @@
                       </button>
                     </div>
                   </td>
+                </tr>
+              }
+              @if (subtotalTotal$ | async; as subtotalTotal) {
+                <tr class="bg-bg/60 font-semibold text-text">
+                  <td class="px-5 py-4" colspan="7">Subtotal</td>
+                  <td class="px-5 py-4 text-right">{{ subtotalTotal | number: '1.2-2' }}</td>
+                  <td class="px-5 py-4"></td>
                 </tr>
               }
             </tbody>

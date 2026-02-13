@@ -253,6 +253,16 @@ async def importar_pdf(
                 fecha_presentacion=summary.get("fecha_presentacion")
                 if isinstance(summary, dict)
                 else None,
+                saldo_a_favor=(
+                    summary.get("saldo_a_favor")
+                    if isinstance(summary, dict) and summary.get("saldo_a_favor") is not None
+                    else 0.0
+                ),
+                saldo_a_pagar=(
+                    summary.get("saldo_a_pagar")
+                    if isinstance(summary, dict) and summary.get("saldo_a_pagar") is not None
+                    else 0.0
+                ),
                 sha256=sha,
                 filename=filename,
                 original_name=getattr(file, "filename", None),
@@ -265,6 +275,12 @@ async def importar_pdf(
                 existing.rfc = dec.rfc
                 existing.folio = dec.folio
                 existing.fecha_presentacion = dec.fecha_presentacion
+                existing.saldo_a_favor = (
+                    dec.saldo_a_favor if dec.saldo_a_favor is not None else 0.0
+                )
+                existing.saldo_a_pagar = (
+                    dec.saldo_a_pagar if dec.saldo_a_pagar is not None else 0.0
+                )
                 existing.filename = dec.filename
                 existing.original_name = dec.original_name
                 existing.num_pages = dec.num_pages

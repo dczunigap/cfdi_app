@@ -44,6 +44,8 @@ class SqlDeclaracionRepository(DeclaracionRepository):
             rfc=declaracion.rfc,
             folio=declaracion.folio,
             fecha_presentacion=declaracion.fecha_presentacion,
+            saldo_a_favor=declaracion.saldo_a_favor if declaracion.saldo_a_favor is not None else 0,
+            saldo_a_pagar=declaracion.saldo_a_pagar if declaracion.saldo_a_pagar is not None else 0,
             sha256=declaracion.sha256,
             filename=declaracion.filename,
             original_name=declaracion.original_name,
