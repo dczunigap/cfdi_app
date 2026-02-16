@@ -7,11 +7,14 @@ class UserRfcsRepository(Protocol):
     def is_allowed(self, user_id: int, rfc: str) -> bool:
         ...
 
-    def add(self, user_id: int, rfc: str) -> None:
+    def add(self, user_id: int, rfc: str, regimen_fiscal_clave: str) -> None:
         ...
 
     def remove(self, user_id: int, rfc: str) -> None:
         ...
 
-    def list_by_user(self, user_id: int) -> list[str]:
+    def list_by_user(self, user_id: int) -> list[dict]:
+        ...
+
+    def list_catalogs(self) -> dict:
         ...

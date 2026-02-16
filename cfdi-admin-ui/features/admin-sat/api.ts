@@ -1,5 +1,11 @@
 import { apiFetch, apiFetchForm } from "@/lib/api";
-import type { AdminUser, RfcPhone, SatCredential, UserRfc } from "./types";
+import type {
+  AdminUser,
+  RfcPhone,
+  SatCredential,
+  UserRfc,
+  UserRfcCatalogs,
+} from "./types";
 
 export async function listSatCredentials(): Promise<SatCredential[]> {
   return apiFetch<SatCredential[]>("/sat/credentials");
@@ -43,11 +49,16 @@ export async function listUserRfcs(userId: number): Promise<UserRfc[]> {
 export async function addUserRfc(payload: {
   user_id: number;
   rfc: string;
+  regimen_fiscal_clave: string;
 }): Promise<UserRfc> {
   return apiFetch<UserRfc>("/user-rfcs", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function listUserRfcCatalogs(): Promise<UserRfcCatalogs> {
+  return apiFetch<UserRfcCatalogs>("/user-rfcs/catalogos");
 }
 
 export async function deleteUserRfc(userId: number, rfc: string): Promise<void> {

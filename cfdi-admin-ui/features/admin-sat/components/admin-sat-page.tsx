@@ -19,11 +19,12 @@ import {
   listAdminUsers,
   listRfcPhones,
   listSatCredentials,
+  listUserRfcCatalogs,
   listUserRfcs,
   upsertRfcPhone,
   upsertSatCredentials,
 } from "../api";
-import type { RfcPhone } from "../types";
+import type { RegimenFiscalCatalog, RfcPhone } from "../types";
 import { getErrorMessage } from "@/lib/errors";
 
 type UploadMode = "pfx" | "cerkey";
@@ -51,7 +52,11 @@ export default function AdminSatPage() {
   const [editingRfc, setEditingRfc] = useState("");
 
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [userTipoPersonaClave, setUserTipoPersonaClave] = useState<
+    "PM" | "PF" | "EXT" | ""
+  >("");
   const [userRfc, setUserRfc] = useState("");
+  const [userRegimenFiscalClave, setUserRegimenFiscalClave] = useState("");
   const [userRfcError, setUserRfcError] = useState<string | null>(null);
 
   const credentialsQuery = useQuery({
@@ -73,6 +78,11 @@ export default function AdminSatPage() {
     queryKey: ["user-rfcs", selectedUserId],
     queryFn: () => listUserRfcs(selectedUserId ?? 0),
     enabled: Boolean(selectedUserId),
+  });
+
+  const userRfcCatalogsQuery = useQuery({
+    queryKey: ["user-rfcs-catalogos"],
+    queryFn: listUserRfcCatalogs,
   });
 
   const upsertCredentialsMutation = useMutation({
@@ -135,6 +145,27 @@ export default function AdminSatPage() {
     () => userRfcsQuery.data ?? [],
     [userRfcsQuery.data]
   );
+
+  const inferTipoPersonaFromRfc = (
+    value: string
+  ): "PM" | "PF" | "EXT" | null => {
+    const rfcValue = value.trim().toUpperCase();
+    if (!RFC_REGEX.test(rfcValue)) return null;
+    if (rfcValue === "XEXX010101000") return "EXT";
+    if (rfcValue.length === 12) return "PM";
+    if (rfcValue.length === 13) return "PF";
+    return null;
+  };
+
+  const regimenesForTipoPersona = useMemo(() => {
+    const all = userRfcCatalogsQuery.data?.regimenes_fiscales ?? [];
+    const filtered = userTipoPersonaClave
+      ? all.filter(
+          (row) => row.activo && row.tipo_persona_clave === userTipoPersonaClave
+        )
+      : all.filter((row) => row.activo);
+    return filtered.sort((a, b) => a.clave.localeCompare(b.clave));
+  }, [userRfcCatalogsQuery.data?.regimenes_fiscales, userTipoPersonaClave]);
 
   const onFileChange = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -344,11 +375,37 @@ export default function AdminSatPage() {
       setUserRfcError("RFC invalido.");
       return;
     }
+    const tipoPersona = userTipoPersonaClave;
+    if (!tipoPersona) {
+      setUserRfcError("Tipo de persona requerido.");
+      return;
+    }
+    const tipoInferido = inferTipoPersonaFromRfc(rfcValue);
+    if (tipoInferido !== tipoPersona) {
+      setUserRfcError("El RFC no corresponde al tipo de persona seleccionado.");
+      return;
+    }
+    const regimen = userRegimenFiscalClave.trim();
+    if (!regimen) {
+      setUserRfcError("Regimen fiscal requerido.");
+      return;
+    }
+    const regimenValido = regimenesForTipoPersona.some(
+      (row) => row.clave === regimen
+    );
+    if (!regimenValido) {
+      setUserRfcError("Regimen fiscal no valido para el tipo de persona.");
+      return;
+    }
     setUserRfcError(null);
     addUserRfcMutation.mutate(
-      { user_id: selectedUserId, rfc: rfcValue },
+      { user_id: selectedUserId, rfc: rfcValue, regimen_fiscal_clave: regimen },
       {
-        onSuccess: () => setUserRfc(""),
+        onSuccess: () => {
+          setUserRfc("");
+          setUserTipoPersonaClave("");
+          setUserRegimenFiscalClave("");
+        },
         onError: (error) =>
           setUserRfcError(
             getErrorMessage(error, "No se pudo asociar el RFC.")
@@ -606,7 +663,7 @@ export default function AdminSatPage() {
         <p className="text-sm text-slate-400">
           Asocia RFCs a usuarios para habilitar descargas SAT.
         </p>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-4 md:grid-cols-5">
           <label className="text-xs uppercase tracking-[0.18em] text-slate-400">
             Usuario
             <select
@@ -618,6 +675,43 @@ export default function AdminSatPage() {
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.username ?? "sin-username"} · {user.email ?? "-"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs uppercase tracking-[0.18em] text-slate-400">
+            Tipo de persona
+            <select
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white"
+              onChange={(event) => {
+                setUserTipoPersonaClave(
+                  event.target.value as "PM" | "PF" | "EXT" | ""
+                );
+                setUserRegimenFiscalClave("");
+              }}
+              value={userTipoPersonaClave}
+              disabled={userRfcCatalogsQuery.isLoading}
+            >
+              <option value="">Selecciona tipo</option>
+              {(userRfcCatalogsQuery.data?.tipos_persona ?? []).map((row) => (
+                <option key={row.clave} value={row.clave}>
+                  {row.clave} - {row.descripcion}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs uppercase tracking-[0.18em] text-slate-400">
+            Regimen fiscal
+            <select
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white"
+              onChange={(event) => setUserRegimenFiscalClave(event.target.value)}
+              value={userRegimenFiscalClave}
+              disabled={userRfcCatalogsQuery.isLoading || !userTipoPersonaClave}
+            >
+              <option value="">Selecciona regimen</option>
+              {regimenesForTipoPersona.map((row: RegimenFiscalCatalog) => (
+                <option key={`${row.tipo_persona_clave}-${row.clave}`} value={row.clave}>
+                  {row.clave} - {row.descripcion}
                 </option>
               ))}
             </select>
@@ -661,6 +755,8 @@ export default function AdminSatPage() {
             <thead className="bg-slate-950 text-xs uppercase tracking-[0.18em] text-slate-400">
               <tr>
                 <th className="px-5 py-3">RFC</th>
+                <th className="px-5 py-3">Tipo</th>
+                <th className="px-5 py-3">Regimen</th>
                 <th className="px-5 py-3 text-right">Acciones</th>
               </tr>
             </thead>
@@ -669,6 +765,12 @@ export default function AdminSatPage() {
                 <tr key={`${row.user_id}:${row.rfc}`}>
                   <td className="px-5 py-4 font-medium text-white">
                     {row.rfc}
+                  </td>
+                  <td className="px-5 py-4 text-slate-300">
+                    {row.tipo_persona_clave}
+                  </td>
+                  <td className="px-5 py-4 text-slate-300">
+                    {row.regimen_fiscal_clave} - {row.regimen_fiscal_descripcion}
                   </td>
                   <td className="px-5 py-4 text-right">
                     <button
@@ -687,7 +789,7 @@ export default function AdminSatPage() {
                 <tr>
                   <td
                     className="px-5 py-6 text-center text-slate-400"
-                    colSpan={2}
+                    colSpan={4}
                   >
                     Selecciona un usuario para ver sus RFCs.
                   </td>
@@ -697,7 +799,7 @@ export default function AdminSatPage() {
                 <tr>
                   <td
                     className="px-5 py-6 text-center text-slate-400"
-                    colSpan={2}
+                    colSpan={4}
                   >
                     Este usuario no tiene RFCs asociados.
                   </td>

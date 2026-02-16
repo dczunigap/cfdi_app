@@ -2,7 +2,19 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, LargeBinary, Numeric, String, Text, JSON, Index
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    Numeric,
+    String,
+    Text,
+    JSON,
+    Index,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.adapters.outbound.db.session import Base
@@ -200,14 +212,61 @@ class UserModel(Base):
     )
 
 
+class TipoPersonaCatalogModel(Base):
+    __tablename__ = "catalogo_tipo_persona"
+
+    clave: Mapped[str] = mapped_column(String(10), primary_key=True)
+    descripcion: Mapped[str] = mapped_column(String(120), nullable=False)
+
+
+class RegimenFiscalCatalogModel(Base):
+    __tablename__ = "catalogo_regimen_fiscal"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tipo_persona_clave: Mapped[str] = mapped_column(
+        ForeignKey("catalogo_tipo_persona.clave"),
+        index=True,
+        nullable=False,
+    )
+    clave: Mapped[str] = mapped_column(String(10), nullable=False)
+    descripcion: Mapped[str] = mapped_column(String(300), nullable=False)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "tipo_persona_clave",
+            "clave",
+            name="ux_regimen_fiscal_tipo_clave",
+        ),
+    )
+
+
+class RfcModel(Base):
+    __tablename__ = "rfcs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rfc: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=False)
+    regimen_fiscal_id: Mapped[int] = mapped_column(
+        ForeignKey("catalogo_regimen_fiscal.id"),
+        index=True,
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
 class UserRfcModel(Base):
     __tablename__ = "user_rfcs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
-    rfc: Mapped[str] = mapped_column(String(20), index=True, nullable=False)
+    rfc_id: Mapped[int] = mapped_column(ForeignKey("rfcs.id"), index=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
-        Index("ux_user_rfc", "user_id", "rfc", unique=True),
+        Index("ux_user_rfc", "user_id", "rfc_id", unique=True),
     )

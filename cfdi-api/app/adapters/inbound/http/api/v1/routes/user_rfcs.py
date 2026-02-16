@@ -39,7 +39,16 @@ def list_user_rfcs(
     _ensure_user(db, user_id)
     repo = SqlUserRfcsRepository(db)
     rfcs = repo.list_by_user(user_id)
-    return [UserRfcResponse(user_id=user_id, rfc=rfc) for rfc in rfcs]
+    return [
+        UserRfcResponse(
+            user_id=user_id,
+            rfc=row["rfc"],
+            tipo_persona_clave=row["tipo_persona_clave"],
+            regimen_fiscal_clave=row["regimen_fiscal_clave"],
+            regimen_fiscal_descripcion=row["regimen_fiscal_descripcion"],
+        )
+        for row in rfcs
+    ]
 
 
 @router.post("", response_model=UserRfcResponse)
@@ -50,11 +59,28 @@ def add_user_rfc(
     user_id = payload.user_id
     _ensure_user(db, user_id)
     rfc = _normalize_rfc(payload.rfc)
+    regimen_fiscal_clave = (payload.regimen_fiscal_clave or "").strip()
+    if not regimen_fiscal_clave:
+        raise HTTPException(status_code=400, detail="regimen_fiscal_clave es requerido")
+
     repo = SqlUserRfcsRepository(db)
     if repo.is_allowed(user_id, rfc):
         raise HTTPException(status_code=409, detail="RFC ya asociado al usuario")
-    repo.add(user_id, rfc)
-    return UserRfcResponse(user_id=user_id, rfc=rfc)
+    try:
+        repo.add(user_id, rfc, regimen_fiscal_clave)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    row = next((item for item in repo.list_by_user(user_id) if item["rfc"] == rfc), None)
+    if not row:
+        raise HTTPException(status_code=500, detail="No fue posible leer RFC recien creado")
+    return UserRfcResponse(
+        user_id=user_id,
+        rfc=rfc,
+        tipo_persona_clave=row["tipo_persona_clave"],
+        regimen_fiscal_clave=row["regimen_fiscal_clave"],
+        regimen_fiscal_descripcion=row["regimen_fiscal_descripcion"],
+    )
 
 
 @router.delete("/{user_id}/{rfc}")
@@ -70,3 +96,9 @@ def remove_user_rfc(
         raise HTTPException(status_code=404, detail="Relacion no encontrada")
     repo.remove(user_id, rfc_value)
     return {"ok": True}
+
+
+@router.get("/catalogos")
+def list_catalogos(db: Session = Depends(get_db)) -> dict:
+    repo = SqlUserRfcsRepository(db)
+    return repo.list_catalogs()
