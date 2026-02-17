@@ -13,6 +13,7 @@ type IncomeSourceOption = {
   value: string;
   label: string;
 };
+type TipoDeclaracion = 'MENSUAL' | 'ANUAL';
 
 @Component({
   selector: 'app-declaracion-page',
@@ -33,10 +34,12 @@ export class DeclaracionPageComponent {
 
   year: number | null = null;
   month: number | null = null;
+  tipoDeclaracion: TipoDeclaracion = 'MENSUAL';
   incomeSource = 'auto';
 
   readonly years = this.buildYears();
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
+  readonly tiposDeclaracion: TipoDeclaracion[] = ['MENSUAL', 'ANUAL'];
   readonly incomeSources: IncomeSourceOption[] = [
     { value: 'auto', label: 'Auto (usar plataforma si existe)' },
     { value: 'plataforma', label: 'Solo plataforma (Retenciones)' },
@@ -47,15 +50,26 @@ export class DeclaracionPageComponent {
   load(): void {
     const year = Number(this.year);
     const month = Number(this.month);
-    if (!Number.isFinite(year) || !Number.isFinite(month) || year <= 0 || month <= 0) {
+    if (!Number.isFinite(year) || year <= 0) {
+      this.alerts.warning('Selecciona ano para cargar la declaracion.');
+      return;
+    }
+    if (this.tipoDeclaracion === 'MENSUAL' && (!Number.isFinite(month) || month <= 0)) {
       this.alerts.warning('Selecciona ano y mes para cargar la declaracion.');
       return;
     }
 
     this.loading = true;
-    this.repo.fetch(year, month, this.incomeSource).subscribe({
+    this.repo.fetch(
+      year,
+      this.tipoDeclaracion === 'MENSUAL' ? month : null,
+      this.incomeSource,
+      this.tipoDeclaracion,
+    ).subscribe({
       next: (data) => {
+        console.log("🚀 ~ DeclaracionPageComponent ~ load ~ data:", data)
         this.summary = { ...data };
+        this.tipoDeclaracion = data.tipo_declaracion ?? this.tipoDeclaracion;
         this.loading = false;
         this.cdr.markForCheck();
       },
@@ -73,6 +87,7 @@ export class DeclaracionPageComponent {
   }
 
   clear(): void {
+    this.tipoDeclaracion = 'MENSUAL';
     this.year = null;
     this.month = null;
     this.summary = null;
@@ -83,6 +98,7 @@ export class DeclaracionPageComponent {
   }
 
   get csvUrl(): string | null {
+    if (this.tipoDeclaracion === 'ANUAL') return null;
     const year = Number(this.year);
     const month = Number(this.month);
     if (!Number.isFinite(year) || !Number.isFinite(month) || year <= 0 || month <= 0) return null;
@@ -90,6 +106,7 @@ export class DeclaracionPageComponent {
   }
 
   get hojaUrl(): string | null {
+    if (this.tipoDeclaracion === 'ANUAL') return null;
     const year = Number(this.year);
     const month = Number(this.month);
     if (!Number.isFinite(year) || !Number.isFinite(month) || year <= 0 || month <= 0) return null;
@@ -113,7 +130,8 @@ export class DeclaracionPageComponent {
   }
 
   periodLabel(data: DeclaracionSummary): string {
-    return `${data.year}-${String(data.month).padStart(2, '0')}`;
+    if (this.isAnualData(data)) return `${data.year}`;
+    return `${data.year}-${String(data.month ?? '').padStart(2, '0')}`;
   }
 
   checkBadgeClass(check: DeclaracionCheck): string {
@@ -168,8 +186,26 @@ export class DeclaracionPageComponent {
     const year = Number(this.year);
     const month = Number(this.month);
     const safeYear = Number.isFinite(year) ? year : new Date().getFullYear();
-    const safeMonth = Number.isFinite(month) ? month : 1;
+    const safeMonth = Number.isFinite(month) && month > 0 ? month : 1;
     return `${safeYear}-${String(safeMonth).padStart(2, '0')}`;
+  }
+
+  onTipoDeclaracionChange(): void {
+    if (this.tipoDeclaracion === 'ANUAL') {
+      this.month = null;
+    }
+  }
+
+  isAnualData(data: DeclaracionSummary | null): boolean {
+    return (data?.tipo_declaracion || this.tipoDeclaracion) === 'ANUAL';
+  }
+
+  showAcuseSection(data: DeclaracionSummary): boolean {
+    return data.mostrar_conciliacion_acuse_sat ?? !this.isAnualData(data);
+  }
+
+  showDeclaracionPdfSection(data: DeclaracionSummary): boolean {
+    return data.mostrar_declaracion_presentada ?? !this.isAnualData(data);
   }
 
   private downloadBlob(blob: Blob, filename: string): void {

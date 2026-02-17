@@ -10,14 +10,19 @@ from sqlalchemy import desc, select
 from starlette.responses import Response
 
 from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
-from app.adapters.outbound.db.period_data import compute_period_data, pick_default_period
+from app.adapters.outbound.db.period_data import compute_period_data, month_options, pick_default_period
 from app.application.reportes.periodo import (
     build_checklist,
     build_hoja_sat_text,
     calc_income_and_iva_sources,
 )
 from app.utils.money import format_money
-from app.adapters.outbound.db.models import DeclaracionModel
+from app.adapters.outbound.db.models import (
+    DeclaracionModel,
+    RegimenFiscalCatalogModel,
+    RfcModel,
+)
+from app.adapters.outbound.db.repositories.declaracion_config import SqlDeclaracionConfigRepository
 from app.adapters.services.parsers.pdf_parser import LocalPdfParser
 from app.application.declaraciones.payload import build_declaracion_payload
 from app.adapters.inbound.http.api.v1.routes.utils import (
@@ -33,6 +38,127 @@ from app.adapters.inbound.http.api.v1.mappers import (
 )
 
 router = APIRouter(tags=["reportes"], dependencies=[Depends(require_user)])
+TIPO_DECL_MENSUAL = "MENSUAL"
+TIPO_DECL_ANUAL = "ANUAL"
+
+
+def _normalize_tipo_declaracion(value: str | None) -> str:
+    normalized = (value or TIPO_DECL_MENSUAL).strip().upper()
+    if normalized not in {TIPO_DECL_MENSUAL, TIPO_DECL_ANUAL}:
+        raise HTTPException(status_code=400, detail="tipo_declaracion invalido. Use MENSUAL o ANUAL")
+    return normalized
+
+
+def _resolve_regimen_for_rfc(db: Session, rfc: str) -> RegimenFiscalCatalogModel:
+    row = db.execute(
+        select(RegimenFiscalCatalogModel)
+        .select_from(RfcModel)
+        .join(RegimenFiscalCatalogModel, RfcModel.regimen_fiscal_id == RegimenFiscalCatalogModel.id)
+        .where(RfcModel.rfc == rfc)
+    ).scalar_one_or_none()
+    if not row:
+        raise HTTPException(status_code=400, detail="RFC no registrado o sin regimen fiscal")
+    return row
+
+
+def _load_config_for_rfc(
+    db: Session,
+    *,
+    rfc: str,
+    tipo_declaracion_clave: str,
+    ejercicio: int | None = None,
+) -> tuple[dict, set[str], RegimenFiscalCatalogModel]:
+    regimen = _resolve_regimen_for_rfc(db, rfc)
+    repo = SqlDeclaracionConfigRepository(db)
+    config = repo.get_config(
+        regimen_fiscal_clave=regimen.clave,
+        tipo_declaracion_clave=tipo_declaracion_clave,
+    )
+    if not config or not bool(config.get("activo")):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "No existe configuracion activa para "
+                f"regimen {regimen.clave}, tipo {tipo_declaracion_clave} "
+                f"(ejercicio solicitado: {ejercicio if ejercicio is not None else 'N/A'})"
+            ),
+        )
+    usos = {
+        str(item.get("clave") or "").strip().upper()
+        for item in (config.get("usos_cfdi") or [])
+        if str(item.get("clave") or "").strip()
+    }
+    if not usos:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "La configuracion no tiene usos CFDI activos para "
+                f"regimen {regimen.clave}, tipo {tipo_declaracion_clave}"
+            ),
+        )
+    return config, usos, regimen
+
+
+def _compute_year_data(
+    db: Session,
+    *,
+    year: int,
+    mi_rfc: str,
+    gasto_uso_cfdi_allowlist: set[str] | None = None,
+) -> tuple[dict, list[str]]:
+    totals = {
+        "ingresos_total": 0.0,
+        "ingresos_base": 0.0,
+        "ingresos_trasl": 0.0,
+        "ingresos_ret": 0.0,
+        "gastos_total": 0.0,
+        "gastos_trasl": 0.0,
+        "gastos_ret": 0.0,
+        "p_count": 0,
+        "cash_in": 0.0,
+        "cash_out": 0.0,
+        "pagos_count": 0,
+        "plat_ing_siva": 0.0,
+        "plat_iva_tras": 0.0,
+        "plat_iva_ret": 0.0,
+        "plat_isr_ret": 0.0,
+        "plat_comision": 0.0,
+        "docs": [],
+        "pagos_rows": [],
+        "ret_rows": [],
+    }
+    periods = [m for y, m in month_options(db) if y == year]
+    for month in periods:
+        data = compute_period_data(
+            db,
+            year,
+            month,
+            mi_rfc=mi_rfc,
+            gasto_uso_cfdi_allowlist=gasto_uso_cfdi_allowlist,
+        )
+        for key in (
+            "ingresos_total",
+            "ingresos_base",
+            "ingresos_trasl",
+            "ingresos_ret",
+            "gastos_total",
+            "gastos_trasl",
+            "gastos_ret",
+            "cash_in",
+            "cash_out",
+            "plat_ing_siva",
+            "plat_iva_tras",
+            "plat_iva_ret",
+            "plat_isr_ret",
+            "plat_comision",
+        ):
+            totals[key] += float(data.get(key) or 0.0)
+        totals["p_count"] += int(data.get("p_count") or 0)
+        totals["pagos_count"] += int(data.get("pagos_count") or 0)
+        totals["docs"].extend(data.get("docs") or [])
+        totals["pagos_rows"].extend(data.get("pagos_rows") or [])
+        totals["ret_rows"].extend(data.get("ret_rows") or [])
+    return totals, [f"{year}-{m:02d}" for m in sorted(periods)]
 
 
 def _previous_period(year: int, month: int) -> tuple[int, int]:
@@ -72,15 +198,93 @@ def _fetch_saldos(
 def summary(
     year: Optional[int] = None,
     month: Optional[int] = None,
+    tipo_declaracion: Optional[str] = "MENSUAL",
     x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ):
-    if year is None or month is None:
-        year, month = pick_default_period(db)
-    if year is None or month is None:
+    tipo_decl = _normalize_tipo_declaracion(tipo_declaracion)
+    if year is None:
+        year, default_month = pick_default_period(db)
+        if tipo_decl == TIPO_DECL_MENSUAL and month is None:
+            month = default_month
+    elif tipo_decl == TIPO_DECL_MENSUAL and month is None:
+        _, default_month = pick_default_period(db)
+        month = default_month
+    if year is None:
+        raise HTTPException(status_code=404, detail="No hay datos para resumir")
+    if tipo_decl == TIPO_DECL_MENSUAL and month is None:
         raise HTTPException(status_code=404, detail="No hay datos para resumir")
 
-    data = compute_period_data(db, year, month, mi_rfc=x_rfc)
+    _, usos_mensual, regimen = _load_config_for_rfc(
+        db,
+        rfc=x_rfc,
+        tipo_declaracion_clave=TIPO_DECL_MENSUAL,
+        ejercicio=year,
+    )
+
+    if tipo_decl == TIPO_DECL_ANUAL:
+        config_anual, usos_anual, _ = _load_config_for_rfc(
+            db,
+            rfc=x_rfc,
+            tipo_declaracion_clave=TIPO_DECL_ANUAL,
+            ejercicio=year,
+        )
+        data_anual, periodos_incluidos = _compute_year_data(
+            db,
+            year=year,
+            mi_rfc=x_rfc,
+            gasto_uso_cfdi_allowlist=usos_anual,
+        )
+        incluir_acumulado = bool(config_anual.get("incluir_acumulado_mensual_en_anual"))
+        data_mensual_acumulado = None
+        if incluir_acumulado:
+            data_mensual_acumulado, _ = _compute_year_data(
+                db,
+                year=year,
+                mi_rfc=x_rfc,
+                gasto_uso_cfdi_allowlist=usos_mensual,
+            )
+
+        iva_causado_sugerido = data_anual["plat_iva_tras"] + data_anual["ingresos_trasl"]
+        iva_acreditable_anual_sugerido = data_anual["gastos_trasl"]
+        iva_acreditable_mensual_acumulado_sugerido = data_mensual_acumulado["gastos_trasl"] if data_mensual_acumulado else 0.0
+        iva_retenido_plat = data_anual["plat_iva_ret"]
+        iva_neto_sugerido = iva_causado_sugerido - (iva_acreditable_anual_sugerido + iva_acreditable_mensual_acumulado_sugerido) - iva_retenido_plat
+        return {
+            "tipo_declaracion": TIPO_DECL_ANUAL,
+            "year": year,
+            "mi_rfc": x_rfc,
+            "regimen_fiscal_clave": regimen.clave,
+            "periodos_mensuales_incluidos": periodos_incluidos,
+            "deducciones_anuales": {
+                "usos_cfdi": sorted(usos_anual),
+                "gastos_total": data_anual["gastos_total"],
+                "gastos_trasl": data_anual["gastos_trasl"],
+                "gastos_ret": data_anual["gastos_ret"],
+            },
+            "deducciones_mensuales_acumuladas": {
+                "habilitado": incluir_acumulado,
+                "usos_cfdi": sorted(usos_mensual) if incluir_acumulado else [],
+                "gastos_total": float(data_mensual_acumulado["gastos_total"]) if data_mensual_acumulado else 0.0,
+                "gastos_trasl": float(data_mensual_acumulado["gastos_trasl"]) if data_mensual_acumulado else 0.0,
+                "gastos_ret": float(data_mensual_acumulado["gastos_ret"]) if data_mensual_acumulado else 0.0,
+            },
+            "ingresos_total": data_anual["ingresos_total"],
+            "ingresos_base": data_anual["ingresos_base"],
+            "ingresos_trasl": data_anual["ingresos_trasl"],
+            "ingresos_ret": data_anual["ingresos_ret"],
+            "plat_ing_siva": data_anual["plat_ing_siva"],
+            "plat_iva_tras": data_anual["plat_iva_tras"],
+            "plat_iva_ret": data_anual["plat_iva_ret"],
+            "plat_isr_ret": data_anual["plat_isr_ret"],
+            "plat_comision": data_anual["plat_comision"],
+            "iva_causado_sugerido": iva_causado_sugerido,
+            "iva_acreditable_sugerido": (iva_acreditable_anual_sugerido + iva_acreditable_mensual_acumulado_sugerido),
+            "iva_retenido_plat": iva_retenido_plat,
+            "iva_neto_sugerido": iva_neto_sugerido,
+        }
+
+    data = compute_period_data(db, year, month, mi_rfc=x_rfc, gasto_uso_cfdi_allowlist=usos_mensual)
     iva_causado_sugerido = data["plat_iva_tras"] + data["ingresos_trasl"]
     iva_acreditable_sugerido = data["gastos_trasl"]
     iva_retenido_plat = data["plat_iva_ret"]
@@ -125,19 +329,58 @@ def summary(
 def summary_details(
     year: Optional[int] = None,
     month: Optional[int] = None,
+    tipo_declaracion: Optional[str] = "MENSUAL",
     x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ):
-    if year is None or month is None:
-        year, month = pick_default_period(db)
-    if year is None or month is None:
+    tipo_decl = _normalize_tipo_declaracion(tipo_declaracion)
+    if year is None:
+        year, default_month = pick_default_period(db)
+        if tipo_decl == TIPO_DECL_MENSUAL and month is None:
+            month = default_month
+    elif tipo_decl == TIPO_DECL_MENSUAL and month is None:
+        _, default_month = pick_default_period(db)
+        month = default_month
+    if year is None:
+        raise HTTPException(status_code=404, detail="No hay datos para resumir")
+    if tipo_decl == TIPO_DECL_MENSUAL and month is None:
         raise HTTPException(status_code=404, detail="No hay datos para resumir")
 
-    data = compute_period_data(db, year, month, mi_rfc=x_rfc)
-    docs = data["docs"][:200]
-    pagos_rows = data["pagos_rows"][:200]
+    if tipo_decl == TIPO_DECL_ANUAL:
+        _, usos, regimen = _load_config_for_rfc(
+            db,
+            rfc=x_rfc,
+            tipo_declaracion_clave=TIPO_DECL_ANUAL,
+            ejercicio=year,
+        )
+        data, periodos = _compute_year_data(
+            db,
+            year=year,
+            mi_rfc=x_rfc,
+            gasto_uso_cfdi_allowlist=usos,
+        )
+        payload = summary_details_to_payload(data["docs"][:200], data["pagos_rows"][:200])
+        payload["tipo_declaracion"] = TIPO_DECL_ANUAL
+        payload["year"] = year
+        payload["periodos_mensuales_incluidos"] = periodos
+        payload["regimen_fiscal_clave"] = regimen.clave
+        payload["usos_cfdi"] = sorted(usos)
+        return payload
 
-    return summary_details_to_payload(docs, pagos_rows)
+    _, usos, regimen = _load_config_for_rfc(
+        db,
+        rfc=x_rfc,
+        tipo_declaracion_clave=TIPO_DECL_MENSUAL,
+        ejercicio=year,
+    )
+    data = compute_period_data(db, year, month, mi_rfc=x_rfc, gasto_uso_cfdi_allowlist=usos)
+    payload = summary_details_to_payload(data["docs"][:200], data["pagos_rows"][:200])
+    payload["tipo_declaracion"] = TIPO_DECL_MENSUAL
+    payload["year"] = year
+    payload["month"] = month
+    payload["regimen_fiscal_clave"] = regimen.clave
+    payload["usos_cfdi"] = sorted(usos)
+    return payload
 
 
 @router.get(
@@ -148,16 +391,112 @@ def summary_details(
 def declaracion_mode(
     year: Optional[int] = None,
     month: Optional[int] = None,
+    tipo_declaracion: Optional[str] = "MENSUAL",
     income_source: Optional[str] = "auto",
     x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ):
-    if year is None or month is None:
-        year, month = pick_default_period(db)
-    if year is None or month is None:
+    tipo_decl = _normalize_tipo_declaracion(tipo_declaracion)
+    if year is None:
+        year, default_month = pick_default_period(db)
+        if tipo_decl == TIPO_DECL_MENSUAL and month is None:
+            month = default_month
+    elif tipo_decl == TIPO_DECL_MENSUAL and month is None:
+        _, default_month = pick_default_period(db)
+        month = default_month
+    if year is None:
+        raise HTTPException(status_code=404, detail="No hay datos para resumir")
+    if tipo_decl == TIPO_DECL_MENSUAL and month is None:
         raise HTTPException(status_code=404, detail="No hay datos para resumir")
 
-    data = compute_period_data(db, year, month, mi_rfc=x_rfc)
+    if tipo_decl == TIPO_DECL_ANUAL:
+        config_anual, usos_anual, regimen = _load_config_for_rfc(
+            db,
+            rfc=x_rfc,
+            tipo_declaracion_clave=TIPO_DECL_ANUAL,
+            ejercicio=year,
+        )
+        data_anual, periodos_incluidos = _compute_year_data(
+            db,
+            year=year,
+            mi_rfc=x_rfc,
+            gasto_uso_cfdi_allowlist=usos_anual,
+        )
+        incluir_acumulado = bool(config_anual.get("incluir_acumulado_mensual_en_anual"))
+        data_mensual_acumulado = None
+        usos_mensual: set[str] = set()
+        if incluir_acumulado:
+            _, usos_mensual, _ = _load_config_for_rfc(
+                db,
+                rfc=x_rfc,
+                tipo_declaracion_clave=TIPO_DECL_MENSUAL,
+                ejercicio=year,
+            )
+            data_mensual_acumulado, _ = _compute_year_data(
+                db,
+                year=year,
+                mi_rfc=x_rfc,
+                gasto_uso_cfdi_allowlist=usos_mensual,
+            )
+        ingresos_total_sin_iva, iva_trasladado_sel, effective_income_source = calc_income_and_iva_sources(
+            data_anual, income_source
+        )
+        iva_trasladado_total = float(data_anual.get("plat_iva_tras") or 0.0) + float(
+            data_anual.get("ingresos_trasl") or 0.0
+        )
+        return {
+            "tipo_declaracion": TIPO_DECL_ANUAL,
+            "year": year,
+            "periodos_mensuales_incluidos": periodos_incluidos,
+            "mi_rfc": x_rfc,
+            "regimen_fiscal_clave": regimen.clave,
+            "income_source": income_source,
+            "effective_income_source": effective_income_source,
+            "ingresos_total_sin_iva": ingresos_total_sin_iva,
+            "ingresos_base": float((data_anual.get("ingresos_base") or 0.0) + (data_mensual_acumulado.get("ingresos_base") or 0.0) if data_mensual_acumulado else (data_anual.get("ingresos_base") or 0.0)),
+            "isr_retenido": float(data_anual.get("plat_isr_ret") or 0.0),
+            "iva_retenido": float(data_anual.get("plat_iva_ret") or 0.0),
+            "iva_acreditable": float((data_anual.get("gastos_trasl") or 0.0) + (data_mensual_acumulado.get("gastos_trasl") or 0.0)),
+            "iva_trasladado_total": iva_trasladado_total,
+            "iva_trasladado_seleccion": iva_trasladado_sel,
+            "retenciones_count": len(data_anual.get("ret_rows") or []),
+            "docs_count": len(data_anual.get("docs") or []),
+            "pagos_count": int(data_anual.get("pagos_count") or 0),
+            "deducciones_anuales": {
+                "usos_cfdi": sorted(usos_anual),
+                "gastos_total": float(data_anual.get("gastos_total") or 0.0),
+                "gastos_trasl": float(data_anual.get("gastos_trasl") or 0.0),
+                "gastos_ret": float(data_anual.get("gastos_ret") or 0.0),
+            },
+            "deducciones_mensuales_acumuladas": {
+                "habilitado": incluir_acumulado,
+                "usos_cfdi": sorted(usos_mensual) if incluir_acumulado else [],
+                "gastos_total": float(data_mensual_acumulado.get("gastos_total") or 0.0)
+                if data_mensual_acumulado
+                else 0.0,
+                "gastos_trasl": float(data_mensual_acumulado.get("gastos_trasl") or 0.0)
+                if data_mensual_acumulado
+                else 0.0,
+                "gastos_ret": float(data_mensual_acumulado.get("gastos_ret") or 0.0)
+                if data_mensual_acumulado
+                else 0.0,
+            },
+            "checks": [],
+            "acuse_payload": None,
+            "acuse_checks": [],
+            "declaracion_pdf": None,
+            "mostrar_declaracion_presentada": False,
+            "mostrar_conciliacion_acuse_sat": False,
+        }
+
+    _, usos_mensual, _ = _load_config_for_rfc(
+        db,
+        rfc=x_rfc,
+        tipo_declaracion_clave=TIPO_DECL_MENSUAL,
+        ejercicio=year,
+    )
+
+    data = compute_period_data(db, year, month, mi_rfc=x_rfc, gasto_uso_cfdi_allowlist=usos_mensual)
     ingresos_total_sin_iva, iva_trasladado_sel, effective_income_source = calc_income_and_iva_sources(
         data, income_source
     )

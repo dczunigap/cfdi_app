@@ -74,13 +74,20 @@ def _normalize_naturaleza(naturaleza: Optional[str], tipo: Optional[str]) -> Opt
     return nat
 
 
-def compute_period_data(db: Session, year: int, month: int, mi_rfc: str | None = None) -> dict:
+def compute_period_data(
+    db: Session,
+    year: int,
+    month: int,
+    mi_rfc: str | None = None,
+    gasto_uso_cfdi_allowlist: set[str] | None = None,
+) -> dict:
     platform_rfcs = {
         (rfc or "").strip().upper()
         for rfc in db.scalars(select(PlatformRfcModel.rfc)).all()
         if rfc
     }
     mi_rfc = (mi_rfc or "").strip().upper()
+    usos_allow = {u.strip().upper() for u in (gasto_uso_cfdi_allowlist or set()) if (u or "").strip()}
     docs_query = (
         select(FacturaModel)
         .where(FacturaModel.year_emision == year, FacturaModel.month_emision == month)
@@ -113,11 +120,12 @@ def compute_period_data(db: Session, year: int, month: int, mi_rfc: str | None =
         uso_cfdi = (d.uso_cfdi or "").upper()
 
         if mi_rfc:
-            is_gasto = receptor_rfc == mi_rfc and uso_cfdi not in {"S01", "CP01"}
+            # is_gasto = receptor_rfc == mi_rfc and uso_cfdi not in {"S01", "CP01"}
+            is_gasto = receptor_rfc == mi_rfc and usos_allow and uso_cfdi in usos_allow
             is_platform_receptor = receptor_rfc in platform_rfcs if receptor_rfc else False
             if (
                 emisor_rfc == mi_rfc
-                and uso_cfdi not in {"S01", "CP01"}
+                and uso_cfdi in usos_allow
                 and naturaleza == "ingreso"
             ):
                 if not is_platform_receptor:
@@ -137,6 +145,8 @@ def compute_period_data(db: Session, year: int, month: int, mi_rfc: str | None =
             ingresos_ret += _signed(d.total_retenidos, tipo)
             ingresos_base += _signed(base, tipo)
         elif naturaleza == "gasto":
+            if usos_allow and uso_cfdi not in usos_allow:
+                continue
             gastos_total += _signed(d.total, tipo)
             gastos_trasl += _signed(d.total_trasladados, tipo)
             gastos_ret += _signed(d.total_retenidos, tipo)

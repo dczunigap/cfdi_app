@@ -270,3 +270,93 @@ class UserRfcModel(Base):
     __table_args__ = (
         Index("ux_user_rfc", "user_id", "rfc_id", unique=True),
     )
+
+
+class TipoDeclaracionCatalogModel(Base):
+    __tablename__ = "catalogo_tipo_declaracion"
+
+    clave: Mapped[str] = mapped_column(String(20), primary_key=True)
+    descripcion: Mapped[str] = mapped_column(String(200), nullable=False)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class UsoCfdiDeduccionCatalogModel(Base):
+    __tablename__ = "catalogo_uso_cfdi_deduccion"
+
+    clave: Mapped[str] = mapped_column(String(20), primary_key=True)
+    descripcion: Mapped[str] = mapped_column(String(300), nullable=False)
+    tipo_declaracion_clave: Mapped[str] = mapped_column(
+        ForeignKey("catalogo_tipo_declaracion.clave"),
+        index=True,
+        nullable=False,
+    )
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class RegimenDeclaracionConfigModel(Base):
+    __tablename__ = "regimen_declaracion_config"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    regimen_fiscal_id: Mapped[int] = mapped_column(
+        ForeignKey("catalogo_regimen_fiscal.id"),
+        index=True,
+        nullable=False,
+    )
+    tipo_declaracion_clave: Mapped[str] = mapped_column(
+        ForeignKey("catalogo_tipo_declaracion.clave"),
+        index=True,
+        nullable=False,
+    )
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    incluir_acumulado_mensual_en_anual: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "regimen_fiscal_id",
+            "tipo_declaracion_clave",
+            name="ux_config_regimen_tipo",
+        ),
+    )
+
+
+class RegimenDeclaracionConfigDetalleModel(Base):
+    __tablename__ = "regimen_declaracion_config_detalle"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    config_id: Mapped[int] = mapped_column(
+        ForeignKey("regimen_declaracion_config.id"),
+        index=True,
+        nullable=False,
+    )
+    uso_cfdi_clave: Mapped[str] = mapped_column(
+        ForeignKey("catalogo_uso_cfdi_deduccion.clave"),
+        nullable=False,
+    )
+    orden: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        UniqueConstraint(
+            "config_id",
+            "uso_cfdi_clave",
+            name="ux_config_detalle",
+        ),
+    )

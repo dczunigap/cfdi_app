@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { KeyRound, Users, Phone, ShieldCheck, Building2 } from "lucide-react";
+import { KeyRound, Users, Building2, SlidersHorizontal } from "lucide-react";
 
 const navItems = [
   { href: "/users", label: "Users", icon: Users },
   { href: "/platform-rfcs", label: "Platform RFCs", icon: Building2 },
-  { href: "/admin-sat", label: "Admin SAT", icon: KeyRound }
+  { href: "/admin-sat", label: "Admin SAT", icon: KeyRound },
+  { href: "/declaracion-config", label: "Config Declaracion", icon: SlidersHorizontal }
   // { href: "/admin-sat#rfc-users", label: "RFC por usuario", icon: Users },
   // { href: "/admin-sat#rfc-phones", label: "Telefonos RFC", icon: Phone },
   // { href: "/admin-sat#credentials", label: "Credenciales SAT", icon: KeyRound },

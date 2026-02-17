@@ -1,7 +1,25 @@
+export type TipoDeclaracion = 'MENSUAL' | 'ANUAL';
+
+export interface SummaryDeduccionesBlock {
+  usos_cfdi: string[];
+  gastos_total: number;
+  gastos_trasl: number;
+  gastos_ret: number;
+}
+
+export interface SummaryDeduccionesMensualesAcumuladas extends SummaryDeduccionesBlock {
+  habilitado: boolean;
+}
+
 export interface SummaryData {
+  tipo_declaracion?: TipoDeclaracion;
   year: number;
-  month: number;
+  month?: number;
   mi_rfc?: string | null;
+  regimen_fiscal_clave?: string;
+  periodos_mensuales_incluidos?: string[];
+  deducciones_anuales?: SummaryDeduccionesBlock;
+  deducciones_mensuales_acumuladas?: SummaryDeduccionesMensualesAcumuladas;
   ingresos_total: number;
   ingresos_base: number;
   ingresos_trasl: number;

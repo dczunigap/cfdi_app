@@ -50,6 +50,18 @@ def require_user(
     return user
 
 
+def require_admin(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: Session = Depends(get_db),
+) -> UserModel:
+    user = get_current_user(authorization=authorization, db=db)
+    if not user:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    if not bool(getattr(user, "is_admin", False)):
+        raise HTTPException(status_code=403, detail="Permisos insuficientes")
+    return user
+
+
 def optional_user(
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: Session = Depends(get_db),

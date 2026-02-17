@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
 import { SummaryRepository } from '../data/summary.repository';
-import { SummaryData } from '../data/summary.model';
+import { SummaryData, TipoDeclaracion } from '../data/summary.model';
 import { AppAlertService } from '../../../shared/ui/alert/alert.service';
 
 @Component({
@@ -27,9 +27,11 @@ export class SummaryPageComponent implements OnInit {
 
   year: number | null = null;
   month: number | null = null;
+  tipoDeclaracion: TipoDeclaracion = 'MENSUAL';
 
   readonly years = this.buildYears();
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
+  readonly tiposDeclaracion: TipoDeclaracion[] = ['MENSUAL', 'ANUAL'];
 
   ngOnInit(): void {
     this.fetch();
@@ -40,16 +42,25 @@ export class SummaryPageComponent implements OnInit {
     const month = Number(this.month);
     const hasYear = Number.isFinite(year) && year > 0;
     const hasMonth = Number.isFinite(month) && month > 0;
-    if ((hasYear && !hasMonth) || (!hasYear && hasMonth)) {
+    if (this.tipoDeclaracion === 'MENSUAL' && ((hasYear && !hasMonth) || (!hasYear && hasMonth))) {
       this.alerts.warning('Selecciona ano y mes para cargar el resumen.');
       return;
     }
+    if (this.tipoDeclaracion === 'ANUAL' && !hasYear) {
+      this.alerts.warning('Selecciona ano para cargar el resumen anual.');
+      return;
+    }
     this.loading = true;
-    this.repo.fetch(hasYear ? year : null, hasMonth ? month : null).subscribe({
+    this.repo.fetch(
+      this.tipoDeclaracion,
+      hasYear ? year : null,
+      this.tipoDeclaracion === 'MENSUAL' && hasMonth ? month : null,
+    ).subscribe({
       next: (data) => {
         this.summary = { ...data };
         this.year = data.year;
-        this.month = data.month;
+        this.month = data.month ?? null;
+        this.tipoDeclaracion = data.tipo_declaracion ?? this.tipoDeclaracion;
         this.loading = false;
         this.cdr.markForCheck();
       },
@@ -75,13 +86,15 @@ export class SummaryPageComponent implements OnInit {
   }
 
   resetFilters(): void {
+    this.tipoDeclaracion = 'MENSUAL';
     this.year = null;
     this.month = null;
     this.summary = null;
   }
 
   periodLabel(data: SummaryData): string {
-    return `${data.year}-${String(data.month).padStart(2, '0')}`;
+    if (this.isAnualData(data)) return `${data.year}`;
+    return `${data.year}-${String(data.month ?? '').padStart(2, '0')}`;
   }
 
   get alertsList(): string[] {
@@ -101,6 +114,8 @@ export class SummaryPageComponent implements OnInit {
 
   get csvUrl(): string | null {
     if (!this.summary) return null;
+    if (this.isAnualData(this.summary)) return null;
+    if (!this.summary.month) return null;
     return `/api/v1/sat_report.csv?year=${this.summary.year}&month=${this.summary.month}`;
   }
 
@@ -112,9 +127,23 @@ export class SummaryPageComponent implements OnInit {
     });
   }
 
-  get declaracionParams(): { year: number; month: number } | null {
+  get declaracionParams(): { year: number; month?: number; tipo_declaracion: TipoDeclaracion } | null {
     if (!this.summary) return null;
-    return { year: this.summary.year, month: this.summary.month };
+    return {
+      year: this.summary.year,
+      month: this.summary.month,
+      tipo_declaracion: this.isAnualData(this.summary) ? 'ANUAL' : 'MENSUAL',
+    };
+  }
+
+  onTipoDeclaracionChange(): void {
+    if (this.tipoDeclaracion === 'ANUAL') {
+      this.month = null;
+    }
+  }
+
+  isAnualData(data: SummaryData | null): boolean {
+    return (data?.tipo_declaracion || this.tipoDeclaracion) === 'ANUAL';
   }
 
   private buildYears(): number[] {
