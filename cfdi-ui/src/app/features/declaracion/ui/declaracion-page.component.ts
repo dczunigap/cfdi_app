@@ -67,7 +67,6 @@ export class DeclaracionPageComponent {
       this.tipoDeclaracion,
     ).subscribe({
       next: (data) => {
-        console.log("🚀 ~ DeclaracionPageComponent ~ load ~ data:", data)
         this.summary = { ...data };
         this.tipoDeclaracion = data.tipo_declaracion ?? this.tipoDeclaracion;
         this.loading = false;
