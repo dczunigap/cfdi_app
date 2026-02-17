@@ -1,7 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
 import { SummaryRepository } from '../data/summary.repository';
@@ -11,7 +10,7 @@ import { AppAlertService } from '../../../shared/ui/alert/alert.service';
 @Component({
   selector: 'app-summary-page',
   standalone: true,
-  imports: [DecimalPipe, FormsModule, RouterLink],
+  imports: [DecimalPipe, FormsModule],
   templateUrl: './summary-page.component.html',
   styleUrl: './summary-page.component.css',
 })
