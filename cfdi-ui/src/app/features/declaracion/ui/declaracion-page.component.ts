@@ -2,20 +2,15 @@ import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { DatePipe, DecimalPipe, NgClass, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 
-import { API_BASE_URL } from '../../../core/api/api-client';
-import { DeclaracionRepository } from '../data/declaracion.repository';
 import { DeclaracionCheck, DeclaracionPdf, DeclaracionSummary } from '../data/declaracion.model';
-import { AppAlertService } from '../../../shared/ui/alert/alert.service';
-import { buildRecentYears, downloadBlobFile } from '../../../shared/utils/ui-helpers';
+import { buildRecentYears } from '../../../shared/utils/ui-helpers';
+import { DeclaracionFacade, DeclaracionTipo } from '../data/declaracion.facade';
 
 type IncomeSourceOption = {
   value: string;
   label: string;
 };
-type TipoDeclaracion = 'MENSUAL' | 'ANUAL';
-
 @Component({
   selector: 'app-declaracion-page',
   standalone: true,
@@ -24,10 +19,8 @@ type TipoDeclaracion = 'MENSUAL' | 'ANUAL';
   styleUrl: './declaracion-page.component.css',
 })
 export class DeclaracionPageComponent {
-  private readonly repo = inject(DeclaracionRepository);
-  private readonly alerts = inject(AppAlertService);
+  private readonly facade = inject(DeclaracionFacade);
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly http = inject(HttpClient);
 
   summary: DeclaracionSummary | null = null;
   loading = false;
@@ -35,12 +28,12 @@ export class DeclaracionPageComponent {
 
   year: number | null = null;
   month: number | null = null;
-  tipoDeclaracion: TipoDeclaracion = 'MENSUAL';
+  tipoDeclaracion: DeclaracionTipo = 'MENSUAL';
   incomeSource = 'auto';
 
   readonly years = buildRecentYears();
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
-  readonly tiposDeclaracion: TipoDeclaracion[] = ['MENSUAL', 'ANUAL'];
+  readonly tiposDeclaracion: DeclaracionTipo[] = ['MENSUAL', 'ANUAL'];
   readonly incomeSources: IncomeSourceOption[] = [
     { value: 'auto', label: 'Auto (usar plataforma si existe)' },
     { value: 'plataforma', label: 'Solo plataforma (Retenciones)' },
@@ -49,39 +42,17 @@ export class DeclaracionPageComponent {
   ];
 
   load(): void {
-    const year = Number(this.year);
-    const month = Number(this.month);
-    if (!Number.isFinite(year) || year <= 0) {
-      this.alerts.warning('Selecciona ano para cargar la declaracion.');
-      return;
-    }
-    if (this.tipoDeclaracion === 'MENSUAL' && (!Number.isFinite(month) || month <= 0)) {
-      this.alerts.warning('Selecciona ano y mes para cargar la declaracion.');
-      return;
-    }
-
     this.loading = true;
-    this.repo.fetch(
-      year,
-      this.tipoDeclaracion === 'MENSUAL' ? month : null,
-      this.incomeSource,
-      this.tipoDeclaracion,
-    ).subscribe({
+    this.facade.loadDeclaracion(this.tipoDeclaracion, this.year, this.month, this.incomeSource).subscribe({
       next: (data) => {
-        this.summary = { ...data };
-        this.tipoDeclaracion = data.tipo_declaracion ?? this.tipoDeclaracion;
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        this.loading = false;
-        this.summary = null;
-        this.cdr.markForCheck();
-        if (err?.status === 404) {
-          this.alerts.warning('No hay datos para ese periodo.');
+        if (data) {
+          this.summary = { ...data };
+          this.tipoDeclaracion = data.tipo_declaracion ?? this.tipoDeclaracion;
         } else {
-          this.alerts.error('No se pudo cargar el modo declaracion.');
+          this.summary = null;
         }
+        this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -98,35 +69,29 @@ export class DeclaracionPageComponent {
   }
 
   get csvUrl(): string | null {
-    if (this.tipoDeclaracion === 'ANUAL') return null;
-    const year = Number(this.year);
-    const month = Number(this.month);
-    if (!Number.isFinite(year) || !Number.isFinite(month) || year <= 0 || month <= 0) return null;
-    return `${API_BASE_URL}/sat_report.csv?year=${year}&month=${month}&income_source=${this.incomeSource}`;
+    return this.facade.csvUrl(this.tipoDeclaracion, this.year, this.month, this.incomeSource);
   }
 
   get hojaUrl(): string | null {
-    if (this.tipoDeclaracion === 'ANUAL') return null;
-    const year = Number(this.year);
-    const month = Number(this.month);
-    if (!Number.isFinite(year) || !Number.isFinite(month) || year <= 0 || month <= 0) return null;
-    return `${API_BASE_URL}/sat_hoja.txt?year=${year}&month=${month}&income_source=${this.incomeSource}`;
+    return this.facade.hojaUrl(this.tipoDeclaracion, this.year, this.month, this.incomeSource);
   }
 
   downloadCsv(): void {
     if (!this.csvUrl) return;
-    this.http.get(this.csvUrl, { responseType: 'blob' }).subscribe({
-      next: (blob) => downloadBlobFile(blob, `sat_report_${this.periodLabelFromInputs()}.csv`),
-      error: () => this.alerts.error('No se pudo descargar el CSV SAT.'),
-    });
+    this.facade.downloadFile(
+      this.csvUrl,
+      `sat_report_${this.periodLabelFromInputs()}.csv`,
+      'No se pudo descargar el CSV SAT.',
+    );
   }
 
   downloadHoja(): void {
     if (!this.hojaUrl) return;
-    this.http.get(this.hojaUrl, { responseType: 'blob' }).subscribe({
-      next: (blob) => downloadBlobFile(blob, `hoja_sat_${this.periodLabelFromInputs()}.txt`),
-      error: () => this.alerts.error('No se pudo generar la hoja SAT.'),
-    });
+    this.facade.downloadFile(
+      this.hojaUrl,
+      `hoja_sat_${this.periodLabelFromInputs()}.txt`,
+      'No se pudo generar la hoja SAT.',
+    );
   }
 
   periodLabel(data: DeclaracionSummary): string {
@@ -165,21 +130,11 @@ export class DeclaracionPageComponent {
   }
 
   pdfUrl(pdf: DeclaracionPdf): string {
-    return `${API_BASE_URL}/declaraciones/${pdf.id}/archivo/${encodeURIComponent(pdf.filename)}`;
+    return this.facade.pdfUrl(pdf);
   }
 
   openPdf(pdf: DeclaracionPdf): void {
-    const url = this.pdfUrl(pdf);
-    this.http.get(url, { responseType: 'blob' }).subscribe({
-      next: (blob) => this.openBlob(blob),
-      error: () => this.alerts.error('No se pudo abrir el PDF.'),
-    });
-  }
-
-  private openBlob(blob: Blob): void {
-    const url = window.URL.createObjectURL(blob);
-    window.open(url, '_blank', 'noopener');
-    setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+    this.facade.openPdf(pdf);
   }
 
   private periodLabelFromInputs(): string {

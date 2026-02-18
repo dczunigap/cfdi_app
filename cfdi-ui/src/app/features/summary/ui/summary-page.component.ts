@@ -1,12 +1,10 @@
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 
-import { SummaryRepository } from '../data/summary.repository';
 import { SummaryData, TipoDeclaracion } from '../data/summary.model';
-import { AppAlertService } from '../../../shared/ui/alert/alert.service';
-import { buildRecentYears, downloadBlobFile } from '../../../shared/utils/ui-helpers';
+import { buildRecentYears } from '../../../shared/utils/ui-helpers';
+import { SummaryFacade } from '../data/summary.facade';
 
 @Component({
   selector: 'app-summary-page',
@@ -16,10 +14,8 @@ import { buildRecentYears, downloadBlobFile } from '../../../shared/utils/ui-hel
   styleUrls: ['./summary-page.component.css'],
 })
 export class SummaryPageComponent implements OnInit {
-  private readonly repo = inject(SummaryRepository);
-  private readonly alerts = inject(AppAlertService);
+  private readonly facade = inject(SummaryFacade);
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly http = inject(HttpClient);
 
   summary: SummaryData | null = null;
   loading = false;
@@ -38,41 +34,19 @@ export class SummaryPageComponent implements OnInit {
   }
 
   fetch(): void {
-    const year = Number(this.year);
-    const month = Number(this.month);
-    const hasYear = Number.isFinite(year) && year > 0;
-    const hasMonth = Number.isFinite(month) && month > 0;
-    if (this.tipoDeclaracion === 'MENSUAL' && ((hasYear && !hasMonth) || (!hasYear && hasMonth))) {
-      this.alerts.warning('Selecciona ano y mes para cargar el resumen.');
-      return;
-    }
-    if (this.tipoDeclaracion === 'ANUAL' && !hasYear) {
-      this.alerts.warning('Selecciona ano para cargar el resumen anual.');
-      return;
-    }
     this.loading = true;
-    this.repo.fetch(
-      this.tipoDeclaracion,
-      hasYear ? year : null,
-      this.tipoDeclaracion === 'MENSUAL' && hasMonth ? month : null,
-    ).subscribe({
+    this.facade.loadSummary(this.tipoDeclaracion, this.year, this.month).subscribe({
       next: (data) => {
-        this.summary = { ...data };
-        this.year = data.year;
-        this.month = data.month ?? null;
-        this.tipoDeclaracion = data.tipo_declaracion ?? this.tipoDeclaracion;
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        this.loading = false;
-        this.summary = null;
-        this.cdr.markForCheck();
-        if (err?.status === 404) {
-          this.alerts.warning('No hay datos para resumir en ese periodo.');
+        if (data) {
+          this.summary = { ...data };
+          this.year = data.year;
+          this.month = data.month ?? null;
+          this.tipoDeclaracion = data.tipo_declaracion ?? this.tipoDeclaracion;
         } else {
-          this.alerts.error('No se pudo cargar el resumen.');
+          this.summary = null;
         }
+        this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }
@@ -113,18 +87,12 @@ export class SummaryPageComponent implements OnInit {
   }
 
   get csvUrl(): string | null {
-    if (!this.summary) return null;
-    if (this.isAnualData(this.summary)) return null;
-    if (!this.summary.month) return null;
-    return `/api/v1/sat_report.csv?year=${this.summary.year}&month=${this.summary.month}`;
+    return this.facade.csvUrl(this.summary, this.tipoDeclaracion);
   }
 
   downloadCsv(): void {
     if (!this.csvUrl) return;
-    this.http.get(this.csvUrl, { responseType: 'blob' }).subscribe({
-      next: (blob) => downloadBlobFile(blob, `sat_report_${this.periodLabel(this.summary!)}.csv`),
-      error: () => this.alerts.error('No se pudo descargar el CSV SAT.'),
-    });
+    this.facade.downloadCsv(this.csvUrl, `sat_report_${this.periodLabel(this.summary!)}.csv`);
   }
 
   get declaracionParams(): { year: number; month?: number; tipo_declaracion: TipoDeclaracion } | null {
