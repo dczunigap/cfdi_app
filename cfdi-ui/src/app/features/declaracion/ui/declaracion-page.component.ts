@@ -8,6 +8,7 @@ import { API_BASE_URL } from '../../../core/api/api-client';
 import { DeclaracionRepository } from '../data/declaracion.repository';
 import { DeclaracionCheck, DeclaracionPdf, DeclaracionSummary } from '../data/declaracion.model';
 import { AppAlertService } from '../../../shared/ui/alert/alert.service';
+import { buildRecentYears, downloadBlobFile } from '../../../shared/utils/ui-helpers';
 
 type IncomeSourceOption = {
   value: string;
@@ -37,7 +38,7 @@ export class DeclaracionPageComponent {
   tipoDeclaracion: TipoDeclaracion = 'MENSUAL';
   incomeSource = 'auto';
 
-  readonly years = this.buildYears();
+  readonly years = buildRecentYears();
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
   readonly tiposDeclaracion: TipoDeclaracion[] = ['MENSUAL', 'ANUAL'];
   readonly incomeSources: IncomeSourceOption[] = [
@@ -115,7 +116,7 @@ export class DeclaracionPageComponent {
   downloadCsv(): void {
     if (!this.csvUrl) return;
     this.http.get(this.csvUrl, { responseType: 'blob' }).subscribe({
-      next: (blob) => this.downloadBlob(blob, `sat_report_${this.periodLabelFromInputs()}.csv`),
+      next: (blob) => downloadBlobFile(blob, `sat_report_${this.periodLabelFromInputs()}.csv`),
       error: () => this.alerts.error('No se pudo descargar el CSV SAT.'),
     });
   }
@@ -123,7 +124,7 @@ export class DeclaracionPageComponent {
   downloadHoja(): void {
     if (!this.hojaUrl) return;
     this.http.get(this.hojaUrl, { responseType: 'blob' }).subscribe({
-      next: (blob) => this.downloadBlob(blob, `hoja_sat_${this.periodLabelFromInputs()}.txt`),
+      next: (blob) => downloadBlobFile(blob, `hoja_sat_${this.periodLabelFromInputs()}.txt`),
       error: () => this.alerts.error('No se pudo generar la hoja SAT.'),
     });
   }
@@ -207,17 +208,4 @@ export class DeclaracionPageComponent {
     return data.mostrar_declaracion_presentada ?? !this.isAnualData(data);
   }
 
-  private downloadBlob(blob: Blob, filename: string): void {
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    window.URL.revokeObjectURL(url);
-  }
-
-  private buildYears(): number[] {
-    const current = new Date().getFullYear();
-    return Array.from({ length: 6 }, (_, i) => current - i);
-  }
 }

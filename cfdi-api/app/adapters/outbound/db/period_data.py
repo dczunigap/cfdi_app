@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.adapters.outbound.db.models import FacturaModel, PagoModel, PlatformRfcModel, RetencionModel
 from app.utils.money import apply_sign_factor
 
+DEFAULT_EXCLUDED_USO_CFDI_FOR_GASTOS = {"S01", "CP01"}
+
 
 def pick_default_period(db: Session) -> tuple[Optional[int], Optional[int]]:
     last_fact = db.execute(
@@ -51,6 +53,12 @@ def month_options(db: Session) -> list[tuple[int, int]]:
 
 def _signed(value: Optional[float], tipo: Optional[str]) -> float:
     return apply_sign_factor(value, tipo)
+
+
+def _is_allowed_gasto_uso(uso_cfdi: str, usos_allow: set[str]) -> bool:
+    if usos_allow:
+        return uso_cfdi in usos_allow
+    return uso_cfdi not in DEFAULT_EXCLUDED_USO_CFDI_FOR_GASTOS
 
 
 def _normalize_naturaleza(naturaleza: Optional[str], tipo: Optional[str]) -> Optional[str]:
@@ -99,9 +107,6 @@ def compute_period_data(
         )
     docs = db.scalars(docs_query).all()
 
-    for d in docs:
-        _ = d.pagos
-
     ingresos_total = ingresos_trasl = ingresos_ret = 0.0
     gastos_total = gastos_trasl = gastos_ret = 0.0
     ingresos_base = 0.0
@@ -120,14 +125,9 @@ def compute_period_data(
         uso_cfdi = (d.uso_cfdi or "").upper()
 
         if mi_rfc:
-            # is_gasto = receptor_rfc == mi_rfc and uso_cfdi not in {"S01", "CP01"}
-            is_gasto = receptor_rfc == mi_rfc and usos_allow and uso_cfdi in usos_allow
+            is_gasto = receptor_rfc == mi_rfc and _is_allowed_gasto_uso(uso_cfdi, usos_allow)
             is_platform_receptor = receptor_rfc in platform_rfcs if receptor_rfc else False
-            if (
-                emisor_rfc == mi_rfc
-                and uso_cfdi in usos_allow
-                and naturaleza == "ingreso"
-            ):
+            if emisor_rfc == mi_rfc and naturaleza == "ingreso":
                 if not is_platform_receptor:
                     ingresos_total += _signed(d.total, tipo)
                     ingresos_ret += _signed(d.total_retenidos, tipo)

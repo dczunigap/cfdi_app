@@ -6,13 +6,12 @@ export type ApiError = {
   details?: unknown;
 };
 
-export async function apiFetch<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const baseUrl = getApiBaseUrl();
+function withDefaultHeaders(
+  options: RequestInit,
+  { setJsonContentType }: { setJsonContentType: boolean }
+): Headers {
   const headers = new Headers(options.headers ?? {});
-  if (!headers.has("Content-Type")) {
+  if (setJsonContentType && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   if (!headers.has("Accept")) {
@@ -22,6 +21,39 @@ export async function apiFetch<T>(
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
+  return headers;
+}
+
+function parseApiError(response: Response, bodyText: string): ApiError {
+  let message = response.statusText;
+  let details: unknown = undefined;
+  if (bodyText) {
+    try {
+      const data = JSON.parse(bodyText) as {
+        message?: string;
+        detail?: string | unknown;
+      };
+      if (data?.message) message = data.message;
+      if (data?.detail) {
+        details = data.detail;
+        if (typeof data.detail === "string") {
+          message = data.detail;
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+  return { message, status: response.status, details };
+}
+
+async function requestApi<T>(
+  path: string,
+  options: RequestInit,
+  { setJsonContentType }: { setJsonContentType: boolean }
+): Promise<T> {
+  const baseUrl = getApiBaseUrl();
+  const headers = withDefaultHeaders(options, { setJsonContentType });
 
   const response = await fetch(`${baseUrl}${path}`, {
     ...options,
@@ -32,27 +64,7 @@ export async function apiFetch<T>(
   const bodyText = await response.text();
 
   if (!response.ok) {
-    let message = response.statusText;
-    let details: unknown = undefined;
-    if (bodyText) {
-      try {
-        const data = JSON.parse(bodyText) as {
-          message?: string;
-          detail?: string | unknown;
-        };
-        if (data?.message) message = data.message;
-        if (data?.detail) {
-          details = data.detail;
-          if (typeof data.detail === "string") {
-            message = data.detail;
-          }
-        }
-      } catch {
-        // ignore parse errors
-      }
-    }
-    const error: ApiError = { message, status: response.status, details };
-    throw error;
+    throw parseApiError(response, bodyText);
   }
 
   if (response.status === 204 || !bodyText) {
@@ -62,52 +74,16 @@ export async function apiFetch<T>(
   return JSON.parse(bodyText) as T;
 }
 
+export async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  return requestApi<T>(path, options, { setJsonContentType: true });
+}
+
 export async function apiFetchForm<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const baseUrl = getApiBaseUrl();
-  const headers = new Headers(options.headers ?? {});
-  const token = getApiToken();
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...options,
-    headers,
-    cache: "no-store",
-  });
-
-  const bodyText = await response.text();
-
-  if (!response.ok) {
-    let message = response.statusText;
-    let details: unknown = undefined;
-    if (bodyText) {
-      try {
-        const data = JSON.parse(bodyText) as {
-          message?: string;
-          detail?: string | unknown;
-        };
-        if (data?.message) message = data.message;
-        if (data?.detail) {
-          details = data.detail;
-          if (typeof data.detail === "string") {
-            message = data.detail;
-          }
-        }
-      } catch {
-        // ignore parse errors
-      }
-    }
-    const error: ApiError = { message, status: response.status, details };
-    throw error;
-  }
-
-  if (response.status === 204 || !bodyText) {
-    return undefined as T;
-  }
-
-  return JSON.parse(bodyText) as T;
+  return requestApi<T>(path, options, { setJsonContentType: false });
 }

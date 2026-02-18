@@ -1,10 +1,10 @@
 "use client";
 
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
-import { getAppTitle } from "@/lib/env";
+import { getPublicAppTitle } from "@/lib/env";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const appTitle = getAppTitle();
+  const appTitle = getPublicAppTitle();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -112,17 +112,25 @@ export default function LoginPage() {
                 />
               </label>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {loading ? "Validando..." : "Entrar"}
-                </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {loading ? "Validando..." : "Entrar"}
+              </button>
             </form>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

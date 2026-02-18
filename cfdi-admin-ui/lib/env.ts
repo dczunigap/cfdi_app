@@ -41,3 +41,11 @@ export function getAppTitle() {
 export function getAppSubtitle() {
   return process.env.APP_SUBTITLE || "Administración de usuarios";
 }
+
+export function getPublicAppTitle() {
+  return process.env.NEXT_PUBLIC_APP_TITLE || "CFDI Admin";
+}
+
+export function getPublicAppSubtitle() {
+  return process.env.NEXT_PUBLIC_APP_SUBTITLE || "Administración de usuarios";
+}

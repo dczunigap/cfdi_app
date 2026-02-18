@@ -26,11 +26,14 @@ import {
 } from "../api";
 import type { RegimenFiscalCatalog, RfcPhone } from "../types";
 import { getErrorMessage } from "@/lib/errors";
+import {
+  isValidPhone,
+  isValidRfc,
+  normalizePhone,
+  normalizeRfc,
+} from "../utils/validators";
 
 type UploadMode = "pfx" | "cerkey";
-
-const RFC_REGEX = /^[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}$/;
-const PHONE_REGEX = /^\d{8,15}$/;
 
 export default function AdminSatPage() {
   const queryClient = useQueryClient();
@@ -149,8 +152,8 @@ export default function AdminSatPage() {
   const inferTipoPersonaFromRfc = (
     value: string
   ): "PM" | "PF" | "EXT" | null => {
-    const rfcValue = value.trim().toUpperCase();
-    if (!RFC_REGEX.test(rfcValue)) return null;
+    const rfcValue = normalizeRfc(value);
+    if (!isValidRfc(rfcValue)) return null;
     if (rfcValue === "XEXX010101000") return "EXT";
     if (rfcValue.length === 12) return "PM";
     if (rfcValue.length === 13) return "PF";
@@ -177,9 +180,6 @@ export default function AdminSatPage() {
     if (kind === "key") setKeyFile(file);
   };
 
-  const normalizeRfc = (value: string) => value.trim().toUpperCase();
-  const normalizePhone = (value: string) => value.replace(/\D+/g, "");
-
   const handleSaveCredentials = () => {
     const rfcValue = normalizeRfc(rfc);
     setRfc(rfcValue);
@@ -187,7 +187,7 @@ export default function AdminSatPage() {
       setCredentialsError("RFC requerido.");
       return;
     }
-    if (!RFC_REGEX.test(rfcValue)) {
+    if (!isValidRfc(rfcValue)) {
       setCredentialsError("RFC invalido.");
       return;
     }
@@ -267,7 +267,7 @@ export default function AdminSatPage() {
       setPhoneError("Telefono requerido.");
       return;
     }
-    if (!PHONE_REGEX.test(phoneValue)) {
+    if (!isValidPhone(phoneValue)) {
       setPhoneError("Telefono invalido.");
       return;
     }
@@ -275,7 +275,7 @@ export default function AdminSatPage() {
       setPhoneError("RFC requerido.");
       return;
     }
-    if (!RFC_REGEX.test(rfcValue)) {
+    if (!isValidRfc(rfcValue)) {
       setPhoneError("RFC invalido.");
       return;
     }
@@ -324,7 +324,7 @@ export default function AdminSatPage() {
       setPhoneError("Telefono requerido.");
       return;
     }
-    if (!PHONE_REGEX.test(phoneValue)) {
+    if (!isValidPhone(phoneValue)) {
       setPhoneError("Telefono invalido.");
       return;
     }
@@ -332,7 +332,7 @@ export default function AdminSatPage() {
       setPhoneError("RFC requerido.");
       return;
     }
-    if (!RFC_REGEX.test(rfcValue)) {
+    if (!isValidRfc(rfcValue)) {
       setPhoneError("RFC invalido.");
       return;
     }
@@ -371,7 +371,7 @@ export default function AdminSatPage() {
       setUserRfcError("RFC requerido.");
       return;
     }
-    if (!RFC_REGEX.test(rfcValue)) {
+    if (!isValidRfc(rfcValue)) {
       setUserRfcError("RFC invalido.");
       return;
     }

@@ -161,6 +161,29 @@ def _compute_year_data(
     return totals, [f"{year}-{m:02d}" for m in sorted(periods)]
 
 
+def _resolve_period_or_404(
+    db: Session,
+    *,
+    tipo_decl: str,
+    year: int | None,
+    month: int | None,
+) -> tuple[int, int | None]:
+    resolved_year = year
+    resolved_month = month
+    if resolved_year is None:
+        resolved_year, default_month = pick_default_period(db)
+        if tipo_decl == TIPO_DECL_MENSUAL and resolved_month is None:
+            resolved_month = default_month
+    elif tipo_decl == TIPO_DECL_MENSUAL and resolved_month is None:
+        _, default_month = pick_default_period(db)
+        resolved_month = default_month
+    if resolved_year is None:
+        raise HTTPException(status_code=404, detail="No hay datos para resumir")
+    if tipo_decl == TIPO_DECL_MENSUAL and resolved_month is None:
+        raise HTTPException(status_code=404, detail="No hay datos para resumir")
+    return resolved_year, resolved_month
+
+
 def _previous_period(year: int, month: int) -> tuple[int, int]:
     if month <= 1:
         return year - 1, 12
@@ -203,17 +226,12 @@ def summary(
     db: Session = Depends(get_db),
 ):
     tipo_decl = _normalize_tipo_declaracion(tipo_declaracion)
-    if year is None:
-        year, default_month = pick_default_period(db)
-        if tipo_decl == TIPO_DECL_MENSUAL and month is None:
-            month = default_month
-    elif tipo_decl == TIPO_DECL_MENSUAL and month is None:
-        _, default_month = pick_default_period(db)
-        month = default_month
-    if year is None:
-        raise HTTPException(status_code=404, detail="No hay datos para resumir")
-    if tipo_decl == TIPO_DECL_MENSUAL and month is None:
-        raise HTTPException(status_code=404, detail="No hay datos para resumir")
+    year, month = _resolve_period_or_404(
+        db,
+        tipo_decl=tipo_decl,
+        year=year,
+        month=month,
+    )
 
     _, usos_mensual, regimen = _load_config_for_rfc(
         db,
@@ -334,17 +352,12 @@ def summary_details(
     db: Session = Depends(get_db),
 ):
     tipo_decl = _normalize_tipo_declaracion(tipo_declaracion)
-    if year is None:
-        year, default_month = pick_default_period(db)
-        if tipo_decl == TIPO_DECL_MENSUAL and month is None:
-            month = default_month
-    elif tipo_decl == TIPO_DECL_MENSUAL and month is None:
-        _, default_month = pick_default_period(db)
-        month = default_month
-    if year is None:
-        raise HTTPException(status_code=404, detail="No hay datos para resumir")
-    if tipo_decl == TIPO_DECL_MENSUAL and month is None:
-        raise HTTPException(status_code=404, detail="No hay datos para resumir")
+    year, month = _resolve_period_or_404(
+        db,
+        tipo_decl=tipo_decl,
+        year=year,
+        month=month,
+    )
 
     if tipo_decl == TIPO_DECL_ANUAL:
         _, usos, regimen = _load_config_for_rfc(
@@ -397,17 +410,12 @@ def declaracion_mode(
     db: Session = Depends(get_db),
 ):
     tipo_decl = _normalize_tipo_declaracion(tipo_declaracion)
-    if year is None:
-        year, default_month = pick_default_period(db)
-        if tipo_decl == TIPO_DECL_MENSUAL and month is None:
-            month = default_month
-    elif tipo_decl == TIPO_DECL_MENSUAL and month is None:
-        _, default_month = pick_default_period(db)
-        month = default_month
-    if year is None:
-        raise HTTPException(status_code=404, detail="No hay datos para resumir")
-    if tipo_decl == TIPO_DECL_MENSUAL and month is None:
-        raise HTTPException(status_code=404, detail="No hay datos para resumir")
+    year, month = _resolve_period_or_404(
+        db,
+        tipo_decl=tipo_decl,
+        year=year,
+        month=month,
+    )
 
     if tipo_decl == TIPO_DECL_ANUAL:
         config_anual, usos_anual, regimen = _load_config_for_rfc(

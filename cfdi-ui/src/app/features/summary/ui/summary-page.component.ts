@@ -6,13 +6,14 @@ import { HttpClient } from '@angular/common/http';
 import { SummaryRepository } from '../data/summary.repository';
 import { SummaryData, TipoDeclaracion } from '../data/summary.model';
 import { AppAlertService } from '../../../shared/ui/alert/alert.service';
+import { buildRecentYears, downloadBlobFile } from '../../../shared/utils/ui-helpers';
 
 @Component({
   selector: 'app-summary-page',
   standalone: true,
   imports: [DecimalPipe, FormsModule],
   templateUrl: './summary-page.component.html',
-  styleUrl: './summary-page.component.css',
+  styleUrls: ['./summary-page.component.css'],
 })
 export class SummaryPageComponent implements OnInit {
   private readonly repo = inject(SummaryRepository);
@@ -28,7 +29,7 @@ export class SummaryPageComponent implements OnInit {
   month: number | null = null;
   tipoDeclaracion: TipoDeclaracion = 'MENSUAL';
 
-  readonly years = this.buildYears();
+  readonly years = buildRecentYears();
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
   readonly tiposDeclaracion: TipoDeclaracion[] = ['MENSUAL', 'ANUAL'];
 
@@ -121,7 +122,7 @@ export class SummaryPageComponent implements OnInit {
   downloadCsv(): void {
     if (!this.csvUrl) return;
     this.http.get(this.csvUrl, { responseType: 'blob' }).subscribe({
-      next: (blob) => this.downloadBlob(blob, `sat_report_${this.periodLabel(this.summary!)}.csv`),
+      next: (blob) => downloadBlobFile(blob, `sat_report_${this.periodLabel(this.summary!)}.csv`),
       error: () => this.alerts.error('No se pudo descargar el CSV SAT.'),
     });
   }
@@ -145,17 +146,4 @@ export class SummaryPageComponent implements OnInit {
     return (data?.tipo_declaracion || this.tipoDeclaracion) === 'ANUAL';
   }
 
-  private buildYears(): number[] {
-    const current = new Date().getFullYear();
-    return Array.from({ length: 6 }, (_, i) => current - i);
-  }
-
-  private downloadBlob(blob: Blob, filename: string): void {
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    window.URL.revokeObjectURL(url);
-  }
 }
