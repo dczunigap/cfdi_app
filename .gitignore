@@ -22,8 +22,9 @@ __pycache__
 **/.next/
 
 # Cache
-wa-bot/.wwebjs_cache/
-wa-bot/.wwebjs_auth/
+**/.wwebjs_cache/
+**/.wwebjs_auth/
+cfdi-wa-bot/bot-status.json
 
 # testing
 /coverage
@@ -57,3 +58,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+

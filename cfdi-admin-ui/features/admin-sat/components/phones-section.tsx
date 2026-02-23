@@ -66,7 +66,7 @@ export default function PhonesSection(props: PhonesSectionProps) {
               Telefonos asociados a RFC
             </h3>
             <p className="text-sm text-slate-400">
-              Se usa para resolver el RFC automaticamente en wa-bot.
+              Se usa para resolver el RFC automaticamente en cfdi-wa-bot.
             </p>
           </div>
           <button

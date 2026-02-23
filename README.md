@@ -7,9 +7,9 @@ Este repositorio contiene el backend y el frontend separados:
 - `cfdi-ui/`: UI en Angular. Consume la API, presenta listados, filtros y dashboards. Ver `cfdi-ui/README.md`.
 - `cfdi-admin-ui/`: UI en Next.js para administracion de usuarios y catalogos SAT (incluye Admin SAT y Platform RFCs). Ver `cfdi-admin-ui/README.md`.
 - `cfdi-mcp-server/`: Servidor MCP en Node que expone los endpoints de `cfdi-api` como tools para clientes MCP (VS Code/Claude Desktop). Ver `cfdi-mcp-server/README.md`.
-- `wa-bot/`: Bot de WhatsApp en Node para integraciones y automatizaciones relacionadas con el flujo CFDI. Ver `wa-bot/README.md`.
+- `cfdi-wa-bot/`: Bot de WhatsApp en Node para integraciones y automatizaciones relacionadas con el flujo CFDI. Ver `cfdi-wa-bot/README.md`.
 
-## Wa-bot
+## CFDI WA Bot
 Bot de WhatsApp para integraciones y automatizaciones.
 
 ### Requisitos
@@ -17,7 +17,7 @@ Bot de WhatsApp para integraciones y automatizaciones.
 
 ### Instalacion
 ```bash
-cd wa-bot
+cd cfdi-wa-bot
 npm install
 ```
 
