@@ -1,4 +1,4 @@
-# CFDI API MCP Bridge
+# CFDI MCP Server
 
 Servidor MCP en Node que expone los endpoints de `cfdi_api` como tools.
 
@@ -10,7 +10,7 @@ Servidor MCP en Node que expone los endpoints de `cfdi_api` como tools.
 ## Instalacion
 
 ```bash
-cd c:\codigos_fuente\cfdi_app\mcp-bridge
+cd c:\codigos_fuente\cfdi_app\cfdi-mcp-server
 npm install
 ```
 
@@ -48,7 +48,7 @@ En `.vscode/mcp.json`:
     "servers": {
       "cfdi-api": {
         "command": "node",
-        "args": ["c:\\codigos_fuente\\cfdi_app\\mcp-bridge\\index.js"],
+        "args": ["c:\\codigos_fuente\\cfdi_app\\cfdi-mcp-server\\index.js"],
         "env": {
           "CFDI_API_BASE": "http://127.0.0.1:8000",
           "CFDI_FILES_ROOT": "C:\\cfdi\\imports"
@@ -66,9 +66,9 @@ En `%AppData%\\Claude\\claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "cfdi-api-bridge": {
+    "cfdi-mcp-server": {
       "command": "node",
-      "args": ["C:\\codigos_fuente\\cfdi_app\\mcp-bridge\\index.js"],
+      "args": ["C:\\codigos_fuente\\cfdi_app\\cfdi-mcp-server\\index.js"],
       "env": {
         "CFDI_API_BASE": "http://127.0.0.1:8000",
         "CFDI_FILES_ROOT": "C:\\cfdi\\imports",

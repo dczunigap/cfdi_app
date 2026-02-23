@@ -6,7 +6,7 @@ Este repositorio contiene el backend y el frontend separados:
 - `cfdi-api/`: API en Python (FastAPI) con arquitectura hexagonal. Maneja la importacion de XML/PDF, el acceso a BD y la logica de reportes. Ver `cfdi-api/README.md`.
 - `cfdi-ui/`: UI en Angular. Consume la API, presenta listados, filtros y dashboards. Ver `cfdi-ui/README.md`.
 - `cfdi-admin-ui/`: UI en Next.js para administracion de usuarios y catalogos SAT (incluye Admin SAT y Platform RFCs). Ver `cfdi-admin-ui/README.md`.
-- `mcp-bridge/`: Servidor MCP en Node que expone los endpoints de `cfdi-api` como tools para clientes MCP (VS Code/Claude Desktop). Ver `mcp-bridge/README.md`.
+- `cfdi-mcp-server/`: Servidor MCP en Node que expone los endpoints de `cfdi-api` como tools para clientes MCP (VS Code/Claude Desktop). Ver `cfdi-mcp-server/README.md`.
 - `wa-bot/`: Bot de WhatsApp en Node para integraciones y automatizaciones relacionadas con el flujo CFDI. Ver `wa-bot/README.md`.
 
 ## Wa-bot
@@ -31,7 +31,7 @@ node index.js
 - Variable `CFDI_API_TOKEN`: Token bearer para la API (si el backend requiere auth).
 - Al iniciar por primera vez, se muestra un QR en consola; escanealo con WhatsApp para autorizar la sesion.
 
-## MCP Bridge (tools)
+## CFDI MCP Server (tools)
 Bridge MCP para exponer los endpoints del API sin cambios en `cfdi-api`.
 
 ### Requisitos
@@ -40,7 +40,7 @@ Bridge MCP para exponer los endpoints del API sin cambios en `cfdi-api`.
 
 ### Instalacion
 ```bash
-cd mcp-bridge
+cd cfdi-mcp-server
 npm install
 ```
 
@@ -65,7 +65,7 @@ Archivo `.vscode/mcp.json`:
     "servers": {
       "cfdi-api": {
         "command": "node",
-        "args": ["c:\\\\codigos_fuente\\\\cfdi_app\\\\mcp-bridge\\\\index.js"],
+        "args": ["c:\\\\codigos_fuente\\\\cfdi_app\\\\cfdi-mcp-server\\\\index.js"],
         "env": {
           "CFDI_API_BASE": "http://127.0.0.1:8000",
           "CFDI_FILES_ROOT": "C:\\\\cfdi\\\\imports"
@@ -83,7 +83,7 @@ Archivo `C:\\Users\\dczun\\AppData\\Roaming\\Claude\\claude_desktop_config.json`
   "mcpServers": {
     "cfdi-api": {
       "command": "node",
-      "args": ["C:\\\\codigos_fuente\\\\cfdi_app\\\\mcp-bridge\\\\index.js"],
+      "args": ["C:\\\\codigos_fuente\\\\cfdi_app\\\\cfdi-mcp-server\\\\index.js"],
       "env": {
         "CFDI_API_BASE": "http://127.0.0.1:8000",
         "CFDI_FILES_ROOT": "C:\\\\cfdi\\\\imports",

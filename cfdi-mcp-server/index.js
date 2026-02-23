@@ -1,247 +1,160 @@
-import { readFile, stat } from "node:fs/promises";
-import { basename, extname, resolve, sep } from "node:path";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { readFile } from "node:fs/promises";
+import { z } from "zod";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 const BASE_URL = process.env.CFDI_API_BASE || "http://127.0.0.1:8000";
-const FILES_ROOT = process.env.CFDI_FILES_ROOT || "";
 const FETCH_TIMEOUT_MS = Number(process.env.CFDI_FETCH_TIMEOUT_MS || 15000);
 const FETCH_MAX_BYTES = Number(process.env.CFDI_FETCH_MAX_BYTES || 5 * 1024 * 1024);
 const AUTH_TOKEN = process.env.CFDI_API_TOKEN || "";
 const AUTH_TOKEN_FILE = process.env.CFDI_API_TOKEN_FILE || "";
-const MAX_FILES = 1;
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = new Set([".xml", ".pdf"]);
-const RFC_REGEX = /^[A-Z&]{3,4}\d{6}[A-Z0-9]{3}$/;
 
-const server = new Server(
-  { name: "cfdi-api-bridge", version: "0.1.0" },
-  { capabilities: { tools: {} } }
-);
+const server = new McpServer({ name: "cfdi-mcp-server_v1", version: "0.1.0" });
+
+const rfcSchema = z.string();
+const monthSchema = z.number().int().min(1).max(12);
+const yearSchema = z.number().int();
 
 const tools = [
   {
     name: "cfdi_health",
     description: "Health check del API",
-    inputSchema: { type: "object", properties: {} },
+    inputSchema: z.object({}),
   },
   {
     name: "facturas_list",
     description: "Lista facturas (opcional: year, month, tipo, naturaleza).",
-    inputSchema: {
-      type: "object",
-      properties: {
-        rfc: { type: "string" },
-        year: { type: "integer" },
-        month: { type: "integer" },
-        tipo: { type: "string" },
-        naturaleza: { type: "string" },
-      },
-      required: ["rfc"],
-    },
+    inputSchema: z.object({
+      rfc: rfcSchema,
+      year: yearSchema.optional(),
+      month: monthSchema.optional(),
+      tipo: z.string().optional(),
+      naturaleza: z.string().optional(),
+    }),
   },
   {
     name: "facturas_detail",
     description: "Detalle de factura por id.",
-    inputSchema: {
-      type: "object",
-      properties: { factura_id: { type: "integer" }, rfc: { type: "string" } },
-      required: ["factura_id", "rfc"],
-    },
+    inputSchema: z.object({ factura_id: z.number().int(), rfc: rfcSchema }),
   },
   {
     name: "facturas_xml",
     description: "XML de factura por id.",
-    inputSchema: {
-      type: "object",
-      properties: { factura_id: { type: "integer" }, rfc: { type: "string" } },
-      required: ["factura_id", "rfc"],
-    },
+    inputSchema: z.object({ factura_id: z.number().int(), rfc: rfcSchema }),
   },
   {
     name: "retenciones_list",
     description: "Lista retenciones (opcional: year, month).",
-    inputSchema: {
-      type: "object",
-      properties: {
-        rfc: { type: "string" },
-        year: { type: "integer" },
-        month: { type: "integer" },
-      },
-      required: ["rfc"],
-    },
+    inputSchema: z.object({
+      rfc: rfcSchema,
+      year: yearSchema.optional(),
+      month: monthSchema.optional(),
+    }),
   },
   {
     name: "retenciones_detail",
     description: "Detalle de retencion por id.",
-    inputSchema: {
-      type: "object",
-      properties: { retencion_id: { type: "integer" }, rfc: { type: "string" } },
-      required: ["retencion_id", "rfc"],
-    },
+    inputSchema: z.object({ retencion_id: z.number().int(), rfc: rfcSchema }),
   },
   {
     name: "declaraciones_list",
     description: "Lista declaraciones (opcional: year, month).",
-    inputSchema: {
-      type: "object",
-      properties: {
-        rfc: { type: "string" },
-        year: { type: "integer" },
-        month: { type: "integer" },
-      },
-      required: ["rfc"],
-    },
+    inputSchema: z.object({
+      rfc: rfcSchema,
+      year: yearSchema.optional(),
+      month: monthSchema.optional(),
+    }),
   },
   {
     name: "declaraciones_detail",
     description: "Detalle de declaracion por id.",
-    inputSchema: {
-      type: "object",
-      properties: { dec_id: { type: "integer" }, rfc: { type: "string" } },
-      required: ["dec_id", "rfc"],
-    },
+    inputSchema: z.object({ dec_id: z.number().int(), rfc: rfcSchema }),
   },
   {
     name: "declaraciones_pdf",
     description: "Descarga PDF de declaracion por id y filename.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        dec_id: { type: "integer" },
-        filename: { type: "string" },
-        rfc: { type: "string" },
-      },
-      required: ["dec_id", "filename", "rfc"],
-    },
+    inputSchema: z.object({
+      dec_id: z.number().int(),
+      filename: z.string().min(1),
+      rfc: rfcSchema,
+    }),
   },
   {
     name: "declaraciones_resumen",
     description: "Resumen JSON de declaracion por id.",
-    inputSchema: {
-      type: "object",
-      properties: { dec_id: { type: "integer" }, rfc: { type: "string" } },
-      required: ["dec_id", "rfc"],
-    },
+    inputSchema: z.object({ dec_id: z.number().int(), rfc: rfcSchema }),
   },
   {
     name: "reportes_summary",
     description: "Resumen mensual (year, month). Requiere RFC.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        rfc: { type: "string" },
-        year: { type: "integer" },
-        month: { type: "integer" },
-      },
-      required: ["rfc"],
-    },
+    inputSchema: z.object({
+      rfc: rfcSchema,
+      year: yearSchema.optional(),
+      month: monthSchema.optional(),
+    }),
   },
   {
     name: "reportes_summary_details",
     description: "Resumen mensual detalle (year, month). Requiere RFC.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        rfc: { type: "string" },
-        year: { type: "integer" },
-        month: { type: "integer" },
-      },
-      required: ["rfc"],
-    },
+    inputSchema: z.object({
+      rfc: rfcSchema,
+      year: yearSchema.optional(),
+      month: monthSchema.optional(),
+    }),
   },
   {
     name: "reportes_declaracion_mode",
     description: "Modo declaracion (year, month, income_source). Requiere RFC.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        rfc: { type: "string" },
-        year: { type: "integer" },
-        month: { type: "integer" },
-        income_source: { type: "string" },
-      },
-      required: ["rfc"],
-    },
+    inputSchema: z.object({
+      rfc: rfcSchema,
+      year: yearSchema.optional(),
+      month: monthSchema.optional(),
+      income_source: z.string().optional(),
+    }),
   },
   {
     name: "reportes_hoja_sat",
     description: "Hoja SAT texto (year, month, income_source). Requiere RFC.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        rfc: { type: "string" },
-        year: { type: "integer" },
-        month: { type: "integer" },
-        income_source: { type: "string" },
-      },
-      required: ["rfc"],
-    },
+    inputSchema: z.object({
+      rfc: rfcSchema,
+      year: yearSchema.optional(),
+      month: monthSchema.optional(),
+      income_source: z.string().optional(),
+    }),
   },
   {
     name: "reportes_sat_csv",
     description: "Reporte SAT CSV (year, month, income_source). Requiere RFC.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        rfc: { type: "string" },
-        year: { type: "integer" },
-        month: { type: "integer" },
-        income_source: { type: "string" },
-      },
-      required: ["rfc"],
-    },
-  },
-  {
-    name: "importar_xml",
-    description: "Importa XML. Envía rutas de archivos locales.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        file_paths: { type: "array", items: { type: "string" } },
-      },
-      required: ["file_paths"],
-    },
-  },
-  {
-    name: "importar_pdf",
-    description: "Importa PDF. Envía rutas de archivos locales (opcional year/month).",
-    inputSchema: {
-      type: "object",
-      properties: {
-        file_paths: { type: "array", items: { type: "string" } },
-        year: { type: "integer" },
-        month: { type: "integer" },
-      },
-      required: ["file_paths"],
-    },
+    inputSchema: z.object({
+      rfc: rfcSchema,
+      year: yearSchema.optional(),
+      month: monthSchema.optional(),
+      income_source: z.string().optional(),
+    }),
   },
 ];
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools,
-}));
-
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-  try {
-    const result = await handleTool(name, args || {});
-    return { content: [result] };
-  } catch (err) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error: ${err?.message || String(err)}`,
-        },
-      ],
-      isError: true,
-    };
-  }
+tools.forEach((tool) => {
+  server.registerTool(
+    tool.name,
+    { description: tool.description, inputSchema: tool.inputSchema },
+    async (args) => {
+      try {
+        const result = await handleTool(tool.name, args || {});
+        return { content: [result] };
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error: ${err?.message || String(err)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 });
 
 async function handleTool(name, args) {
@@ -281,13 +194,6 @@ async function handleTool(name, args) {
       return await fetchText("/api/v1/sat_hoja.txt", cleanArgs, args.rfc);
     case "reportes_sat_csv":
       return await fetchText("/api/v1/sat_report.csv", cleanArgs, args.rfc);
-    case "importar_xml":
-      return await postFiles("/api/v1/importar", args.file_paths, null);
-    case "importar_pdf":
-      return await postFiles("/api/v1/importar_pdf", args.file_paths, {
-        year: args.year,
-        month: args.month,
-      });
     default:
       throw new Error(`Tool no soportado: ${name}`);
   }
@@ -332,9 +238,6 @@ function normalizeRfc(rfc) {
     return undefined;
   }
   const cleaned = String(rfc).trim().toUpperCase();
-  if (!RFC_REGEX.test(cleaned)) {
-    throw new Error("RFC inválido");
-  }
   return cleaned;
 }
 
@@ -381,38 +284,6 @@ async function fetchBinary(path, query, rfc) {
   };
 }
 
-async function postFiles(path, filePaths, query) {
-  const form = new FormData();
-  const files = await validateFilePaths(filePaths);
-  for (const file of files) {
-    const bytes = await readFile(file.safePath);
-    form.append("files", new Blob([bytes]), basename(file.originalPath));
-  }
-  const res = await fetchWithTimeout(buildUrl(path, query), {
-    method: "POST",
-    headers: await buildHeaders(null),
-    body: form,
-  });
-  const text = await readTextWithLimit(res);
-  if (!res.ok) {
-    throw new Error(`${res.status}: ${text}`);
-  }
-  return { type: "text", text };
-}
-
-function resolveSafePath(p) {
-  if (!FILES_ROOT) {
-    throw new Error("FILES_ROOT no configurado");
-  }
-  const absRoot = resolve(FILES_ROOT);
-  const absPath = resolve(p);
-  const rootLower = (absRoot + sep).toLowerCase();
-  if (!absPath.toLowerCase().startsWith(rootLower)) {
-    throw new Error("Ruta de archivo fuera del directorio permitido");
-  }
-  return absPath;
-}
-
 async function getAuthToken() {
   if (AUTH_TOKEN) {
     return AUTH_TOKEN;
@@ -426,36 +297,6 @@ async function getAuthToken() {
   } catch (err) {
     throw new Error("No se pudo leer CFDI_API_TOKEN_FILE");
   }
-}
-
-function validateExtension(filePath) {
-  const ext = extname(filePath).toLowerCase();
-  if (!ALLOWED_EXTENSIONS.has(ext)) {
-    throw new Error("Extensión de archivo no permitida");
-  }
-}
-
-async function validateFilePaths(filePaths) {
-  if (!Array.isArray(filePaths)) {
-    throw new Error("file_paths debe ser un arreglo");
-  }
-  if (filePaths.length !== MAX_FILES) {
-    throw new Error(`Solo se permite ${MAX_FILES} archivo por request`);
-  }
-  const results = [];
-  for (const filePath of filePaths) {
-    if (typeof filePath !== "string" || !filePath.trim()) {
-      throw new Error("file_path inválido");
-    }
-    validateExtension(filePath);
-    const safePath = resolveSafePath(filePath);
-    const info = await stat(safePath);
-    if (info.size > MAX_FILE_BYTES) {
-      throw new Error("El archivo excede el tamaño máximo permitido");
-    }
-    results.push({ safePath, originalPath: filePath });
-  }
-  return results;
 }
 
 async function fetchWithTimeout(url, options) {
@@ -485,7 +326,7 @@ async function readBufferWithLimit(res) {
     if (done) break;
     total += value.length;
     if (total > FETCH_MAX_BYTES) {
-      throw new Error("Respuesta excede el límite permitido");
+      throw new Error("Respuesta excede el limite permitido");
     }
     chunks.push(Buffer.from(value));
   }
@@ -494,7 +335,8 @@ async function readBufferWithLimit(res) {
 
 async function main() {
   const transport = new StdioServerTransport();
-  await server.connect(transport);
+  await server.connect(transport)
+  .then(() => { console.error("Conectado al servidor"); })
 }
 
 main().catch((err) => {
