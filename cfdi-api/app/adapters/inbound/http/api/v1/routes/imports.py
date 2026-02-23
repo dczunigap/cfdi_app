@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 import logging
 
@@ -21,7 +20,7 @@ from app.adapters.outbound.db.models import (
     PagoModel,
     RetencionModel,
 )
-from app.adapters.outbound.files.pdf_storage import LocalPdfStorage
+from app.adapters.outbound.files.pdf_storage_factory import build_pdf_storage
 from app.adapters.services.parsers.pdf_parser import LocalPdfParser
 from app.adapters.services.parsers.xml_parser import LocalXmlParser
 from app.application.imports.facturas import (
@@ -202,8 +201,7 @@ async def importar_pdf(
 ):
     stats = import_pdf_stats()
 
-    base_dir = Path(__file__).resolve().parents[7]
-    storage = LocalPdfStorage(base_dir / "database" / "pdfs")
+    storage = build_pdf_storage()
     parser = LocalPdfParser()
     repo = SqlDeclaracionRepository(db)
 
@@ -220,9 +218,7 @@ async def importar_pdf(
             storage.save(filename, pdf_bytes)
 
             try:
-                text, num_pages = parser.extract_text(
-                    str(base_dir / "database" / "pdfs" / filename)
-                )
+                text, num_pages = parser.extract_text_bytes(pdf_bytes)
             except Exception:
                 text, num_pages = "", None
 

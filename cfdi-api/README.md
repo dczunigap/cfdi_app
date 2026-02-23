@@ -13,11 +13,13 @@ Backend Python (FastAPI) con arquitectura hexagonal ligera.
 - `SAT_ENV` (`uat` o `prod`, default `uat`)
 - `CFDI_TIMEOUT_SAT_SECONDS`
 - `SAT_DOWNLOAD_DIR` (ruta local para ZIPs, default `C:\cfdi\xml`)
+- `PDF_UPLOAD_DIR` (ruta local para PDFs importados, default `C:\cfdi\pdf`)
 - `REDIS_URL` (RQ broker, default `redis://localhost:6379/0`)
 - `SAT_GATEWAY_MODE` (`soap` o `mock`, default `soap`)
 - `SAT_AUTOVERIFY` (`1`/`0`, default `1`)
 - `SAT_STORAGE_BACKEND` (`fs` o `r2`, default `fs`)
-- `R2_ENDPOINT`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_BUCKET`, `R2_REGION`
+- `PDF_STORAGE_BACKEND` (`fs` o `r2`, default `fs`)
+- `R2_ENDPOINT`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_BUCKET`, `PDF_R2_BUCKET`, `PDF_R2_PREFIX`, `R2_REGION`
 
 Tip: usa `cfdi-api/.env.example` como plantilla y ajusta `SAT_ENV` si quieres alternar UAT/PROD sin tocar código.
 Nota: los endpoints SAT se toman exclusivamente de `SAT_ENDPOINTS`; no hay overrides por URL.
@@ -90,10 +92,14 @@ Esto usa un gateway fake que devuelve ZIPs con XML de ejemplo.
 ## Storage R2 (MinIO local)
 ```
 $env:SAT_STORAGE_BACKEND = "r2"
+$env:PDF_STORAGE_BACKEND = "r2"
+$env:PDF_UPLOAD_DIR = "C:\cfdi\pdf"
 $env:R2_ENDPOINT = "http://127.0.0.1:9000"
 $env:R2_ACCESS_KEY = "minioadmin"
 $env:R2_SECRET_KEY = "minioadmin"
 $env:R2_BUCKET = "cfdi-zip"
+$env:PDF_R2_BUCKET = "cfdi-pdf"
+$env:PDF_R2_PREFIX = "pdfs"
 $env:R2_REGION = "auto"
 ```
 
@@ -102,6 +108,7 @@ Antes de correr tests R2:
 - Crea el bucket:
   - `mc alias set myminio http://127.0.0.1:9000 minioadmin minioadmin`
   - `mc mb myminio/cfdi-zip`
+  - `mc mb myminio/cfdi-pdf`
 
 Test rapido R2:
 ```

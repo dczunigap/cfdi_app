@@ -17,3 +17,8 @@ class LocalPdfStorage(PdfStorage):
 
     def read(self, filename: str) -> bytes:
         return (self._base_dir / filename).read_bytes()
+
+    def delete(self, filename: str) -> None:
+        path = self._base_dir / filename
+        if path.exists():
+            path.unlink()

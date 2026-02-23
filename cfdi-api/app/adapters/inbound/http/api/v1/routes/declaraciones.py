@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -24,7 +23,7 @@ from app.adapters.inbound.http.api.v1.routes.utils import (
 )
 from app.adapters.outbound.db.repositories.declaraciones import SqlDeclaracionRepository
 from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
-from app.adapters.outbound.files.pdf_storage import LocalPdfStorage
+from app.adapters.outbound.files.pdf_storage_factory import build_pdf_storage
 from app.adapters.services.parsers.pdf_parser import LocalPdfParser
 from app.application.declaraciones.use_cases import (
     GetDeclaracionDetailInput,
@@ -93,8 +92,7 @@ def descargar_declaracion_pdf(
     if dec.rfc != x_rfc:
         raise HTTPException(status_code=403, detail="Acceso denegado")
 
-    base_dir = Path(__file__).resolve().parents[7]
-    storage = LocalPdfStorage(base_dir / "database" / "pdfs")
+    storage = build_pdf_storage()
     if not dec.filename:
         raise HTTPException(status_code=404, detail="Archivo PDF no encontrado")
     if filename != dec.filename:
@@ -143,10 +141,9 @@ def eliminar_declaracion(
         raise HTTPException(status_code=403, detail="Acceso denegado")
 
     if dec.filename:
-        base_dir = Path(__file__).resolve().parents[7]
-        pdf_path = base_dir / "database" / "pdfs" / dec.filename
         try:
-            pdf_path.unlink()
+            storage = build_pdf_storage()
+            storage.delete(dec.filename)
         except FileNotFoundError:
             pass
 

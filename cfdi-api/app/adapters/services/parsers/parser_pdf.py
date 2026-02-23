@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from io import BytesIO
 import re
 from typing import Any
 import unicodedata
@@ -93,6 +94,28 @@ def extract_pdf_text(pdf_path: str, max_chars: int = 20000) -> tuple[str, int]:
     Devuelve (texto, num_paginas). Si es escaneo, el texto puede salir vac¡o.
     """
     reader = PdfReader(pdf_path)
+    pages = reader.pages
+    num_pages = len(pages)
+    chunks: list[str] = []
+    total = 0
+    for p in pages:
+        try:
+            t = p.extract_text() or ""
+        except Exception:
+            t = ""
+        if not t.strip():
+            continue
+        if total + len(t) > max_chars:
+            t = t[: max_chars - total]
+        chunks.append(t)
+        total += len(t)
+        if total >= max_chars:
+            break
+    return ("\n".join(chunks)).strip(), num_pages
+
+
+def extract_pdf_text_bytes(pdf_bytes: bytes, max_chars: int = 20000) -> tuple[str, int]:
+    reader = PdfReader(BytesIO(pdf_bytes))
     pages = reader.pages
     num_pages = len(pages)
     chunks: list[str] = []

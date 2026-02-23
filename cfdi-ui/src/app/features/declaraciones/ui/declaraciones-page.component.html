@@ -95,7 +95,6 @@
           <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
             <tr>
               <th class="px-5 py-3">Periodo</th>
-              <th class="px-5 py-3">UUID</th>
               <th class="px-5 py-3">Emisor</th>
               <th class="px-5 py-3 text-right">Ingresos sin IVA</th>
               <th class="px-5 py-3 text-right">IVA Trasl.</th>
@@ -109,7 +108,6 @@
               @for (d of declaraciones; track d) {
                 <tr>
                   <td class="px-5 py-4">{{ formatPeriod(d.year, d.month) }}</td>
-                  <td class="px-5 py-4">{{ d.summary?.numero_operacion || d.folio || '-' }}</td>
                   <td class="px-5 py-4">
                     <div class="text-text">{{ d.summary?.rfc || d.rfc || '-' }}</div>
                     <div class="text-xs text-muted">{{ d.summary?.nombre || 'Sin nombre' }}</div>
