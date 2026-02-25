@@ -32,7 +32,9 @@ TEST_RFC = "AAA010101AAA"
 
 def _set_test_settings() -> None:
     settings.auth_secret = "test-secret"
+    settings.auth_refresh_secret = "test-refresh-secret"
     settings.auth_token_ttl_minutes = 60
+    settings.auth_refresh_ttl_days = 7
     settings.auth_password_iterations = 1000
 
 

@@ -1,10 +1,17 @@
 const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const axios = require("axios");
+const { existsSync, readFileSync } = require("node:fs");
 const { writeFile } = require("node:fs/promises");
+const { resolve } = require("node:path");
+
+loadEnvFile();
 
 const API_BASE = process.env.CFDI_API_BASE || "http://127.0.0.1:8000/api/v1";
-const API_TOKEN = process.env.CFDI_API_TOKEN || "eyJzdWIiOiIxIiwiZW1haWwiOiJhZG1pbkBlbXByZXNhLmNvbSIsInVzZXJuYW1lIjoiYWRtaW4iLCJpYXQiOjE3NzE4ODE3NTEsImV4cCI6MTc3MjA1NDU1MX0.GVpexf8ooCr3F2-eNcDInCexK6Sd9R3iOibRArBf-wA";
+const API_TOKEN = process.env.CFDI_API_TOKEN || "";
+const API_EMAIL = (process.env.CFDI_API_EMAIL || "").trim();
+const API_PASSWORD = process.env.CFDI_API_PASSWORD || "";
+const API_AUTH_SKEW_MS = Number(process.env.CFDI_API_AUTH_SKEW_MS || 120000);
 const API_TIMEOUT_MS = Number(process.env.CFDI_API_TIMEOUT_MS || 15000);
 const COMMAND_COOLDOWN_MS = Number(process.env.WA_COMMAND_COOLDOWN_MS || 2500);
 const STATUS_FILE = process.env.WA_STATUS_FILE || "bot-status.json";
@@ -13,6 +20,29 @@ const ALLOW_FROM_ME_COMMANDS =
   String(process.env.WA_ALLOW_FROM_ME_COMMANDS || "true").toLowerCase() === "true";
 
 const api = axios.create({ baseURL: API_BASE, timeout: API_TIMEOUT_MS });
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (!axios.isAxiosError(error)) {
+      throw error;
+    }
+    const status = error.response?.status;
+    const originalConfig = error.config || {};
+    if (originalConfig.skipAuthRetry) {
+      throw error;
+    }
+    if (status !== 401 || originalConfig._retry || !supportsCredentialAuth()) {
+      throw error;
+    }
+    originalConfig._retry = true;
+    await ensureAccessToken(true);
+    originalConfig.headers = {
+      ...(originalConfig.headers || {}),
+      Authorization: `Bearer ${accessToken}`,
+    };
+    return api.request(originalConfig);
+  }
+);
 
 const client = new Client({
   authStrategy: new LocalAuth(),
@@ -22,6 +52,10 @@ const client = new Client({
 
 const lastCommandAt = new Map();
 const processedMessageIds = new Map();
+let accessToken = API_TOKEN;
+let refreshToken = (process.env.CFDI_API_REFRESH_TOKEN || "").trim();
+let accessTokenExpiresAt = 0;
+let authPromise = null;
 let hasLoggedAuthenticated = false;
 let hasLoggedReady = false;
 let lastTransientLogAt = 0;
@@ -92,7 +126,8 @@ client.on("ready", async () => {
 client.on("message", handleCommandMessage);
 client.on("message_create", handleCommandMessage);
 
-setBotStatus("starting", { linked: false, ready: false }).finally(() => {
+setBotStatus("starting", { linked: false, ready: false }).finally(async () => {
+  await bootstrapApiAuth();
   armReadyWatchdog();
   client.initialize();
 });
@@ -125,7 +160,7 @@ async function handleCommandMessage(msg) {
   }
 
   const [cmd, ...args] = text.split(/\s+/);
-  const senderKey = normalizePhone(msg.author || msg.from) || String(msg.from || "");
+  const senderKey = (await resolveSenderPhone(msg)) || String(msg.from || "");
   const cooldownLeft = getCooldownRemainingMs(senderKey);
   if (cooldownLeft > 0) {
     const seconds = Math.ceil(cooldownLeft / 1000);
@@ -183,7 +218,8 @@ async function handleCommandMessage(msg) {
         break;
     }
   } catch (err) {
-    console.error("CommandError:", { cmd, from: msg.from, err: formatError(err) });
+    const phone = await resolveSenderPhone(msg);
+    console.error("CommandError:", { cmd, from: msg.from, phone, err: formatError(err) });
     await safeReply(msg, toUserErrorMessage(err));
   }
 }
@@ -220,7 +256,7 @@ async function handleFacturas(msg, args) {
 
   const res = await api.get("/facturas", {
     params: { year, month, tipo, naturaleza },
-    headers: buildHeaders(rfc),
+    headers: await buildHeaders(rfc),
   });
   const items = res.data || [];
   if (!items.length) {
@@ -248,7 +284,7 @@ async function handleRetenciones(msg, args) {
 
   const res = await api.get("/retenciones", {
     params: { year, month },
-    headers: buildHeaders(rfc),
+    headers: await buildHeaders(rfc),
   });
   const items = res.data || [];
   if (!items.length) {
@@ -273,7 +309,7 @@ async function handleDeclaraciones(msg, args) {
 
   const res = await api.get("/declaraciones", {
     params: { year, month },
-    headers: buildHeaders(rfc),
+    headers: await buildHeaders(rfc),
   });
   const items = res.data || [];
   if (!items.length) {
@@ -293,7 +329,7 @@ async function handleFacturaDetail(msg, args) {
   const rfc = await requireRfc(msg);
   if (!rfc) return;
 
-  const res = await api.get(`/facturas/${facturaId}`, { headers: buildHeaders(rfc) });
+  const res = await api.get(`/facturas/${facturaId}`, { headers: await buildHeaders(rfc) });
   await safeReply(msg, `Factura ${facturaId}:\n${formatObject(res.data)}`);
 }
 
@@ -306,7 +342,7 @@ async function handleFacturaXml(msg, args) {
   const rfc = await requireRfc(msg);
   if (!rfc) return;
 
-  const res = await api.get(`/facturas/${facturaId}/xml`, { headers: buildHeaders(rfc) });
+  const res = await api.get(`/facturas/${facturaId}/xml`, { headers: await buildHeaders(rfc) });
   const text = String(res.data || "");
   const preview = text.length > 3500 ? `${text.slice(0, 3500)}\n...[truncado]` : text;
   await safeReply(msg, preview || "XML vacio.");
@@ -324,7 +360,7 @@ async function handleDeclaracionPdf(msg, args) {
 
   const res = await api.get(`/declaraciones/${decId}/archivo/${filename}`, {
     responseType: "arraybuffer",
-    headers: buildHeaders(rfc),
+    headers: await buildHeaders(rfc),
   });
   const media = new MessageMedia("application/pdf", Buffer.from(res.data).toString("base64"), filename);
   await msg.reply(media, undefined, { sendMediaAsDocument: true });
@@ -339,7 +375,7 @@ async function handleRetencionDetail(msg, args) {
   const rfc = await requireRfc(msg);
   if (!rfc) return;
 
-  const res = await api.get(`/retenciones/${retencionId}`, { headers: buildHeaders(rfc) });
+  const res = await api.get(`/retenciones/${retencionId}`, { headers: await buildHeaders(rfc) });
   await safeReply(msg, `Retencion ${retencionId}:\n${formatObject(res.data)}`);
 }
 
@@ -352,7 +388,7 @@ async function handleDeclaracionResumen(msg, args) {
   const rfc = await requireRfc(msg);
   if (!rfc) return;
 
-  const res = await api.get(`/declaraciones/${decId}/resumen.json`, { headers: buildHeaders(rfc) });
+  const res = await api.get(`/declaraciones/${decId}/resumen.json`, { headers: await buildHeaders(rfc) });
   await safeReply(msg, `Resumen declaracion ${decId}:\n${formatObject(res.data)}`);
 }
 
@@ -367,7 +403,7 @@ async function handleSummary(msg, args) {
   const rfc = await requireRfc(msg);
   if (!rfc) return;
 
-  const res = await api.get("/summary", { params: { year, month }, headers: buildHeaders(rfc) });
+  const res = await api.get("/summary", { params: { year, month }, headers: await buildHeaders(rfc) });
   await safeReply(msg, formatSummary(res.data));
 }
 
@@ -382,7 +418,7 @@ async function handleSummaryDetails(msg, args) {
   const rfc = await requireRfc(msg);
   if (!rfc) return;
 
-  const res = await api.get("/summary/details", { params: { year, month }, headers: buildHeaders(rfc) });
+  const res = await api.get("/summary/details", { params: { year, month }, headers: await buildHeaders(rfc) });
   await safeReply(msg, formatSummaryDetails(res.data));
 }
 
@@ -399,7 +435,7 @@ async function handleDeclaracionMode(msg, args) {
 
   const res = await api.get("/declaracion", {
     params: { year, month, income_source: incomeSource || "auto" },
-    headers: buildHeaders(rfc),
+    headers: await buildHeaders(rfc),
   });
   await safeReply(msg, formatDeclaracionMode(res.data));
 }
@@ -417,7 +453,7 @@ async function handleHojaSat(msg, args) {
 
   const res = await api.get("/sat_hoja.txt", {
     params: { year, month, income_source: incomeSource || "auto" },
-    headers: buildHeaders(rfc),
+    headers: await buildHeaders(rfc),
   });
   await safeReply(msg, String(res.data || "Sin respuesta."));
 }
@@ -435,7 +471,7 @@ async function handleSatCsv(msg, args) {
 
   const res = await api.get("/sat_report.csv", {
     params: { year, month, income_source: incomeSource || "auto" },
-    headers: buildHeaders(rfc),
+    headers: await buildHeaders(rfc),
   });
   const lines = String(res.data || "").split("\n").slice(0, 6).join("\n");
   await safeReply(msg, `CSV (primeras lineas):\n${lines}`);
@@ -480,22 +516,126 @@ function cleanupProcessedIds(now = Date.now()) {
   }
 }
 
-function buildHeaders(rfc) {
-  const headers = { "X-RFC": String(rfc || "").trim().toUpperCase() };
-  if (API_TOKEN) {
-    headers.Authorization = `Bearer ${API_TOKEN}`;
+function supportsCredentialAuth() {
+  return Boolean(API_EMAIL && API_PASSWORD);
+}
+
+async function bootstrapApiAuth() {
+  if (accessToken && !supportsCredentialAuth()) {
+    return;
+  }
+  if (!supportsCredentialAuth()) {
+    console.warn("[WA] Sin CFDI_API_TOKEN ni CFDI_API_EMAIL/CFDI_API_PASSWORD. Si la API exige auth, habra respuestas 401.");
+    return;
+  }
+  try {
+    await ensureAccessToken(false);
+    console.log("[WA] Token API inicializado con login/refresh.");
+  } catch (err) {
+    console.warn("[WA] No fue posible inicializar auth API al arrancar:", formatError(err));
+  }
+}
+
+async function loginApi() {
+  if (!supportsCredentialAuth()) {
+    throw new Error("CFDI_API_EMAIL/CFDI_API_PASSWORD no configurados");
+  }
+  const res = await api.post("/auth/login", { email: API_EMAIL, password: API_PASSWORD }, { skipAuthRetry: true });
+  applyAuthPayload(res.data);
+}
+
+async function refreshApi() {
+  if (!refreshToken) {
+    throw new Error("Refresh token no disponible");
+  }
+  const res = await api.post("/auth/refresh", { refresh_token: refreshToken }, { skipAuthRetry: true });
+  applyAuthPayload(res.data);
+}
+
+function applyAuthPayload(payload) {
+  accessToken = String(payload?.access_token || "").trim();
+  refreshToken = String(payload?.refresh_token || "").trim() || refreshToken;
+  const expiresIn = Number(payload?.expires_in || 0);
+  accessTokenExpiresAt = expiresIn > 0 ? Date.now() + expiresIn * 1000 : 0;
+}
+
+function hasUsableAccessToken() {
+  if (!accessToken) return false;
+  if (!accessTokenExpiresAt) return true;
+  return Date.now() + API_AUTH_SKEW_MS < accessTokenExpiresAt;
+}
+
+async function ensureAccessToken(force = false) {
+  if (!force && hasUsableAccessToken()) {
+    return accessToken;
+  }
+  if (authPromise) {
+    await authPromise;
+    return accessToken;
+  }
+  authPromise = (async () => {
+    if (!force && refreshToken) {
+      try {
+        await refreshApi();
+        return;
+      } catch {
+        // Si refresh falla intentamos login normal.
+      }
+    }
+    if (!force && accessToken && !supportsCredentialAuth()) {
+      return;
+    }
+    await loginApi();
+  })();
+  try {
+    await authPromise;
+  } finally {
+    authPromise = null;
+  }
+  return accessToken;
+}
+
+async function getAuthHeaders() {
+  if (supportsCredentialAuth()) {
+    await ensureAccessToken(false);
+  }
+  const headers = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
   }
   return headers;
 }
 
+async function buildHeaders(rfc) {
+  const headers = await getAuthHeaders();
+  headers["X-RFC"] = String(rfc || "").trim().toUpperCase();
+  return headers;
+}
+
+async function resolveSenderPhone(msg) {
+  try {
+    const contact = await msg.getContact();
+    const byContact = normalizePhone(contact?.number || contact?.id?.user || contact?.id?._serialized);
+    if (byContact) {
+      return byContact;
+    }
+  } catch (err) {
+    // Fallback silencioso a null para que el caller maneje respuesta al usuario.
+  }
+  return null;
+}
+
 async function requireRfc(msg) {
-  const phone = normalizePhone(msg.author || msg.from);
+  const phone = await resolveSenderPhone(msg);
   if (!phone) {
     await safeReply(msg, "No pude identificar tu telefono para resolver el RFC.");
     return null;
   }
   try {
-    const res = await api.get("/rfc-phones/resolve", { params: { phone } });
+    const res = await api.get("/rfc-phones/resolve", {
+      params: { phone },
+      headers: await getAuthHeaders(),
+    });
     const rfc = res.data?.rfc;
     if (!rfc) {
       await safeReply(msg, "No hay RFC asociado a tu telefono. Pide al admin que lo registre.");
@@ -658,5 +798,32 @@ async function setBotStatus(status, extra = {}) {
     await writeFile(STATUS_FILE, JSON.stringify(payload, null, 2), "utf-8");
   } catch (err) {
     console.error("No se pudo escribir archivo de estado:", err?.message || err);
+  }
+}
+
+function loadEnvFile() {
+  const envPath = resolve(process.cwd(), ".env");
+  if (!existsSync(envPath)) {
+    return;
+  }
+  try {
+    const raw = readFileSync(envPath, "utf-8");
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) {
+        continue;
+      }
+      const idx = trimmed.indexOf("=");
+      if (idx <= 0) {
+        continue;
+      }
+      const key = trimmed.slice(0, idx).trim();
+      const value = trimmed.slice(idx + 1).trim().replace(/^['"]|['"]$/g, "");
+      if (!(key in process.env)) {
+        process.env[key] = value;
+      }
+    }
+  } catch (err) {
+    console.warn("[WA] No se pudo cargar .env:", err?.message || err);
   }
 }

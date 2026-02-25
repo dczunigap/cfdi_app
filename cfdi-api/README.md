@@ -8,6 +8,8 @@ Backend Python (FastAPI) con arquitectura hexagonal ligera.
 - `CFDI_DB_URL` (default: `sqlite:///./data/contabilidad.sqlite`)
 - `CFDI_AUTH_SECRET` (firma de tokens)
 - `CFDI_AUTH_TTL_MINUTES` (minutos de vigencia del token, default 2880)
+- `CFDI_AUTH_REFRESH_SECRET` (firma de refresh tokens; default usa `CFDI_AUTH_SECRET`)
+- `CFDI_AUTH_REFRESH_TTL_DAYS` (dias de vigencia del refresh token, default 30)
 - `CFDI_AUTH_PASSWORD_ITERATIONS` (iteraciones de hashing, default 390000)
 - `SAT_PASSWORD_SECRET` (clave Fernet para cifrado de PFX/password)
 - `SAT_ENV` (`uat` o `prod`, default `uat`)
@@ -133,5 +135,5 @@ python -m pytest -vv tests/integration/test_storage_r2.py
 - OpenAPI: `GET /openapi.json`
 - Header `X-RFC` requerido en endpoints SAT (auth) y reportes.
 - Telefonos/RFC: `GET /rfc-phones/resolve?phone=...`, `POST /rfc-phones` para registrar.
-- Auth: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`.
+- Auth: `POST /auth/login`, `POST /auth/refresh`, `GET /auth/token-status`, `POST /auth/logout`, `GET /auth/me`.
 - Usuarios: `GET /users`, `POST /users`, `PUT /users/{id}`, `DELETE /users/{id}`.

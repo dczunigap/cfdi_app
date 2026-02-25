@@ -50,7 +50,9 @@ def _build_client(seed_user: bool = True) -> TestClient:
 
 def _set_test_settings() -> None:
     settings.auth_secret = "test-secret"
+    settings.auth_refresh_secret = "test-refresh-secret"
     settings.auth_token_ttl_minutes = 60
+    settings.auth_refresh_ttl_days = 7
     settings.auth_password_iterations = 1000
 
 
@@ -79,3 +81,26 @@ def test_auth_login_invalid_credentials() -> None:
 
     res = client.post("/api/v1/auth/login", json={"email": "admin@example.com", "password": "bad"})
     assert res.status_code == 401
+
+
+def test_auth_refresh_and_token_status() -> None:
+    _set_test_settings()
+    client = _build_client()
+
+    login = client.post("/api/v1/auth/login", json={"email": "admin@example.com", "password": "demo123"})
+    assert login.status_code == 200
+    payload = login.json()
+    access_token = payload["access_token"]
+    refresh_token = payload["refresh_token"]
+
+    status_res = client.get("/api/v1/auth/token-status", headers={"Authorization": f"Bearer {access_token}"})
+    assert status_res.status_code == 200
+    status_payload = status_res.json()
+    assert status_payload["active"] is True
+    assert status_payload["token_type"] == "access"
+
+    refresh_res = client.post("/api/v1/auth/refresh", json={"refresh_token": refresh_token})
+    assert refresh_res.status_code == 200
+    refreshed = refresh_res.json()
+    assert refreshed["access_token"]
+    assert refreshed["refresh_token"]

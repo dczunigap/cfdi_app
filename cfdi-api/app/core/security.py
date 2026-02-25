@@ -6,7 +6,7 @@ import hmac
 import json
 import secrets
 import time
-from typing import Optional
+from typing import Optional, Any
 
 
 def _b64url_encode(data: bytes) -> str:
@@ -61,7 +61,28 @@ def create_access_token(
     return f"{payload_b64}.{_b64url_encode(signature)}"
 
 
-def decode_access_token(token: str, secret: str) -> Optional[dict]:
+def create_refresh_token(
+    user_id: int,
+    email: str,
+    username: str,
+    secret: str,
+    ttl_days: int,
+) -> str:
+    now = int(time.time())
+    payload = {
+        "sub": str(user_id),
+        "email": email,
+        "username": username,
+        "typ": "refresh",
+        "iat": now,
+        "exp": now + int(ttl_days) * 24 * 60 * 60,
+    }
+    payload_b64 = _b64url_encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
+    signature = hmac.new(secret.encode("utf-8"), payload_b64.encode("ascii"), hashlib.sha256).digest()
+    return f"{payload_b64}.{_b64url_encode(signature)}"
+
+
+def decode_signed_token(token: str, secret: str) -> Optional[dict[str, Any]]:
     try:
         payload_b64, sig_b64 = token.split(".", 1)
     except ValueError:
@@ -77,8 +98,36 @@ def decode_access_token(token: str, secret: str) -> Optional[dict]:
         payload = json.loads(_b64url_decode(payload_b64))
     except Exception:
         return None
+    return payload
+
+
+def is_token_expired(payload: dict[str, Any] | None) -> bool:
+    if not payload:
+        return True
     exp = payload.get("exp")
     if exp is None or int(exp) < int(time.time()):
+        return True
+    return False
+
+
+def decode_access_token(token: str, secret: str) -> Optional[dict]:
+    payload = decode_signed_token(token, secret)
+    if not payload:
+        return None
+    if is_token_expired(payload):
+        return None
+    if payload.get("typ") == "refresh":
+        return None
+    return payload
+
+
+def decode_refresh_token(token: str, secret: str) -> Optional[dict]:
+    payload = decode_signed_token(token, secret)
+    if not payload:
+        return None
+    if is_token_expired(payload):
+        return None
+    if payload.get("typ") != "refresh":
         return None
     return payload
 

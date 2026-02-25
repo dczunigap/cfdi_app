@@ -15,6 +15,8 @@ if _env_path.exists():
 DEFAULT_SAT_PASSWORD_SECRET = os.getenv("SAT_PASSWORD_SECRET") or "CjtwIZ6dGe5cwHgrLpW-YowE56KQYd9Uc9onVAO3WCw="
 DEFAULT_AUTH_SECRET = os.getenv("CFDI_AUTH_SECRET") or "LaNT9KXAyIgtfHg61SdXK28os1ey1z0nKVkeqvxBXWXD0dOCdgraVq9tgEGOIUS3"
 DEFAULT_AUTH_TTL_MINUTES = os.getenv("CFDI_AUTH_TTL_MINUTES") or 2880  # 2 days
+DEFAULT_AUTH_REFRESH_SECRET = os.getenv("CFDI_AUTH_REFRESH_SECRET") or DEFAULT_AUTH_SECRET
+DEFAULT_AUTH_REFRESH_TTL_DAYS = os.getenv("CFDI_AUTH_REFRESH_TTL_DAYS") or 30
 DEFAULT_AUTH_PASSWORD_ITERATIONS = os.getenv("CFDI_AUTH_PASSWORD_ITERATIONS") or 390000 # Sube a 300k–600k en prod).
 DEFAULT_TIMEOUT_SAT_SECONDS = os.getenv("CFDI_TIMEOUT_SAT_SECONDS") or 200
 DEFAULT_SAT_DOWNLOAD_DIR = os.getenv("SAT_DOWNLOAD_DIR") or r"C:\cfdi\xml"
@@ -55,6 +57,8 @@ class Settings(BaseSettings):
     app_name: str = "CFDI API"
     auth_secret: str = DEFAULT_AUTH_SECRET
     auth_token_ttl_minutes: int = DEFAULT_AUTH_TTL_MINUTES
+    auth_refresh_secret: str = DEFAULT_AUTH_REFRESH_SECRET
+    auth_refresh_ttl_days: int = DEFAULT_AUTH_REFRESH_TTL_DAYS
     auth_password_iterations: int = DEFAULT_AUTH_PASSWORD_ITERATIONS
     sat_password_secret: str = DEFAULT_SAT_PASSWORD_SECRET
     sat_cfdi_auth_url: str = (
