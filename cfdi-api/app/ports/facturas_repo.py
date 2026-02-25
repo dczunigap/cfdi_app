@@ -12,6 +12,8 @@ class FacturaRepository(Protocol):
         month: Optional[int] = None,
         tipo: Optional[str] = None,
         naturaleza: Optional[str] = None,
+        uso_cfdi: Optional[str] = None,
+        rfc: Optional[str] = None,
     ) -> list[FacturaListItem]:
         ...
 

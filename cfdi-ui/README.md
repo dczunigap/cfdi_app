@@ -2,6 +2,10 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.0.5.
 
+## Arquitectura
+
+- Ver detalle tecnico y diagramas Mermaid en [ARQUITECTURA.md](./ARQUITECTURA.md).
+
 ## Development server
 
 To start a local development server, run:
@@ -11,6 +15,12 @@ ng serve
 ```
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+
+## Environment
+
+- `apiBaseUrl`: base URL del API (default `/api/v1`)
+- `authEnabled`: habilita guard de autenticación (default `true`)
+- `authValidationMode`: `local` (solo exp del JWT) o `server` (valida con `GET /auth/me`)
 
 ## Code scaffolding
 

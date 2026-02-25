@@ -9,3 +9,6 @@ class PdfStorage(Protocol):
 
     def read(self, filename: str) -> bytes:
         ...
+
+    def delete(self, filename: str) -> None:
+        ...

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from io import BytesIO
 import re
 from typing import Any
 import unicodedata
@@ -43,11 +44,78 @@ def _parse_amount(raw: str | None) -> float | None:
         return None
 
 
+def _extract_detalle_pagos(lines: list[str]) -> tuple[float | None, float | None]:
+    if not lines:
+        return None, None
+    target = "DETALLE DEL PAGO IVA PERSONAS FISICAS PLATAFORMAS TECNOLOGICAS"
+    norm_lines = [_norm(ln).upper() for ln in lines]
+    start_idx = None
+    for i, nln in enumerate(norm_lines):
+        if target in nln:
+            start_idx = i
+            break
+
+    if start_idx is None:
+        return None, None
+
+    saldo_a_favor = None
+    saldo_a_pagar = None
+    search_end = min(start_idx + 50, len(lines))
+    for i in range(start_idx + 1, search_end):
+        nln = norm_lines[i]
+        if "A FAVOR" in nln:
+            line = lines[i]
+            m = re.search(
+                r"A\s*FAVOR\s*:?\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)",
+                line,
+                flags=re.IGNORECASE,
+            )
+            if not m and i + 1 < len(lines):
+                m = re.search(r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)", lines[i + 1])
+            saldo_a_favor = _parse_amount(m.group(1)) if m else None
+            continue
+        if "A PAGAR" in nln:
+            line = lines[i]
+            m = re.search(
+                r"A\s*PAGAR\s*:?\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)",
+                line,
+                flags=re.IGNORECASE,
+            )
+            if not m and i + 1 < len(lines):
+                m = re.search(r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)", lines[i + 1])
+            saldo_a_pagar = _parse_amount(m.group(1)) if m else None
+            continue
+
+    return saldo_a_favor, saldo_a_pagar
+
+
 def extract_pdf_text(pdf_path: str, max_chars: int = 20000) -> tuple[str, int]:
     """Extrae texto de PDF usando pypdf (si el PDF tiene texto embebido).
     Devuelve (texto, num_paginas). Si es escaneo, el texto puede salir vac¡o.
     """
     reader = PdfReader(pdf_path)
+    pages = reader.pages
+    num_pages = len(pages)
+    chunks: list[str] = []
+    total = 0
+    for p in pages:
+        try:
+            t = p.extract_text() or ""
+        except Exception:
+            t = ""
+        if not t.strip():
+            continue
+        if total + len(t) > max_chars:
+            t = t[: max_chars - total]
+        chunks.append(t)
+        total += len(t)
+        if total >= max_chars:
+            break
+    return ("\n".join(chunks)).strip(), num_pages
+
+
+def extract_pdf_text_bytes(pdf_bytes: bytes, max_chars: int = 20000) -> tuple[str, int]:
+    reader = PdfReader(BytesIO(pdf_bytes))
     pages = reader.pages
     num_pages = len(pages)
     chunks: list[str] = []
@@ -134,6 +202,8 @@ def parse_sat_declaracion_summary(text: str) -> dict[str, Any]:
         "fecha_presentacion": None,  # datetime
         "linea_captura": None,
         "secciones": [],
+        "saldo_a_favor": None,
+        "saldo_a_pagar": None,
     }
 
     # Split into sections
@@ -299,6 +369,10 @@ def parse_sat_declaracion_summary(text: str) -> dict[str, Any]:
     out["iva_a_cargo_16"] = _extract_after("IVA A CARGO A LA TASA DEL 16%")
     out["iva_acreditable"] = _extract_after("IVA ACREDITABLE")
     out["iva_retenido"] = _extract_after("IVA RETENIDO")
+    all_lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+    saldo_a_favor, saldo_a_pagar = _extract_detalle_pagos(all_lines)
+    out["saldo_a_favor"] = saldo_a_favor
+    out["saldo_a_pagar"] = saldo_a_pagar
 
     def first_by_prefix(prefix: str) -> dict[str, Any] | None:
         p = _norm(prefix).upper()

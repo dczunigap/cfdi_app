@@ -5,3 +5,9 @@ pydantic
 pydantic-settings
 pypdf
 python-multipart
+cryptography
+lxml
+redis
+rq
+minio
+python-dotenv

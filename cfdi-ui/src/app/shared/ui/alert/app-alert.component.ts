@@ -16,7 +16,7 @@ export class AppAlertComponent {
   @Input() message = '';
   @Input() dismissible = false;
 
-  @Output() readonly close = new EventEmitter<void>();
+  @Output() readonly closed = new EventEmitter<void>();
 
   get classes(): Record<string, boolean> {
     return {

@@ -44,22 +44,20 @@
           <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="font-display text-lg text-text">Resumen breve</h2>
             <div class="flex flex-wrap gap-2">
-              <a
+              <button
                 class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
-                [href]="(pdfUrl$ | async) || '#'"
-                target="_blank"
-                rel="noopener"
-                >
+                type="button"
+                (click)="openPdf(detail)"
+              >
                 Abrir PDF
-              </a>
-              <a
+              </button>
+              <button
                 class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-bg"
-                [href]="(jsonUrl$ | async) || '#'"
-                target="_blank"
-                rel="noopener"
-                >
+                type="button"
+                (click)="openJson(detail.id)"
+              >
                 Abrir JSON
-              </a>
+              </button>
               <button
                 class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-bg"
                 type="button"

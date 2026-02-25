@@ -3,8 +3,8 @@
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <div class="text-xs uppercase tracking-[0.2em] text-muted">Resumen</div>
-        <h1 class="mt-2 font-display text-2xl text-text">Control mensual</h1>
-        <p class="mt-1 text-sm text-muted">KPIs del periodo y alertas de control.</p>
+        <h1 class="mt-2 font-display text-2xl text-text">Control mensual y anual</h1>
+        <p class="mt-1 text-sm text-muted">KPIs por tipo de declaracion y periodo.</p>
         @if (summary?.mi_rfc) {
           <p class="mt-2 text-sm text-muted">
             RFC: <span class="font-medium text-text">{{ summary?.mi_rfc }}</span>
@@ -22,6 +22,14 @@
   <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
     <div class="flex flex-wrap items-end gap-3">
       <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Tipo
+        <select class="mt-2 w-full" [(ngModel)]="tipoDeclaracion" (ngModelChange)="onTipoDeclaracionChange()">
+          @for (tipo of tiposDeclaracion; track tipo) {
+            <option [ngValue]="tipo">{{ tipo }}</option>
+          }
+        </select>
+      </label>
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
         Ano
         <select class="mt-2 w-full" [(ngModel)]="year">
           <option [ngValue]="null">Automatico</option>
@@ -30,15 +38,17 @@
           }
         </select>
       </label>
-      <label class="text-xs uppercase tracking-[0.18em] text-muted">
-        Mes
-        <select class="mt-2 w-full" [(ngModel)]="month">
-          <option [ngValue]="null">Automatico</option>
-          @for (m of months; track m) {
-            <option [ngValue]="m">{{ m }}</option>
-          }
-        </select>
-      </label>
+      @if (tipoDeclaracion === 'MENSUAL') {
+        <label class="text-xs uppercase tracking-[0.18em] text-muted">
+          Mes
+          <select class="mt-2 w-full" [(ngModel)]="month">
+            <option [ngValue]="null">Automatico</option>
+            @for (m of months; track m) {
+              <option [ngValue]="m">{{ m }}</option>
+            }
+          </select>
+        </label>
+      }
       <button
         class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
         type="button"
@@ -48,20 +58,14 @@
         {{ loading ? 'Cargando...' : 'Ver' }}
       </button>
       @if (csvUrl) {
-        <a
+        <button
           class="btn btn-s rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
-          [href]="csvUrl"
-          >
-          Exportar CSV SAT
-        </a>
-      }
-      <a
-        class="btn btn-s rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
-        routerLink="/declaracion"
-        [queryParams]="declaracionParams"
+          type="button"
+          (click)="downloadCsv()"
         >
-        Ir a modo declaracion
-      </a>
+          Exportar CSV SAT
+        </button>
+      }
       <button
         class="btn btn-s rounded-xl border border-border bg-bg text-text hover:bg-surface"
         type="button"
@@ -94,48 +98,119 @@
       </div>
       <div class="text-sm text-muted">Uso de plataforma: {{ summary.plat_comision | number: '1.2-2' }}</div>
     </div>
-    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-      <div class="text-xs uppercase tracking-[0.18em] text-muted">CFDI por emision (I/E) - excluye P</div>
-      <div class="mt-2 text-2xl font-semibold text-text">
-        Ingresos: {{ summary.ingresos_total | number: '1.2-2' }}
+
+    @if (!isAnualData(summary)) {
+      <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <div class="text-xs uppercase tracking-[0.18em] text-muted">CFDI por emision (I/E) - excluye P</div>
+        <div class="mt-2 text-2xl font-semibold text-text">
+          Ingresos: {{ summary.ingresos_total | number: '1.2-2' }}
+        </div>
+        <div class="mt-2 text-sm text-muted">IVA trasladado (CFDI): {{ summary.ingresos_trasl | number: '1.2-2' }}</div>
+        <div class="mt-2 text-2xl font-semibold text-text">
+          Gastos: {{ summary.gastos_total | number: '1.2-2' }}
+        </div>
+        <div class="text-sm text-muted">
+          IVA acreditable aprox.: {{ summary.gastos_trasl | number: '1.2-2' }}
+        </div>
       </div>
-      <div class="mt-2 text-sm text-muted">IVA trasladado (CFDI): {{ summary.ingresos_trasl | number: '1.2-2' }}</div>
-      <div class="mt-2 text-2xl font-semibold text-text">
-        Gastos: {{ summary.gastos_total | number: '1.2-2' }}
+
+      <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <div class="text-xs uppercase tracking-[0.18em] text-muted">Flujo por Complementos P (FechaPago)</div>
+        <div class="mt-2 text-2xl font-semibold text-text">Cobros: {{ summary.cash_in | number: '1.2-2' }}</div>
+        <div class="mt-2 text-sm text-muted">
+          Pagos: {{ summary.cash_out | number: '1.2-2' }}
+        </div>
+        <div class="mt-2 text-sm text-muted">
+          Renglones de pago detectados: {{ summary.pagos_count }}
+        </div>
       </div>
-      <div class="text-sm text-muted">
-        IVA acreditable aprox.: {{ summary.gastos_trasl | number: '1.2-2' }}
+
+      <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <div class="text-xs uppercase tracking-[0.18em] text-muted">Papel de trabajo (IVA sugerido)</div>
+        <div class="mt-2 text-sm text-muted">
+          <strong>IVA causado</strong> = IVA plataforma + IVA CFDI:  {{ summary.iva_causado_sugerido | number: '1.2-2' }}
+        </div>
+        <div class="text-sm text-muted">
+          <strong>IVA acreditable</strong> (gastos CFDI): {{ summary.iva_acreditable_sugerido | number: '1.2-2' }}
+        </div>
+        <div class="text-sm text-muted">
+          <strong>IVA retenido plataforma</strong>: {{ summary.iva_retenido_plat | number: '1.2-2' }}
+        </div>
+        <div class="text-sm text-muted">
+          <strong>ISR retenido plataforma</strong>: {{ summary.plat_isr_ret | number: '1.2-2' }}
+        </div>
+        <div class="text-sm text-muted">
+          <strong>IVA neto</strong> (causado - acreditable - retenido):
+          <strong>{{ summary.iva_neto_sugerido | number: '1.2-2' }}</strong>
+        </div>
+        <div class="text-sm text-muted">
+          <strong>Saldo a favor periodo anterior</strong>:
+          {{ summary.saldo_a_favor_anterior | number: '1.2-2' }}
+        </div>
       </div>
-    </div>
-    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-      <div class="text-xs uppercase tracking-[0.18em] text-muted">Flujo por Complementos P (FechaPago)</div>
-      <div class="mt-2 text-2xl font-semibold text-text">Cobros: {{ summary.cash_in | number: '1.2-2' }}</div>
-      <div class="mt-2 text-sm text-muted">
-        Pagos: {{ summary.cash_out | number: '1.2-2' }}
+    }
+
+    @if (isAnualData(summary)) {
+      <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <div class="text-xs uppercase tracking-[0.18em] text-muted">CFDI por emision (I/E) - excluye P</div>
+        <div class="mt-1 text-xl font-semibold text-text">
+          Ingresos: {{ summary.ingresos_total | number: '1.2-2' }}
+        </div>
+        <div class="mt-2 text-sm text-muted">IVA trasladado (CFDI): {{ summary.ingresos_trasl | number: '1.2-2' }}</div>
+        <div class="mt-2 text-xl font-semibold text-text">
+          Total Gastos Mensuales: {{ summary.deducciones_mensuales_acumuladas?.gastos_total || 0 | number: '1.2-2' }}
+        </div>
+        <div class="text-xl font-semibold text-text">
+          Total Gastos Anuales: {{ summary.deducciones_anuales?.gastos_total || 0 | number: '1.2-2' }}
+        </div>
+        <div class="mt-1 text-sm text-muted">
+          IVA acreditable aprox.: {{ (summary.deducciones_mensuales_acumuladas?.gastos_trasl || 0 ) + (summary.deducciones_anuales?.gastos_trasl || 0) | number: '1.2-2' }}
+        </div>
       </div>
-      <div class="mt-2 text-sm text-muted">
-        Renglones de pago detectados: {{ summary.pagos_count }}
+      
+      <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <div class="text-xs uppercase tracking-[0.18em] text-muted">Papel de trabajo (IVA sugerido)</div>
+        <div class="mt-2 text-sm text-muted">
+          <strong>IVA causado</strong> = IVA plataforma + IVA CFDI:  {{ summary.iva_causado_sugerido | number: '1.2-2' }}
+        </div>
+        <!-- <div class="text-sm text-muted">
+          <strong>IVA acreditable</strong> (gastos CFDI Mensual + Anual): {{ (summary.deducciones_mensuales_acumuladas?.gastos_trasl || 0 ) + (summary.deducciones_anuales?.gastos_trasl || 0) | number: '1.2-2' }}
+        </div> -->
+        <div class="text-sm text-muted">
+          <strong>IVA acreditable</strong> (gastos CFDI Mensual + Anual): {{ summary.iva_acreditable_sugerido | number: '1.2-2' }}
+        </div>
+        <div class="text-sm text-muted">
+          <strong>IVA retenido plataforma</strong>: {{ summary.iva_retenido_plat | number: '1.2-2' }}
+        </div>
+        <div class="text-sm text-muted">
+          <strong>ISR retenido plataforma</strong>: {{ summary.plat_isr_ret | number: '1.2-2' }}
+        </div>
+        <div class="text-sm text-muted">
+          <strong>IVA neto</strong> (causado - acreditable - retenido):
+          <strong>{{ summary.iva_neto_sugerido | number: '1.2-2' }}</strong>
+        </div>
       </div>
-    </div>
-    <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-      <div class="text-xs uppercase tracking-[0.18em] text-muted">Papel de trabajo (IVA sugerido)</div>
-      <div class="mt-2 text-sm text-muted">
-        <strong>IVA causado</strong> = IVA plataforma + IVA CFDI:  {{ summary.iva_causado_sugerido | number: '1.2-2' }}
+      
+      <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <div class="text-xs uppercase tracking-[0.18em] text-muted"><strong>Deducciones anuales configuradas</strong></div>
+        <div class="mt-2 text-sm text-muted">
+          Usos CFDI: {{ summary.deducciones_anuales?.usos_cfdi?.join(', ') || '-' }}
+        </div>
+        <div class="mt-1 text-sm text-muted">
+          Gastos: {{ summary.deducciones_anuales?.gastos_total || 0 | number: '1.2-2' }}
+        </div>
+        <div class="mt-4 text-xs uppercase tracking-[0.18em] text-muted"><strong>Acumulado de deducciones mensuales</strong></div>
+        <div class="mt-2 text-sm text-muted">
+          Habilitado: {{ summary.deducciones_mensuales_acumuladas?.habilitado ? 'Si' : 'No' }}
+        </div>
+        <div class="mt-1 text-sm text-muted">
+          Gastos: {{ summary.deducciones_mensuales_acumuladas?.gastos_total || 0 | number: '1.2-2' }}
+        </div>
+        <div class="mt-3 text-xs text-muted">
+          Meses incluidos: {{ summary.periodos_mensuales_incluidos?.join(', ') || '-' }}
+        </div>
       </div>
-      <div class="text-sm text-muted">
-        <strong>IVA acreditable</strong> (gastos CFDI): {{ summary.iva_acreditable_sugerido | number: '1.2-2' }}
-      </div>
-      <div class="text-sm text-muted">
-        <strong>IVA retenido plataforma</strong>: {{ summary.iva_retenido_plat | number: '1.2-2' }}
-      </div>
-      <div class="text-sm text-muted">
-        <strong>ISR retenido plataforma</strong>: {{ summary.plat_isr_ret | number: '1.2-2' }}
-      </div>
-      <div class="text-sm text-muted">
-        <strong>IVA neto</strong> (causado - acreditable - retenido):
-        <strong>{{ summary.iva_neto_sugerido | number: '1.2-2' }}</strong>
-      </div>
-    </div>
+    }
   </div>
 }
 </div>

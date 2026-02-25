@@ -10,6 +10,7 @@ class RetencionRepository(Protocol):
         self,
         year: Optional[int] = None,
         month: Optional[int] = None,
+        rfc: Optional[str] = None,
     ) -> list[RetencionListItem]:
         ...
 

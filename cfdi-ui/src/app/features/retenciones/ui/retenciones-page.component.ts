@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { AsyncPipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +19,8 @@ import { XmlImportComponent } from '../../../shared/ui/imports/xml-import.compon
   styleUrl: './retenciones-page.component.css',
 })
 export class RetencionesPageComponent implements OnInit {
+  private readonly repo = inject(RetencionesRepository);
+
   readonly retenciones$ = retenciones$;
   readonly retencionesCount$ = retencionesCount$;
   readonly periods$ = retencionesPeriods$;
@@ -28,8 +30,6 @@ export class RetencionesPageComponent implements OnInit {
   showXmlImport = false;
   deletingId: number | null = null;
   error: string | null = null;
-
-  constructor(private readonly repo: RetencionesRepository) {}
 
   ngOnInit(): void {
     this.repo.fetch();

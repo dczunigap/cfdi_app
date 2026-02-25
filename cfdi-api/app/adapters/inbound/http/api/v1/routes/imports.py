@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 import logging
 
@@ -9,7 +8,7 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
-from app.adapters.inbound.http.deps import get_db
+from app.adapters.inbound.http.deps import get_db, require_user
 from app.adapters.outbound.db.repositories.declaraciones import SqlDeclaracionRepository
 from app.adapters.outbound.db.repositories.facturas import SqlFacturaRepository
 from app.adapters.outbound.db.repositories.platform_rfcs import SqlPlatformRfcRepository
@@ -21,7 +20,7 @@ from app.adapters.outbound.db.models import (
     PagoModel,
     RetencionModel,
 )
-from app.adapters.outbound.files.pdf_storage import LocalPdfStorage
+from app.adapters.outbound.files.pdf_storage_factory import build_pdf_storage
 from app.adapters.services.parsers.pdf_parser import LocalPdfParser
 from app.adapters.services.parsers.xml_parser import LocalXmlParser
 from app.application.imports.facturas import (
@@ -35,7 +34,7 @@ from app.adapters.inbound.http.api.v1.mappers import (
 from app.domain.declaraciones.entities import DeclaracionPDF
 from app.utils.files import safe_pdf_filename, sha256_bytes
 
-router = APIRouter(tags=["import"])
+router = APIRouter(tags=["import"], dependencies=[Depends(require_user)])
 
 
 def _update_factura_model(model: FacturaModel, parsed: dict) -> None:
@@ -202,8 +201,7 @@ async def importar_pdf(
 ):
     stats = import_pdf_stats()
 
-    base_dir = Path(__file__).resolve().parents[7]
-    storage = LocalPdfStorage(base_dir / "database" / "pdfs")
+    storage = build_pdf_storage()
     parser = LocalPdfParser()
     repo = SqlDeclaracionRepository(db)
 
@@ -220,9 +218,7 @@ async def importar_pdf(
             storage.save(filename, pdf_bytes)
 
             try:
-                text, num_pages = parser.extract_text(
-                    str(base_dir / "database" / "pdfs" / filename)
-                )
+                text, num_pages = parser.extract_text_bytes(pdf_bytes)
             except Exception:
                 text, num_pages = "", None
 
@@ -253,6 +249,16 @@ async def importar_pdf(
                 fecha_presentacion=summary.get("fecha_presentacion")
                 if isinstance(summary, dict)
                 else None,
+                saldo_a_favor=(
+                    summary.get("saldo_a_favor")
+                    if isinstance(summary, dict) and summary.get("saldo_a_favor") is not None
+                    else 0.0
+                ),
+                saldo_a_pagar=(
+                    summary.get("saldo_a_pagar")
+                    if isinstance(summary, dict) and summary.get("saldo_a_pagar") is not None
+                    else 0.0
+                ),
                 sha256=sha,
                 filename=filename,
                 original_name=getattr(file, "filename", None),
@@ -265,6 +271,12 @@ async def importar_pdf(
                 existing.rfc = dec.rfc
                 existing.folio = dec.folio
                 existing.fecha_presentacion = dec.fecha_presentacion
+                existing.saldo_a_favor = (
+                    dec.saldo_a_favor if dec.saldo_a_favor is not None else 0.0
+                )
+                existing.saldo_a_pagar = (
+                    dec.saldo_a_pagar if dec.saldo_a_pagar is not None else 0.0
+                )
                 existing.filename = dec.filename
                 existing.original_name = dec.original_name
                 existing.num_pages = dec.num_pages

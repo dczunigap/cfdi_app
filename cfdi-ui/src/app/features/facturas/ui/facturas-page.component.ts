@@ -1,14 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { AsyncPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideFileText, lucideTrash2 } from '@ng-icons/lucide';
+import { map } from 'rxjs';
 
 import { facturas$, facturasCount$ } from '../data/facturas.queries';
 import { FacturasRepository } from '../data/facturas.repository';
 import { XmlImportComponent } from '../../../shared/ui/imports/xml-import.component';
-import { API_BASE_URL } from '../../../core/api/api-client';
+import { RfcService } from '../../../core/rfc/rfc.service';
 
 @Component({
   selector: 'app-facturas-page',
@@ -27,12 +28,23 @@ import { API_BASE_URL } from '../../../core/api/api-client';
   styleUrl: './facturas-page.component.css',
 })
 export class FacturasPageComponent implements OnInit {
+  private readonly repo = inject(FacturasRepository);
+  private readonly rfcService = inject(RfcService);
+
   readonly facturas$ = facturas$;
   readonly facturasCount$ = facturasCount$;
+  readonly subtotalTotal$ = this.facturas$.pipe(
+    map((items) => items.reduce((acc, item) => acc + Number(item.total ?? 0), 0))
+  );
   readonly years = this.buildYears();
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
   readonly tipos = ['I', 'E', 'P', 'T', 'N'];
   readonly naturalezas = ['ingreso', 'gasto', 'cobro', 'pago', 'otro'];
+  readonly receptorScopes = [
+    { value: 'all', label: 'Todos' },
+    { value: 'mine', label: 'Mi RFC' },
+    { value: 'others', label: 'Otros RFC' },
+  ] as const;
   filtersCollapsed = false;
   showXmlImport = false;
   deletingId: number | null = null;
@@ -42,19 +54,24 @@ export class FacturasPageComponent implements OnInit {
   month: number | null = null;
   tipo: string | null = null;
   naturaleza: string | null = null;
-
-  constructor(private readonly repo: FacturasRepository) {}
+  usoCfdi: string | null = null;
+  receptorScope: 'all' | 'mine' | 'others' = 'all';
 
   ngOnInit(): void {
+    this.rfcService.refreshOptions();
     this.repo.fetch();
   }
 
   applyFilters(): void {
+    const miRfc = this.rfcService.selectedRfc();
     this.repo.setFilters({
       year: this.year,
       month: this.month,
       tipo: this.tipo,
       naturaleza: this.naturaleza,
+      uso_cfdi: this.usoCfdi,
+      receptor_scope: this.receptorScope,
+      mi_rfc: miRfc,
     });
   }
 
@@ -63,11 +80,16 @@ export class FacturasPageComponent implements OnInit {
     this.month = null;
     this.tipo = null;
     this.naturaleza = null;
+    this.usoCfdi = null;
+    this.receptorScope = 'all';
     this.repo.setFilters({
       year: null,
       month: null,
       tipo: null,
       naturaleza: null,
+      uso_cfdi: null,
+      receptor_scope: 'all',
+      mi_rfc: this.rfcService.selectedRfc(),
     });
   }
 
@@ -102,21 +124,54 @@ export class FacturasPageComponent implements OnInit {
   }
 
   downloadCsv(): void {
-    window.location.href = this.csvUrl;
-  }
-
-  get csvUrl(): string {
-    const params = new URLSearchParams();
-    if (this.year) params.set('year', String(this.year));
-    if (this.month) params.set('month', String(this.month));
-    if (this.tipo) params.set('tipo', this.tipo);
-    if (this.naturaleza) params.set('naturaleza', this.naturaleza);
-    const query = params.toString();
-    return `${API_BASE_URL}/facturas/export.csv${query ? `?${query}` : ''}`;
+    this.error = null;
+    this.repo
+      .exportCsv({
+        year: this.year ?? undefined,
+        month: this.month ?? undefined,
+        tipo: this.tipo ?? undefined,
+        naturaleza: this.naturaleza ?? undefined,
+        uso_cfdi: this.usoCfdi ?? undefined,
+      })
+      .subscribe({
+        next: (resp) => {
+          const blob = resp.body;
+          if (!blob) {
+            this.error = 'No se pudo descargar el CSV.';
+            return;
+          }
+          const filename =
+            this.getFilename(resp.headers.get('content-disposition')) ||
+            this.buildCsvFilename();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename;
+          link.click();
+          window.URL.revokeObjectURL(url);
+        },
+        error: () => {
+          this.error = 'No se pudo descargar el CSV.';
+        },
+      });
   }
 
   private buildYears(): number[] {
     const current = new Date().getFullYear();
     return Array.from({ length: 6 }, (_, i) => current - i);
+  }
+
+  private getFilename(contentDisposition: string | null): string | null {
+    if (!contentDisposition) return null;
+    const match = /filename=([^;]+)/i.exec(contentDisposition);
+    if (!match) return null;
+    return match[1].replace(/"/g, '').trim() || null;
+  }
+
+  private buildCsvFilename(): string {
+    if (this.year && this.month) {
+      return `facturas_${this.year}_${String(this.month).padStart(2, '0')}.csv`;
+    }
+    return 'facturas.csv';
   }
 }

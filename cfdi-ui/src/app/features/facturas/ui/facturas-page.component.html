@@ -50,7 +50,7 @@
       </button>
     </div>
     @if (!filtersCollapsed) {
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
         <label class="text-xs uppercase tracking-[0.18em] text-muted">
           Año
           <select
@@ -99,17 +99,34 @@
             }
           </select>
         </label>
+        <label class="text-xs uppercase tracking-[0.18em] text-muted">
+          Uso CFDI
+          <input
+            class="mt-2 w-full"
+            [(ngModel)]="usoCfdi"
+            placeholder="G01, P01..."
+          />
+        </label>
+        <label class="text-xs uppercase tracking-[0.18em] text-muted">
+          Receptor
+          <select
+            class="mt-2 w-full"
+            [(ngModel)]="receptorScope"
+            >
+            @for (option of receptorScopes; track option.value) {
+              <option [ngValue]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
         <div class="flex items-end gap-3">
           <button
-            class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+            class="btn btn-s w-1/2 rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
             (click)="applyFilters()"
             >
             Aplicar
           </button>
-        </div>
-        <div class="flex items-end">
           <button
-            class="btn btn-s w-full rounded-xl border border-border bg-bg text-text hover:bg-surface"
+            class="btn btn-s w-1/2 rounded-xl border border-border bg-bg text-text hover:bg-surface"
             (click)="resetFilters()"
             >
             Limpiar
@@ -182,6 +199,13 @@
                       </button>
                     </div>
                   </td>
+                </tr>
+              }
+              @if (subtotalTotal$ | async; as subtotalTotal) {
+                <tr class="bg-bg/60 font-semibold text-text">
+                  <td class="px-5 py-4" colspan="7">Subtotal</td>
+                  <td class="px-5 py-4 text-right">{{ subtotalTotal | number: '1.2-2' }}</td>
+                  <td class="px-5 py-4"></td>
                 </tr>
               }
             </tbody>

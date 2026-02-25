@@ -21,12 +21,16 @@ class SqlDeclaracionRepository(DeclaracionRepository):
         self,
         year: Optional[int] = None,
         month: Optional[int] = None,
+        rfc: Optional[str] = None,
     ) -> list[DeclaracionListItem]:
         q = apply_optional_filters(
             select(DeclaracionModel),
             (DeclaracionModel.year, year),
             (DeclaracionModel.month, month),
         )
+        rfc_value = (rfc or "").strip().upper()
+        if rfc_value:
+            q = q.where(DeclaracionModel.rfc == rfc_value)
         rows = self._db.execute(q).scalars().all()
         return [declaracion_to_list_item(r) for r in rows]
 
@@ -40,6 +44,8 @@ class SqlDeclaracionRepository(DeclaracionRepository):
             rfc=declaracion.rfc,
             folio=declaracion.folio,
             fecha_presentacion=declaracion.fecha_presentacion,
+            saldo_a_favor=declaracion.saldo_a_favor if declaracion.saldo_a_favor is not None else 0,
+            saldo_a_pagar=declaracion.saldo_a_pagar if declaracion.saldo_a_pagar is not None else 0,
             sha256=declaracion.sha256,
             filename=declaracion.filename,
             original_name=declaracion.original_name,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.adapters.outbound.db.mappers import factura_to_list_item
@@ -23,6 +23,8 @@ class SqlFacturaRepository(FacturaRepository):
         month: Optional[int] = None,
         tipo: Optional[str] = None,
         naturaleza: Optional[str] = None,
+        uso_cfdi: Optional[str] = None,
+        rfc: Optional[str] = None,
     ) -> list[FacturaListItem]:
         q = apply_optional_filters(
             select(FacturaModel),
@@ -30,7 +32,16 @@ class SqlFacturaRepository(FacturaRepository):
             (FacturaModel.month_emision, month),
             (FacturaModel.naturaleza, naturaleza),
             (FacturaModel.tipo_comprobante, tipo.upper() if tipo else None),
+            (FacturaModel.uso_cfdi, uso_cfdi.upper() if uso_cfdi else None),
         )
+        rfc_value = (rfc or "").strip().upper()
+        if rfc_value:
+            q = q.where(
+                or_(
+                    FacturaModel.receptor_rfc == rfc_value,
+                    FacturaModel.emisor_rfc == rfc_value,
+                )
+            )
         rows = self._db.execute(q).scalars().all()
         return [factura_to_list_item(r) for r in rows]
 

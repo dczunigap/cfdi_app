@@ -17,6 +17,10 @@ import { AppAlertService } from '../alert/alert.service';
   styleUrl: './pdf-import.component.css',
 })
 export class PdfImportComponent {
+  private readonly repo = inject(ImportacionRepository);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly alerts = inject(AppAlertService);
+
   @ViewChild('pdfInput') pdfInput?: ElementRef<HTMLInputElement>;
   readonly dialogRef = inject<DialogRef<void> | null>(DialogRef, { optional: true });
   readonly dialogData = inject<{ showCard?: boolean } | null>(DIALOG_DATA, { optional: true });
@@ -29,12 +33,6 @@ export class PdfImportComponent {
   pdfLoading = false;
 
   @Output() completed = new EventEmitter<boolean>();
-
-  constructor(
-    private readonly repo: ImportacionRepository,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly alerts: AppAlertService,
-  ) {}
 
   closeDialog(): void {
     this.dialogRef?.close();

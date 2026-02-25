@@ -1,0 +1,229 @@
+<div class="space-y-6">
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <div class="text-xs uppercase tracking-[0.2em] text-muted">SAT</div>
+        <h1 class="mt-2 font-display text-2xl text-text">Descargas masivas</h1>
+        <p class="mt-1 text-sm text-muted">
+          Solicita, verifica y procesa paquetes de CFDI y retenciones.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="text-xs uppercase tracking-[0.18em] text-muted">Nueva solicitud</div>
+    <h2 class="font-display text-lg text-text">Crear solicitud SAT</h2>
+    <div class="mt-4 grid gap-4 md:grid-cols-6">
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Tipo
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="kind"
+        >
+          <option value="cfdi">CFDI</option>
+          <option value="retenciones">Retenciones</option>
+        </select>
+      </label>
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Solicitud
+        <select
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          [(ngModel)]="tipoSolicitud"
+        >
+          <option value="emitidos">Emitidos</option>
+          <option value="recibidos">Recibidos</option>
+        </select>
+      </label>
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Fecha inicial
+        <input
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          type="date"
+          [(ngModel)]="fechaInicial"
+        />
+      </label>
+      <label class="text-xs uppercase tracking-[0.18em] text-muted">
+        Fecha final
+        <input
+          class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+          type="date"
+          [(ngModel)]="fechaFinal"
+        />
+      </label>
+      <div class="flex items-end gap-3">
+        <button
+          class="btn btn-s rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+          type="button"
+          (click)="submit()"
+          [disabled]="loading"
+        >
+          {{ loading ? 'Creando...' : 'Solicitar descarga' }}
+        </button>
+      </div>
+    </div>
+    
+    @if (formError) {
+      <p class="mt-3 text-sm text-rose-600">{{ formError }}</p>
+    }
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <div class="text-xs uppercase tracking-[0.18em] text-muted">Consulta rapida</div>
+    <h2 class="font-display text-lg text-text">Buscar por ID</h2>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <input
+        class="w-full max-w-xs rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+        placeholder="ID de descarga"
+        [(ngModel)]="lookupId"
+      />
+      <button
+        class="btn btn-s rounded-xl border border-border bg-bg text-text/80 hover:bg-surface"
+        type="button"
+        (click)="lookup()"
+      >
+        Consultar
+      </button>
+    </div>
+    @if (lookupError) {
+      <p class="mt-3 text-sm text-rose-600">{{ lookupError }}</p>
+    }
+  </div>
+
+  <div class="rounded-2xl border border-border bg-surface shadow-card">
+    <div class="border-b border-border px-5 py-4">
+      <div class="text-xs uppercase tracking-[0.18em] text-muted">Solicitudes</div>
+      <h3 class="mt-2 font-display text-lg text-text">Descargas recientes</h3>
+      <div class="mt-4 flex flex-wrap items-end gap-3">
+        <label class="text-xs uppercase tracking-[0.18em] text-muted">
+          Estado
+          <select
+            class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+            [(ngModel)]="estadoFiltro"
+            (change)="page = 0; loadList()"
+          >
+            @for (estado of estados; track estado) {
+              <option [value]="estado">{{ estado }}</option>
+            }
+          </select>
+        </label>
+        <label class="text-xs uppercase tracking-[0.18em] text-muted">
+          Tamano
+          <select
+            class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+            [(ngModel)]="pageSize"
+            (change)="page = 0; loadList()"
+          >
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+            <option [ngValue]="50">50</option>
+          </select>
+        </label>
+        <button
+          class="btn btn-s rounded-xl border border-border bg-bg text-text/80 hover:bg-surface"
+          type="button"
+          (click)="loadList()"
+          [disabled]="loadingList"
+        >
+          {{ loadingList ? 'Actualizando...' : 'Actualizar' }}
+        </button>
+        <span class="text-xs text-muted">Pagina {{ page + 1 }}</span>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
+          <tr>
+            <th class="px-5 py-3">ID</th>
+            <th class="px-5 py-3">ID Solicitud</th>
+            <th class="px-5 py-3">Estado</th>
+            <th class="px-5 py-3">Tipo</th>
+            <th class="px-5 py-3">Paquetes</th>
+            <th class="px-5 py-3">Error</th>
+            <th class="px-5 py-3 text-right">Acciones</th>
+          </tr>
+        </thead>
+        @if (descargas$ | async; as rows) {
+          <tbody class="divide-y divide-border">
+            @for (row of rows; track row) {
+              <tr>
+                <td class="px-5 py-4 font-medium text-text">{{ row.id }}</td>
+                <td class="px-5 py-4 text-muted">{{ row.id_solicitud || '-' }}</td>
+                <td class="px-5 py-4">
+                  <span class="rounded-full border border-border bg-bg px-3 py-1 text-xs text-muted">
+                    {{ row.estado }}
+                  </span>
+                </td>
+                <td class="px-5 py-4 text-muted">
+                  {{ row.kind }} · {{ row.tipo_solicitud }}
+                </td>
+                <td class="px-5 py-4 text-muted">{{ row.paquetes.length || 0 }}</td>
+                <td class="px-5 py-4 text-muted">{{ row.last_error || '-' }}</td>
+                <td class="px-5 py-4 text-right">
+                  <div class="flex flex-wrap justify-end gap-2">
+                    <button
+                      class="btn btn-xs rounded-lg border border-border bg-bg text-text/80 hover:bg-surface"
+                      type="button"
+                      (click)="verify(row.id)"
+                      [disabled]="verifyingId === row.id"
+                      [attr.title]="verifyingId === row.id ? 'Verificando...' : 'Verificar'"
+                      aria-label="Verificar"
+                    >
+                      <ng-icon name="lucideCheck" class="h-4 w-4"></ng-icon>
+                      <span class="sr-only">Verificar</span>
+                    </button>
+                    <button
+                      class="btn btn-xs rounded-lg bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+                      type="button"
+                      (click)="process(row.id)"
+                      [disabled]="processingId === row.id"
+                      [attr.title]="processingId === row.id ? 'Procesando...' : 'Procesar ZIP'"
+                      aria-label="Procesar ZIP"
+                    >
+                      <ng-icon name="lucidePackage" class="h-4 w-4"></ng-icon>
+                      <span class="sr-only">Procesar ZIP</span>
+                    </button>
+                    <button
+                      class="btn btn-xs rounded-lg border border-border bg-rose-50 text-rose-700 hover:bg-rose-100"
+                      type="button"
+                      (click)="delete(row.id)"
+                      [disabled]="deletingId === row.id"
+                      [attr.title]="deletingId === row.id ? 'Eliminando...' : 'Eliminar'"
+                      aria-label="Eliminar"
+                    >
+                      <ng-icon name="lucideTrash2" class="h-4 w-4"></ng-icon>
+                      <span class="sr-only">Eliminar</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        } @else {
+          <div class="px-5 py-6 text-sm text-muted">Sin solicitudes registradas.</div>
+        }
+      </table>
+    </div>
+    <div class="flex items-center justify-between border-t border-border px-5 py-4 text-sm text-muted">
+      <span>Mostrando {{ lastCount }} registros</span>
+      <div class="flex gap-2">
+        <button
+          class="btn btn-xs rounded-lg border border-border bg-bg text-text/80 hover:bg-surface"
+          type="button"
+          (click)="prevPage()"
+          [disabled]="page <= 0"
+        >
+          Anterior
+        </button>
+        <button
+          class="btn btn-xs rounded-lg border border-border bg-bg text-text/80 hover:bg-surface"
+          type="button"
+          (click)="nextPage()"
+          [disabled]="lastCount < pageSize"
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

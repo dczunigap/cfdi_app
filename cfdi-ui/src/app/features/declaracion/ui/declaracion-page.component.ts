@@ -1,18 +1,16 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { DatePipe, DecimalPipe, NgClass, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { API_BASE_URL } from '../../../core/api/api-client';
-import { DeclaracionRepository } from '../data/declaracion.repository';
 import { DeclaracionCheck, DeclaracionPdf, DeclaracionSummary } from '../data/declaracion.model';
-import { AppAlertService } from '../../../shared/ui/alert/alert.service';
+import { buildRecentYears } from '../../../shared/utils/ui-helpers';
+import { DeclaracionFacade, DeclaracionTipo } from '../data/declaracion.facade';
 
 type IncomeSourceOption = {
   value: string;
   label: string;
 };
-
 @Component({
   selector: 'app-declaracion-page',
   standalone: true,
@@ -21,16 +19,21 @@ type IncomeSourceOption = {
   styleUrl: './declaracion-page.component.css',
 })
 export class DeclaracionPageComponent {
+  private readonly facade = inject(DeclaracionFacade);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   summary: DeclaracionSummary | null = null;
   loading = false;
   filtersOpen = true;
 
   year: number | null = null;
   month: number | null = null;
+  tipoDeclaracion: DeclaracionTipo = 'MENSUAL';
   incomeSource = 'auto';
 
-  readonly years = this.buildYears();
+  readonly years = buildRecentYears();
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
+  readonly tiposDeclaracion: DeclaracionTipo[] = ['MENSUAL', 'ANUAL'];
   readonly incomeSources: IncomeSourceOption[] = [
     { value: 'auto', label: 'Auto (usar plataforma si existe)' },
     { value: 'plataforma', label: 'Solo plataforma (Retenciones)' },
@@ -38,41 +41,24 @@ export class DeclaracionPageComponent {
     { value: 'ambos', label: 'Sumar ambos (solo si NO son las mismas ventas)' },
   ];
 
-  constructor(
-    private readonly repo: DeclaracionRepository,
-    private readonly alerts: AppAlertService,
-    private readonly cdr: ChangeDetectorRef,
-  ) {}
-
   load(): void {
-    const year = Number(this.year);
-    const month = Number(this.month);
-    if (!Number.isFinite(year) || !Number.isFinite(month) || year <= 0 || month <= 0) {
-      this.alerts.warning('Selecciona ano y mes para cargar la declaracion.');
-      return;
-    }
-
     this.loading = true;
-    this.repo.fetch(year, month, this.incomeSource).subscribe({
+    this.facade.loadDeclaracion(this.tipoDeclaracion, this.year, this.month, this.incomeSource).subscribe({
       next: (data) => {
-        this.summary = { ...data };
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        this.loading = false;
-        this.summary = null;
-        this.cdr.markForCheck();
-        if (err?.status === 404) {
-          this.alerts.warning('No hay datos para ese periodo.');
+        if (data) {
+          this.summary = { ...data };
+          this.tipoDeclaracion = data.tipo_declaracion ?? this.tipoDeclaracion;
         } else {
-          this.alerts.error('No se pudo cargar el modo declaracion.');
+          this.summary = null;
         }
+        this.loading = false;
+        this.cdr.markForCheck();
       },
     });
   }
 
   clear(): void {
+    this.tipoDeclaracion = 'MENSUAL';
     this.year = null;
     this.month = null;
     this.summary = null;
@@ -83,21 +69,34 @@ export class DeclaracionPageComponent {
   }
 
   get csvUrl(): string | null {
-    const year = Number(this.year);
-    const month = Number(this.month);
-    if (!Number.isFinite(year) || !Number.isFinite(month) || year <= 0 || month <= 0) return null;
-    return `${API_BASE_URL}/sat_report.csv?year=${year}&month=${month}&income_source=${this.incomeSource}`;
+    return this.facade.csvUrl(this.tipoDeclaracion, this.year, this.month, this.incomeSource);
   }
 
   get hojaUrl(): string | null {
-    const year = Number(this.year);
-    const month = Number(this.month);
-    if (!Number.isFinite(year) || !Number.isFinite(month) || year <= 0 || month <= 0) return null;
-    return `${API_BASE_URL}/sat_hoja.txt?year=${year}&month=${month}&income_source=${this.incomeSource}`;
+    return this.facade.hojaUrl(this.tipoDeclaracion, this.year, this.month, this.incomeSource);
+  }
+
+  downloadCsv(): void {
+    if (!this.csvUrl) return;
+    this.facade.downloadFile(
+      this.csvUrl,
+      `sat_report_${this.periodLabelFromInputs()}.csv`,
+      'No se pudo descargar el CSV SAT.',
+    );
+  }
+
+  downloadHoja(): void {
+    if (!this.hojaUrl) return;
+    this.facade.downloadFile(
+      this.hojaUrl,
+      `hoja_sat_${this.periodLabelFromInputs()}.txt`,
+      'No se pudo generar la hoja SAT.',
+    );
   }
 
   periodLabel(data: DeclaracionSummary): string {
-    return `${data.year}-${String(data.month).padStart(2, '0')}`;
+    if (this.isAnualData(data)) return `${data.year}`;
+    return `${data.year}-${String(data.month ?? '').padStart(2, '0')}`;
   }
 
   checkBadgeClass(check: DeclaracionCheck): string {
@@ -131,11 +130,37 @@ export class DeclaracionPageComponent {
   }
 
   pdfUrl(pdf: DeclaracionPdf): string {
-    return `${API_BASE_URL}/declaraciones/${pdf.id}/archivo/${encodeURIComponent(pdf.filename)}`;
+    return this.facade.pdfUrl(pdf);
   }
 
-  private buildYears(): number[] {
-    const current = new Date().getFullYear();
-    return Array.from({ length: 6 }, (_, i) => current - i);
+  openPdf(pdf: DeclaracionPdf): void {
+    this.facade.openPdf(pdf);
   }
+
+  private periodLabelFromInputs(): string {
+    const year = Number(this.year);
+    const month = Number(this.month);
+    const safeYear = Number.isFinite(year) ? year : new Date().getFullYear();
+    const safeMonth = Number.isFinite(month) && month > 0 ? month : 1;
+    return `${safeYear}-${String(safeMonth).padStart(2, '0')}`;
+  }
+
+  onTipoDeclaracionChange(): void {
+    if (this.tipoDeclaracion === 'ANUAL') {
+      this.month = null;
+    }
+  }
+
+  isAnualData(data: DeclaracionSummary | null): boolean {
+    return (data?.tipo_declaracion || this.tipoDeclaracion) === 'ANUAL';
+  }
+
+  showAcuseSection(data: DeclaracionSummary): boolean {
+    return data.mostrar_conciliacion_acuse_sat ?? !this.isAnualData(data);
+  }
+
+  showDeclaracionPdfSection(data: DeclaracionSummary): boolean {
+    return data.mostrar_declaracion_presentada ?? !this.isAnualData(data);
+  }
+
 }

@@ -15,6 +15,8 @@ class ListFacturasInput:
     month: Optional[int] = None
     tipo: Optional[str] = None
     naturaleza: Optional[str] = None
+    uso_cfdi: Optional[str] = None
+    rfc: Optional[str] = None
 
 
 class ListFacturasUseCase:
@@ -27,6 +29,8 @@ class ListFacturasUseCase:
             month=data.month,
             tipo=data.tipo,
             naturaleza=data.naturaleza,
+            uso_cfdi=data.uso_cfdi,
+            rfc=data.rfc,
         )
 
 

@@ -21,12 +21,19 @@ class SqlRetencionRepository(RetencionRepository):
         self,
         year: Optional[int] = None,
         month: Optional[int] = None,
+        rfc: Optional[str] = None,
     ) -> list[RetencionListItem]:
         q = apply_optional_filters(
             select(RetencionModel),
             (RetencionModel.ejercicio, year),
             (RetencionModel.mes_fin, month),
         )
+        rfc_value = (rfc or "").strip().upper()
+        if rfc_value:
+            q = q.where(
+                (RetencionModel.emisor_rfc == rfc_value)
+                | (RetencionModel.receptor_rfc == rfc_value)
+            )
         rows = self._db.execute(q).scalars().all()
         return [retencion_to_list_item(r) for r in rows]
 

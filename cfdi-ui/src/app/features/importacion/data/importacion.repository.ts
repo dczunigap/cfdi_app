@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 
 import { API_BASE_URL } from '../../../core/api/api-client';
 
@@ -22,7 +22,7 @@ export interface ImportPdfResult {
 
 @Injectable({ providedIn: 'root' })
 export class ImportacionRepository {
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   importXml(files: File[]) {
     const formData = new FormData();

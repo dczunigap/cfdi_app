@@ -1,5 +1,6 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/api/api-client';
 import { FacturaDetail, FacturaListItem } from './facturas.model';
@@ -9,17 +10,18 @@ import { tap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class FacturasRepository {
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
-  fetch(params?: { year?: number; month?: number; tipo?: string; naturaleza?: string }) {
+  fetch(params?: { year?: number; month?: number; tipo?: string; naturaleza?: string; uso_cfdi?: string }) {
     let httpParams = new HttpParams();
     if (params?.year) httpParams = httpParams.set('year', params.year);
     if (params?.month) httpParams = httpParams.set('month', params.month);
     if (params?.tipo) httpParams = httpParams.set('tipo', params.tipo);
     if (params?.naturaleza) httpParams = httpParams.set('naturaleza', params.naturaleza);
+    if (params?.uso_cfdi) httpParams = httpParams.set('uso_cfdi', params.uso_cfdi);
 
     return this.http
-      .get<FacturaListItem[]>(`${API_BASE_URL}/facturas`, { params: httpParams })
+      .get<FacturaListItem[]>(`${API_BASE_URL}/facturas/`, { params: httpParams })
       .subscribe((items) => {
         const normalized: FacturaListItem[] = items.filter(
           (item): item is FacturaListItem => typeof item.id === 'number'
@@ -51,5 +53,22 @@ export class FacturasRepository {
         facturasStore.update(deleteEntities(id));
       })
     );
+  }
+
+  exportCsv(
+    params?: { year?: number; month?: number; tipo?: string; naturaleza?: string; uso_cfdi?: string }
+  ): Observable<HttpResponse<Blob>> {
+    let httpParams = new HttpParams();
+    if (params?.year) httpParams = httpParams.set('year', params.year);
+    if (params?.month) httpParams = httpParams.set('month', params.month);
+    if (params?.tipo) httpParams = httpParams.set('tipo', params.tipo);
+    if (params?.naturaleza) httpParams = httpParams.set('naturaleza', params.naturaleza);
+    if (params?.uso_cfdi) httpParams = httpParams.set('uso_cfdi', params.uso_cfdi);
+
+    return this.http.get(`${API_BASE_URL}/facturas/export.csv`, {
+      params: httpParams,
+      observe: 'response' as const,
+      responseType: 'blob' as const,
+    });
   }
 }

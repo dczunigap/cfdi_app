@@ -1,25 +1,10 @@
-import { Component, signal } from '@angular/core';
-
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-
-import { LoadingOverlayComponent } from './shared/ui/loading/loading-overlay.component';
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [
-    RouterLink,
-    RouterLinkActive,
-    RouterOutlet,
-    LoadingOverlayComponent
-],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App {
-  protected readonly title = signal('cfdi-ui');
-  protected readonly sidebarCollapsed = signal(false);
-
-  toggleSidebar(): void {
-    this.sidebarCollapsed.update((current) => !current);
-  }
-}
+export class App {}

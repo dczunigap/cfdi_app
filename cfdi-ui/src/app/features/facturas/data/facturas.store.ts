@@ -8,6 +8,9 @@ export interface FacturasFilters {
   month: number | null;
   tipo: string | null;
   naturaleza: string | null;
+  uso_cfdi: string | null;
+  receptor_scope: 'all' | 'mine' | 'others';
+  mi_rfc: string | null;
 }
 
 export const facturasStore = createStore(
@@ -18,5 +21,8 @@ export const facturasStore = createStore(
     month: null,
     tipo: null,
     naturaleza: null,
+    uso_cfdi: null,
+    receptor_scope: 'all',
+    mi_rfc: null,
   })
 );

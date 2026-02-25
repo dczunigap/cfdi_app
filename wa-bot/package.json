@@ -1,8 +1,0 @@
-{
-  "dependencies": {
-    "axios": "^1.13.2",
-    "puppeteer": "^24.35.0",
-    "qrcode-terminal": "^0.12.0",
-    "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#main"
-  }
-}

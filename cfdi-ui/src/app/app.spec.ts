@@ -16,10 +16,10 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render sidebar title', async () => {
+  it('should render the router outlet', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('Basic Administration');
+    expect(compiled.querySelector('router-outlet')).not.toBeNull();
   });
 });

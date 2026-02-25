@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { AsyncPipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -22,6 +22,8 @@ import { PdfImportComponent } from '../../../shared/ui/imports/pdf-import.compon
   styleUrl: './declaraciones-page.component.css',
 })
 export class DeclaracionesPageComponent implements OnInit {
+  private readonly repo = inject(DeclaracionesRepository);
+
   readonly declaraciones$ = declaraciones$;
   readonly declaracionesCount$ = declaracionesCount$;
   readonly periods$ = declaracionesPeriods$;
@@ -31,8 +33,6 @@ export class DeclaracionesPageComponent implements OnInit {
   showPdfImport = false;
   deletingId: number | null = null;
   error: string | null = null;
-
-  constructor(private readonly repo: DeclaracionesRepository) {}
 
   ngOnInit(): void {
     this.repo.fetch();

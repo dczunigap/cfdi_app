@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import and_, desc, select
+from sqlalchemy import and_, desc, or_, select
 from sqlalchemy.orm import Session
 
 from app.adapters.outbound.db.models import FacturaModel, PagoModel, PlatformRfcModel, RetencionModel
 from app.utils.money import apply_sign_factor
-from app.core.config import settings
+
+DEFAULT_EXCLUDED_USO_CFDI_FOR_GASTOS = {"S01", "CP01"}
 
 
 def pick_default_period(db: Session) -> tuple[Optional[int], Optional[int]]:
@@ -54,6 +55,12 @@ def _signed(value: Optional[float], tipo: Optional[str]) -> float:
     return apply_sign_factor(value, tipo)
 
 
+def _is_allowed_gasto_uso(uso_cfdi: str, usos_allow: set[str]) -> bool:
+    if usos_allow:
+        return uso_cfdi in usos_allow
+    return uso_cfdi not in DEFAULT_EXCLUDED_USO_CFDI_FOR_GASTOS
+
+
 def _normalize_naturaleza(naturaleza: Optional[str], tipo: Optional[str]) -> Optional[str]:
     if naturaleza is not None:
         nat = naturaleza.strip().lower()
@@ -75,27 +82,36 @@ def _normalize_naturaleza(naturaleza: Optional[str], tipo: Optional[str]) -> Opt
     return nat
 
 
-def compute_period_data(db: Session, year: int, month: int) -> dict:
+def compute_period_data(
+    db: Session,
+    year: int,
+    month: int,
+    mi_rfc: str | None = None,
+    gasto_uso_cfdi_allowlist: set[str] | None = None,
+) -> dict:
     platform_rfcs = {
         (rfc or "").strip().upper()
         for rfc in db.scalars(select(PlatformRfcModel.rfc)).all()
         if rfc
     }
-    docs = db.scalars(
+    mi_rfc = (mi_rfc or "").strip().upper()
+    usos_allow = {u.strip().upper() for u in (gasto_uso_cfdi_allowlist or set()) if (u or "").strip()}
+    docs_query = (
         select(FacturaModel)
         .where(FacturaModel.year_emision == year, FacturaModel.month_emision == month)
         .order_by(desc(FacturaModel.fecha_emision).nullslast(), desc(FacturaModel.id))
-    ).all()
-
-    for d in docs:
-        _ = d.pagos
+    )
+    if mi_rfc:
+        docs_query = docs_query.where(
+            or_(FacturaModel.emisor_rfc == mi_rfc, FacturaModel.receptor_rfc == mi_rfc)
+        )
+    docs = db.scalars(docs_query).all()
 
     ingresos_total = ingresos_trasl = ingresos_ret = 0.0
     gastos_total = gastos_trasl = gastos_ret = 0.0
     ingresos_base = 0.0
     p_count = 0
 
-    mi_rfc = (settings.mi_rfc or "").strip().upper()
     for d in docs:
         tipo = (d.tipo_comprobante or "").upper()
         naturaleza = _normalize_naturaleza(d.naturaleza, tipo)
@@ -109,13 +125,9 @@ def compute_period_data(db: Session, year: int, month: int) -> dict:
         uso_cfdi = (d.uso_cfdi or "").upper()
 
         if mi_rfc:
-            is_gasto = receptor_rfc == mi_rfc and uso_cfdi not in {"S01", "CP01"}
+            is_gasto = receptor_rfc == mi_rfc and _is_allowed_gasto_uso(uso_cfdi, usos_allow)
             is_platform_receptor = receptor_rfc in platform_rfcs if receptor_rfc else False
-            if (
-                emisor_rfc == mi_rfc
-                and uso_cfdi not in {"S01", "CP01"}
-                and naturaleza == "ingreso"
-            ):
+            if emisor_rfc == mi_rfc and naturaleza == "ingreso":
                 if not is_platform_receptor:
                     ingresos_total += _signed(d.total, tipo)
                     ingresos_ret += _signed(d.total_retenidos, tipo)
@@ -133,16 +145,23 @@ def compute_period_data(db: Session, year: int, month: int) -> dict:
             ingresos_ret += _signed(d.total_retenidos, tipo)
             ingresos_base += _signed(base, tipo)
         elif naturaleza == "gasto":
+            if usos_allow and uso_cfdi not in usos_allow:
+                continue
             gastos_total += _signed(d.total, tipo)
             gastos_trasl += _signed(d.total_trasladados, tipo)
             gastos_ret += _signed(d.total_retenidos, tipo)
 
-    pagos_rows = db.execute(
+    pagos_query = (
         select(PagoModel, FacturaModel.naturaleza)
         .join(FacturaModel, PagoModel.factura_id == FacturaModel.id)
         .where(PagoModel.year_pago == year, PagoModel.month_pago == month)
         .order_by(desc(PagoModel.fecha_pago).nullslast(), desc(PagoModel.id))
-    ).all()
+    )
+    if mi_rfc:
+        pagos_query = pagos_query.where(
+            or_(FacturaModel.emisor_rfc == mi_rfc, FacturaModel.receptor_rfc == mi_rfc)
+        )
+    pagos_rows = db.execute(pagos_query).all()
 
     cash_in = cash_out = 0.0
     pagos_count = 0
@@ -155,7 +174,7 @@ def compute_period_data(db: Session, year: int, month: int) -> dict:
         elif naturaleza == "pago":
             cash_out += monto
 
-    ret_rows = db.scalars(
+    ret_query = (
         select(RetencionModel)
         .where(
             RetencionModel.ejercicio == year,
@@ -163,7 +182,10 @@ def compute_period_data(db: Session, year: int, month: int) -> dict:
             RetencionModel.mes_fin >= month,
         )
         .order_by(desc(RetencionModel.fecha_exp).nullslast(), desc(RetencionModel.id))
-    ).all()
+    )
+    if mi_rfc:
+        ret_query = ret_query.where(RetencionModel.receptor_rfc == mi_rfc)
+    ret_rows = db.scalars(ret_query).all()
 
     plat_ing_siva = sum(float(r.mon_tot_serv_siva or 0.0) for r in ret_rows)
     plat_iva_tras = sum(float(r.total_iva_trasladado or 0.0) for r in ret_rows)

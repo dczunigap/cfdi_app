@@ -21,6 +21,8 @@ def declaracion_model_to_entity(model) -> DeclaracionPDF:
         rfc=model.rfc,
         folio=model.folio,
         fecha_presentacion=model.fecha_presentacion,
+        saldo_a_favor=model.saldo_a_favor,
+        saldo_a_pagar=model.saldo_a_pagar,
         sha256=model.sha256,
         filename=model.filename,
         original_name=model.original_name,
