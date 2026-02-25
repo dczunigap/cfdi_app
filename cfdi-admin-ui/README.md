@@ -2,6 +2,9 @@
 
 UI en Next.js para administrar usuarios y catalogos SAT del sistema CFDI.
 
+## Arquitectura
+- Ver detalle tecnico y diagramas Mermaid en [ARQUITECTURA.md](./ARQUITECTURA.md).
+
 ## Requisitos
 - Node.js 18+
 - `cfdi-api` corriendo y accesible (por defecto `http://127.0.0.1:8000`)
