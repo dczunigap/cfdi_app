@@ -15,6 +15,7 @@ from app.adapters.outbound.db.session import Base, SessionLocal
 from app.adapters.outbound.db.repositories.sat_credentials import SqlSatCredentialsRepository
 from app.adapters.outbound.db.repositories.sat_descargas import SqlSatDescargasRepository
 from app.adapters.outbound.files.sat_storage_fs import SatStorageFs
+from app.adapters.services.parsers.sat_zip_processor import LocalSatZipProcessor
 from app.adapters.services.sat.crypto.crypto_service import FernetSatCrypto
 from app.adapters.services.sat.gateway_factory import build_sat_gateway
 from app.application.sat.descargas_service import (
@@ -129,7 +130,8 @@ class TestSatSolicitudIntegration(unittest.TestCase):
                 rfc_emisor=rfc_value,
                 fecha_inicial=datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc),
                 fecha_final=datetime(2025, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
-                tipo_solicitud="CFDI",
+                tipo_solicitud="emitidos",
+                tipo_descarga="CFDI",
                 complemento="",
                 estado_comprobante="Vigente",
                 tipo_comprobante="",
@@ -156,13 +158,15 @@ class TestSatSolicitudIntegration(unittest.TestCase):
                 cred_repo = SqlSatCredentialsRepository(db)
                 crypto = FernetSatCrypto()
                 gateway = build_sat_gateway()
-                storage = None
+                storage = SatStorageFs()
+                zip_processor = LocalSatZipProcessor()
                 descargar_y_procesar(
                     repo=repo,
                     cred_repo=cred_repo,
                     crypto=crypto,
                     gateway=gateway,
                     storage=storage,
+                    zip_processor=zip_processor,
                     db=db,
                     descarga_id=descarga_emitidos.id,
                 )
@@ -184,7 +188,8 @@ class TestSatSolicitudIntegration(unittest.TestCase):
                 rfc_emisor=rfc_value,
                 fecha_inicial=datetime(2025, 12, 1, 0, 0, 0, tzinfo=timezone.utc),
                 fecha_final=datetime(2025, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
-                tipo_solicitud="CFDI",
+                tipo_solicitud="emitidos",
+                tipo_descarga="CFDI",
                 complemento="",
                 estado_comprobante="Vigente",
                 tipo_comprobante="",
@@ -211,13 +216,15 @@ class TestSatSolicitudIntegration(unittest.TestCase):
                 cred_repo = SqlSatCredentialsRepository(db)
                 crypto = FernetSatCrypto()
                 gateway = build_sat_gateway()
-                storage = None
+                storage = SatStorageFs()
+                zip_processor = LocalSatZipProcessor()
                 descargar_y_procesar(
                     repo=repo,
                     cred_repo=cred_repo,
                     crypto=crypto,
                     gateway=gateway,
                     storage=storage,
+                    zip_processor=zip_processor,
                     db=db,
                     descarga_id=descarga_emitidos.id,
                 )

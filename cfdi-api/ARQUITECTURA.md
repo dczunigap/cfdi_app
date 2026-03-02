@@ -66,6 +66,7 @@ flowchart TB
       P_SAT_CRED["sat_credentials_repo.py"]
       P_SAT_DESC["sat_descargas_repo.py"]
       P_SAT_ST["sat_storage.py"]
+      P_SAT_ZIP["sat_zip_processor.py"]
       P_PDF_ST["pdf_storage.py"]
     end
 
@@ -101,6 +102,7 @@ flowchart TB
     SVC_SAT --> P_SAT_CRED
     SVC_SAT --> P_SAT_DESC
     SVC_SAT --> P_SAT_ST
+    SVC_SAT --> P_SAT_ZIP
 
     P_FACT --> SQL
     P_RET --> SQL
@@ -111,9 +113,9 @@ flowchart TB
     P_SAT_GW --> MOCK
     P_SAT_ST --> ST_FS
     P_SAT_ST --> ST_R2
+    P_SAT_ZIP --> PARSERS
     P_PDF_ST --> ST_FS
     P_PDF_ST --> ST_R2
-    SVC_SAT --> PARSERS
     RQTasks --> SVC_SAT
     RQTasks --> RQConn
 ```
@@ -161,6 +163,7 @@ sequenceDiagram
 - `SatCrypto`: cifrado/descifrado de PFX y password.
 - `SatGateway`: autenticar, solicitar/verificar/descargar paquetes SAT.
 - `SatStorage`: persistencia y lectura de ZIP descargados.
+- `SatZipProcessor`: procesamiento de ZIPs SAT (parsear XML e importar CFDI/retenciones).
 
 ### Implementaciones
 - `adapters/outbound/db/repositories/sat_credentials.py` -> `SatCredentialsRepository`.
@@ -169,6 +172,7 @@ sequenceDiagram
 - `adapters/services/sat/sat_gateway.py` -> `SatGateway` SOAP.
 - `adapters/services/sat/mock_gateway.py` -> `SatGateway` mock para pruebas.
 - `adapters/outbound/files/sat_storage_fs.py` y `adapters/outbound/r2/sat_storage_r2.py` -> `SatStorage`.
+- `adapters/services/parsers/sat_zip_processor.py` -> `SatZipProcessor`.
 - `adapters/services/sat/soap/*`, `wsse/*`, `pkcs12/*` encapsulan detalles tecnicos SAT.
 
 ## Ensamblado de la app

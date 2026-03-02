@@ -71,6 +71,7 @@ rq worker --url redis://localhost:6379/0
 Flujo:
 - `POST /api/v1/sat/descargas` crea solicitud y hace verificacion inicial.
 - RQ reintenta verificacion y dispara descarga cuando esta LISTA.
+- El procesamiento de ZIP/XML se ejecuta via puerto `SatZipProcessor` (adapter local en `adapters/services/parsers/sat_zip_processor.py`).
 
 Request recomendado para `POST /api/v1/sat/descargas`:
 - `direccion_solicitud`: `emitidos` o `recibidos` (selecciona operacion SOAP).

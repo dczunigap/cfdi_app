@@ -6,6 +6,7 @@ from app.adapters.outbound.db.session import SessionLocal
 from app.adapters.outbound.db.repositories.sat_credentials import SqlSatCredentialsRepository
 from app.adapters.outbound.db.repositories.sat_descargas import SqlSatDescargasRepository
 from app.adapters.outbound.files.storage_factory import build_storage
+from app.adapters.services.parsers.sat_zip_processor import LocalSatZipProcessor
 from app.adapters.services.sat.crypto.crypto_service import FernetSatCrypto
 from app.adapters.services.sat.gateway_factory import build_sat_gateway
 from app.application.sat.descargas_service import (
@@ -51,6 +52,7 @@ def descargar_paquetes_job(descarga_id: int) -> None:
         crypto = FernetSatCrypto()
         gateway = build_sat_gateway()
         storage = build_storage()
+        zip_processor = LocalSatZipProcessor()
 
         descargar_y_procesar(
             repo=repo,
@@ -58,6 +60,7 @@ def descargar_paquetes_job(descarga_id: int) -> None:
             crypto=crypto,
             gateway=gateway,
             storage=storage,
+            zip_processor=zip_processor,
             db=db,
             descarga_id=descarga_id,
         )
