@@ -83,3 +83,58 @@ class GetFacturaDetailUseCase:
         conceptos: list[ConceptoItem] = self._concepto_repo.list_by_factura(factura.id)
         pagos: list[PagoItem] = self._pago_repo.list_by_factura(factura.id)
         return FacturaDetail(factura=factura_item, conceptos=conceptos, pagos=pagos)
+
+
+@dataclass
+class GetFacturaXmlInput:
+    factura_id: int
+
+
+@dataclass
+class FacturaXmlResult:
+    emisor_rfc: str | None
+    receptor_rfc: str | None
+    xml_text: str
+
+
+class GetFacturaXmlUseCase:
+    def __init__(self, repo: FacturaRepository) -> None:
+        self._repo = repo
+
+    def execute(self, data: GetFacturaXmlInput) -> FacturaXmlResult | None:
+        factura = self._repo.get_by_id(data.factura_id)
+        if factura is None:
+            return None
+        return FacturaXmlResult(
+            emisor_rfc=factura.emisor_rfc,
+            receptor_rfc=factura.receptor_rfc,
+            xml_text=factura.xml_text or "",
+        )
+
+
+@dataclass
+class DeleteFacturaInput:
+    factura_id: int
+
+
+@dataclass
+class DeleteFacturaResult:
+    emisor_rfc: str | None
+    receptor_rfc: str | None
+    deleted: bool
+
+
+class DeleteFacturaUseCase:
+    def __init__(self, repo: FacturaRepository) -> None:
+        self._repo = repo
+
+    def execute(self, data: DeleteFacturaInput) -> DeleteFacturaResult | None:
+        factura = self._repo.get_by_id(data.factura_id)
+        if factura is None:
+            return None
+        deleted = self._repo.delete_by_id(data.factura_id)
+        return DeleteFacturaResult(
+            emisor_rfc=factura.emisor_rfc,
+            receptor_rfc=factura.receptor_rfc,
+            deleted=deleted,
+        )

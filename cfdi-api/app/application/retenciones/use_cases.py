@@ -64,3 +64,31 @@ class GetRetencionDetailUseCase:
             else None,
             xml_text=retencion.xml_text,
         )
+
+
+@dataclass
+class DeleteRetencionInput:
+    retencion_id: int
+
+
+@dataclass
+class DeleteRetencionResult:
+    emisor_rfc: str | None
+    receptor_rfc: str | None
+    deleted: bool
+
+
+class DeleteRetencionUseCase:
+    def __init__(self, repo: RetencionRepository) -> None:
+        self._repo = repo
+
+    def execute(self, data: DeleteRetencionInput) -> DeleteRetencionResult | None:
+        retencion = self._repo.get_by_id(data.retencion_id)
+        if retencion is None:
+            return None
+        deleted = self._repo.delete_by_id(data.retencion_id)
+        return DeleteRetencionResult(
+            emisor_rfc=retencion.emisor_rfc,
+            receptor_rfc=retencion.receptor_rfc,
+            deleted=deleted,
+        )

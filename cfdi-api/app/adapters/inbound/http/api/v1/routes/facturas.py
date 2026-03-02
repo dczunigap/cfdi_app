@@ -20,11 +20,14 @@ from app.adapters.inbound.http.api.v1.mappers import (
 )
 from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
 from app.adapters.outbound.db.repositories.facturas import SqlFacturaRepository
-from app.adapters.outbound.db.models import FacturaModel
-from app.adapters.inbound.http.api.v1.routes.utils import csv_response, get_or_404, xml_response
+from app.adapters.inbound.http.api.v1.routes.utils import csv_response, xml_response
 from app.adapters.outbound.db.repositories.conceptos import SqlConceptoRepository
 from app.adapters.outbound.db.repositories.pagos import SqlPagoRepository
 from app.application.facturas.use_cases import (
+    DeleteFacturaInput,
+    DeleteFacturaUseCase,
+    GetFacturaXmlInput,
+    GetFacturaXmlUseCase,
     GetFacturaDetailInput,
     GetFacturaDetailUseCase,
     ListFacturasInput,
@@ -167,10 +170,14 @@ def factura_xml(
     x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> Response:
-    row = get_or_404(db, FacturaModel, factura_id, "Factura")
-    if row.emisor_rfc != x_rfc and row.receptor_rfc != x_rfc:
+    repo = SqlFacturaRepository(db)
+    use_case = GetFacturaXmlUseCase(repo)
+    result = use_case.execute(GetFacturaXmlInput(factura_id=factura_id))
+    if result is None:
+        raise HTTPException(status_code=404, detail="Factura no encontrada")
+    if result.emisor_rfc != x_rfc and result.receptor_rfc != x_rfc:
         raise HTTPException(status_code=403, detail="Acceso denegado")
-    return xml_response(row.xml_text or "")
+    return xml_response(result.xml_text)
 
 
 @router.delete(
@@ -183,9 +190,13 @@ def eliminar_factura(
     x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> dict:
-    row = get_or_404(db, FacturaModel, factura_id, "Factura")
-    if row.emisor_rfc != x_rfc and row.receptor_rfc != x_rfc:
+    repo = SqlFacturaRepository(db)
+    use_case = DeleteFacturaUseCase(repo)
+    result = use_case.execute(DeleteFacturaInput(factura_id=factura_id))
+    if result is None:
+        raise HTTPException(status_code=404, detail="Factura no encontrada")
+    if result.emisor_rfc != x_rfc and result.receptor_rfc != x_rfc:
         raise HTTPException(status_code=403, detail="Acceso denegado")
-    db.delete(row)
-    db.commit()
+    if not result.deleted:
+        raise HTTPException(status_code=409, detail="No se pudo eliminar la factura")
     return {"ok": True}

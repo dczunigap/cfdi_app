@@ -71,3 +71,11 @@ class SqlRetencionRepository(RetencionRepository):
 
     def get_by_id(self, retencion_id: int) -> RetencionModel | None:
         return self._db.get(RetencionModel, retencion_id)
+
+    def delete_by_id(self, retencion_id: int) -> bool:
+        row = self._db.get(RetencionModel, retencion_id)
+        if row is None:
+            return False
+        self._db.delete(row)
+        self._db.commit()
+        return True

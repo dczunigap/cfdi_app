@@ -103,3 +103,11 @@ class SqlFacturaRepository(FacturaRepository):
 
     def get_by_id(self, factura_id: int) -> FacturaModel | None:
         return self._db.get(FacturaModel, factura_id)
+
+    def delete_by_id(self, factura_id: int) -> bool:
+        row = self._db.get(FacturaModel, factura_id)
+        if row is None:
+            return False
+        self._db.delete(row)
+        self._db.commit()
+        return True

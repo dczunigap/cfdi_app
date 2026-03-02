@@ -22,3 +22,6 @@ class RetencionRepository(Protocol):
 
     def get_by_id(self, retencion_id: int):
         ...
+
+    def delete_by_id(self, retencion_id: int) -> bool:
+        ...

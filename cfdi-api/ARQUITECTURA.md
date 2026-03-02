@@ -188,3 +188,7 @@ Documento validado contra la estructura de codigo actual:
 - `app/application/sat/descargas_service.py`
 - `app/ports/sat_gateway.py`
 - `app/infra/queue/rq_tasks.py`
+- `app/ports/sat_zip_processor.py`
+- `app/adapters/services/parsers/sat_zip_processor.py`
+- `app/adapters/inbound/http/api/v1/routes/facturas.py`
+- `app/adapters/inbound/http/api/v1/routes/retenciones.py`

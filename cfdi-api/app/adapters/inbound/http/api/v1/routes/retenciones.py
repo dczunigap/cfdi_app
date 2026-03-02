@@ -15,9 +15,9 @@ from app.adapters.inbound.http.api.v1.mappers import (
 )
 from app.adapters.outbound.db.repositories.retenciones import SqlRetencionRepository
 from app.adapters.inbound.http.deps import get_db, get_required_rfc, require_user
-from app.adapters.outbound.db.models import RetencionModel
-from app.adapters.inbound.http.api.v1.routes.utils import get_or_404
 from app.application.retenciones.use_cases import (
+    DeleteRetencionInput,
+    DeleteRetencionUseCase,
     GetRetencionDetailInput,
     GetRetencionDetailUseCase,
     ListRetencionesInput,
@@ -77,9 +77,13 @@ def eliminar_retencion(
     x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> dict:
-    row = get_or_404(db, RetencionModel, retencion_id, "Retencion")
-    if row.emisor_rfc != x_rfc and row.receptor_rfc != x_rfc:
+    repo = SqlRetencionRepository(db)
+    use_case = DeleteRetencionUseCase(repo)
+    result = use_case.execute(DeleteRetencionInput(retencion_id=retencion_id))
+    if result is None:
+        raise HTTPException(status_code=404, detail="Retencion no encontrada")
+    if result.emisor_rfc != x_rfc and result.receptor_rfc != x_rfc:
         raise HTTPException(status_code=403, detail="Acceso denegado")
-    db.delete(row)
-    db.commit()
+    if not result.deleted:
+        raise HTTPException(status_code=409, detail="No se pudo eliminar la retencion")
     return {"ok": True}

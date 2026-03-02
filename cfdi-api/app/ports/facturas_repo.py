@@ -25,3 +25,6 @@ class FacturaRepository(Protocol):
 
     def get_by_id(self, factura_id: int):
         ...
+
+    def delete_by_id(self, factura_id: int) -> bool:
+        ...
