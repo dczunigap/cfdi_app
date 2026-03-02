@@ -26,6 +26,44 @@ from app.core.config import settings
 router = APIRouter(prefix="/sat/descargas", tags=["sat-descargas"], dependencies=[Depends(require_user)])
 
 
+def _normalize_direccion_solicitud(value: str | None) -> str:
+    normalized = (value or "emitidos").strip().lower()
+    if normalized not in {"emitidos", "recibidos"}:
+        raise ValueError("direccion_solicitud invalida; usa 'emitidos' o 'recibidos'.")
+    return normalized
+
+
+def _normalize_tipo_descarga(value: str | None) -> str:
+    normalized = (value or "CFDI").strip().lower()
+    if normalized == "cfdi":
+        return "CFDI"
+    if normalized == "metadata":
+        return "Metadata"
+    raise ValueError("tipo_descarga invalido; usa 'CFDI' o 'Metadata'.")
+
+
+def _resolve_sat_request_shape(payload: SatDescargaCreateRequest) -> tuple[str, str]:
+    direccion_solicitud = payload.direccion_solicitud
+    tipo_descarga = payload.tipo_descarga
+    legacy = (payload.tipo_solicitud or "").strip().lower()
+
+    if legacy:
+        if legacy in {"emitidos", "recibidos"}:
+            if not direccion_solicitud:
+                direccion_solicitud = legacy
+        elif legacy in {"cfdi", "metadata"}:
+            if not tipo_descarga:
+                tipo_descarga = legacy
+        else:
+            raise ValueError(
+                "tipo_solicitud legacy invalido; usa direccion_solicitud/tipo_descarga."
+            )
+
+    return _normalize_direccion_solicitud(direccion_solicitud), _normalize_tipo_descarga(
+        tipo_descarga
+    )
+
+
 def _to_response(model) -> SatDescargaResponse:
     return SatDescargaResponse(
         id=model.id,
@@ -66,12 +104,18 @@ def crear_descarga(
     if not rfc_repo.is_allowed(user.id, rfc_value):
         raise HTTPException(status_code=403, detail="RFC no autorizado para el usuario.")
 
+    try:
+        direccion_solicitud, tipo_descarga = _resolve_sat_request_shape(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     params = SolicitudDescargaParams(
         rfc_solicitante=rfc_value,
         fecha_inicial=payload.fecha_inicial,
         fecha_final=payload.fecha_final,
         kind=payload.kind,
-        tipo_solicitud=payload.tipo_solicitud,
+        tipo_solicitud=direccion_solicitud,
+        tipo_descarga=tipo_descarga,
         rfc_emisor=payload.rfc_emisor,
         rfc_receptor=payload.rfc_receptor,
         rfc_a_cuenta_terceros=payload.rfc_a_cuenta_terceros,
@@ -85,7 +129,7 @@ def crear_descarga(
 
     tag_name = (
         "SolicitaDescargaRecibidos"
-        if (payload.tipo_solicitud or "").strip().lower() == "recibidos"
+        if direccion_solicitud == "recibidos"
         else "SolicitaDescargaEmitidos"
     )
     try:

@@ -102,7 +102,9 @@ def build_descarga_paquete_envelope(
 
 
 def _solicitud_attribs(params: SolicitudDescargaParams) -> dict[str, str]:
-    tipo_solicitud = _normalize_tipo_solicitud(params.tipo_solicitud)
+    tipo_solicitud = _normalize_tipo_solicitud(
+        getattr(params, "tipo_descarga", None) or params.tipo_solicitud
+    )
     attrs = {
         "RfcSolicitante": params.rfc_solicitante,
         "FechaInicial": _format_dt(params.fecha_inicial),
@@ -135,8 +137,12 @@ def _solicitud_attribs(params: SolicitudDescargaParams) -> dict[str, str]:
 
 
 def _normalize_tipo_solicitud(value: str) -> str:
-    normalized = (value or "CFDI").upper().strip()
-    return normalized
+    normalized = (value or "CFDI").strip().lower()
+    if normalized == "cfdi":
+        return "CFDI"
+    if normalized == "metadata":
+        return "Metadata"
+    raise ValueError("tipo_solicitud invalido para SAT; usa 'CFDI' o 'Metadata'.")
 
 
 def _normalize_tipo_comprobante(value: str) -> str:

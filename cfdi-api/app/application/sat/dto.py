@@ -11,6 +11,7 @@ class SolicitudDescargaParams:
     fecha_final: datetime
     kind: str
     tipo_solicitud: str
+    tipo_descarga: str = "CFDI"
     rfc_emisor: str | None = None
     rfc_receptor: str | None = None
     rfc_a_cuenta_terceros: str | None = None

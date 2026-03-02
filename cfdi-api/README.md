@@ -72,6 +72,14 @@ Flujo:
 - `POST /api/v1/sat/descargas` crea solicitud y hace verificacion inicial.
 - RQ reintenta verificacion y dispara descarga cuando esta LISTA.
 
+Request recomendado para `POST /api/v1/sat/descargas`:
+- `direccion_solicitud`: `emitidos` o `recibidos` (selecciona operacion SOAP).
+- `tipo_descarga`: `CFDI` o `Metadata` (valor para atributo SAT `TipoSolicitud`).
+
+Compatibilidad legacy:
+- Si el cliente envia `tipo_solicitud=emitidos|recibidos`, el API lo interpreta como
+  `direccion_solicitud` y usa `tipo_descarga=CFDI` por defecto.
+
 Si quieres verificacion manual:
 ```
 $env:SAT_AUTOVERIFY = "0"

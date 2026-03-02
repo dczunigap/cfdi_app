@@ -6,7 +6,10 @@ from pydantic import BaseModel, Field
 
 class SatDescargaCreateRequest(BaseModel):
     kind: str = "cfdi"
-    tipo_solicitud: str = "emitidos"
+    direccion_solicitud: str | None = None
+    tipo_descarga: str | None = None
+    # Compatibilidad hacia atras: antes este campo se usaba para direccion (emitidos/recibidos).
+    tipo_solicitud: str | None = None
     fecha_inicial: datetime
     fecha_final: datetime
     rfc_emisor: str | None = None
