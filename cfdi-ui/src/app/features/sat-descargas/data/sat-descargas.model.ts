@@ -19,7 +19,10 @@ export interface SatDescarga {
 
 export interface SatDescargaCreatePayload {
   kind: 'cfdi' | 'retenciones';
-  tipo_solicitud: 'emitidos' | 'recibidos';
+  direccion_solicitud: 'emitidos' | 'recibidos';
+  tipo_descarga: 'CFDI' | 'Metadata';
+  // Compatibilidad legacy del backend.
+  tipo_solicitud?: 'emitidos' | 'recibidos';
   fecha_inicial: string;
   fecha_final: string;
   rfc_emisor?: string | null;

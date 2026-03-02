@@ -12,12 +12,14 @@ export class RetencionesRepository {
   private readonly http = inject(HttpClient);
 
   fetch() {
-    return this.http.get<RetencionListItem[]>(`${API_BASE_URL}/retenciones/`).subscribe((items) => {
-      const normalized: RetencionListItem[] = items.filter(
-        (item): item is RetencionListItem => typeof item.id === 'number'
-      );
-      retencionesStore.update(setEntities(normalized));
-    });
+    return this.http.get<RetencionListItem[]>(`${API_BASE_URL}/retenciones/`).pipe(
+      tap((items) => {
+        const normalized: RetencionListItem[] = items.filter(
+          (item): item is RetencionListItem => typeof item.id === 'number'
+        );
+        retencionesStore.update(setEntities(normalized));
+      })
+    );
   }
 
   setFilters(filters: Partial<RetencionesFilters>): void {

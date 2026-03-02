@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AsyncPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -30,6 +31,7 @@ import { RfcService } from '../../../core/rfc/rfc.service';
 export class FacturasPageComponent implements OnInit {
   private readonly repo = inject(FacturasRepository);
   private readonly rfcService = inject(RfcService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly facturas$ = facturas$;
   readonly facturasCount$ = facturasCount$;
@@ -59,7 +61,7 @@ export class FacturasPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.rfcService.refreshOptions();
-    this.repo.fetch();
+    this.loadFacturas();
   }
 
   applyFilters(): void {
@@ -104,7 +106,7 @@ export class FacturasPageComponent implements OnInit {
   handleXmlImportCompleted(success: boolean): void {
     this.showXmlImport = false;
     if (success) {
-      this.repo.fetch();
+      this.loadFacturas();
     }
   }
 
@@ -173,5 +175,17 @@ export class FacturasPageComponent implements OnInit {
       return `facturas_${this.year}_${String(this.month).padStart(2, '0')}.csv`;
     }
     return 'facturas.csv';
+  }
+
+  private loadFacturas(): void {
+    this.error = null;
+    this.repo
+      .fetch()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {
+          this.error = 'No se pudieron cargar los CFDI.';
+        },
+      });
   }
 }

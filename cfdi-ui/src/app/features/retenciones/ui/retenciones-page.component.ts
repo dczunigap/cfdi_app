@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AsyncPipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -20,6 +21,7 @@ import { XmlImportComponent } from '../../../shared/ui/imports/xml-import.compon
 })
 export class RetencionesPageComponent implements OnInit {
   private readonly repo = inject(RetencionesRepository);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly retenciones$ = retenciones$;
   readonly retencionesCount$ = retencionesCount$;
@@ -32,7 +34,7 @@ export class RetencionesPageComponent implements OnInit {
   error: string | null = null;
 
   ngOnInit(): void {
-    this.repo.fetch();
+    this.loadRetenciones();
   }
 
   applyFilters(): void {
@@ -55,7 +57,7 @@ export class RetencionesPageComponent implements OnInit {
   handleXmlImportCompleted(success: boolean): void {
     this.showXmlImport = false;
     if (success) {
-      this.repo.fetch();
+      this.loadRetenciones();
     }
   }
 
@@ -77,5 +79,17 @@ export class RetencionesPageComponent implements OnInit {
   formatPeriod(item: RetencionListItem): string {
     if (!item.ejercicio || !item.mes_ini) return '-';
     return `${item.ejercicio}-${String(item.mes_ini).padStart(2, '0')}`;
+  }
+
+  private loadRetenciones(): void {
+    this.error = null;
+    this.repo
+      .fetch()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {
+          this.error = 'No se pudieron cargar las retenciones.';
+        },
+      });
   }
 }

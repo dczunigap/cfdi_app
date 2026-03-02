@@ -100,7 +100,8 @@ export class SatDescargasPageComponent implements OnInit {
     const selectedRfc = this.selectedRfc();
     const payload: SatDescargaCreatePayload = {
       kind: this.kind,
-      tipo_solicitud: this.tipoSolicitud,
+      direccion_solicitud: this.tipoSolicitud,
+      tipo_descarga: 'CFDI',
       fecha_inicial: start,
       fecha_final: end,
       estado_comprobante: 'Vigente',

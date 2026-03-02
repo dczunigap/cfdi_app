@@ -90,6 +90,8 @@ sequenceDiagram
 
 ## Notas de diseno actuales
 - Estado global por feature con `@ngneat/elf`.
+- Los `repository` devuelven `Observable` y actualizan store con `tap`; no hacen `subscribe` interno.
+- La suscripcion se hace en `facade` o `ui` (segun modulo), para controlar ciclo de vida y errores.
 - Carga de modulos por `loadComponent` (lazy) en rutas.
 - Base URL de backend via `environment.apiBaseUrl` (default `/api/v1`).
 - Guard de autenticacion configurable con `authEnabled`.

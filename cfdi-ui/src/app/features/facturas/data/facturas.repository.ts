@@ -1,12 +1,11 @@
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 
 import { API_BASE_URL } from '../../../core/api/api-client';
 import { FacturaDetail, FacturaListItem } from './facturas.model';
 import { facturasStore, FacturasFilters } from './facturas.store';
 import { deleteEntities, setEntities } from '@ngneat/elf-entities';
-import { tap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class FacturasRepository {
@@ -22,12 +21,14 @@ export class FacturasRepository {
 
     return this.http
       .get<FacturaListItem[]>(`${API_BASE_URL}/facturas/`, { params: httpParams })
-      .subscribe((items) => {
-        const normalized: FacturaListItem[] = items.filter(
-          (item): item is FacturaListItem => typeof item.id === 'number'
-        );
-        facturasStore.update(setEntities(normalized));
-      });
+      .pipe(
+        tap((items) => {
+          const normalized: FacturaListItem[] = items.filter(
+            (item): item is FacturaListItem => typeof item.id === 'number'
+          );
+          facturasStore.update(setEntities(normalized));
+        })
+      );
   }
 
   setFilters(filters: Partial<FacturasFilters>): void {

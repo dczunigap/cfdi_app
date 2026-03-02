@@ -22,6 +22,11 @@ Once the server is running, open your browser and navigate to `http://localhost:
 - `authEnabled`: habilita guard de autenticación (default `true`)
 - `authValidationMode`: `local` (solo exp del JWT) o `server` (valida con `GET /auth/me`)
 
+## Data layer convention
+
+- Los `repository` devuelven `Observable` (sin `subscribe` interno).
+- La suscripción se maneja en `facade` o `component`, con control explícito de errores y ciclo de vida.
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
