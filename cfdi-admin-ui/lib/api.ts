@@ -1,4 +1,4 @@
-import { getApiBaseUrl, getApiToken } from "@/lib/env";
+import { getApiBaseUrl } from "@/lib/env";
 
 export type ApiError = {
   message: string;
@@ -16,10 +16,6 @@ function withDefaultHeaders(
   }
   if (!headers.has("Accept")) {
     headers.set("Accept", "application/json");
-  }
-  const token = getApiToken();
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
   }
   return headers;
 }

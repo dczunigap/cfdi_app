@@ -35,6 +35,7 @@ La app queda en `http://localhost:3000`.
 1. El login llama a `POST /api/auth/login` (route de Next).
 2. Esa route autentica contra `cfdi-api` (`/api/v1/auth/login`) y guarda el JWT en una cookie httpOnly.
 3. El cliente hace requests a `/api/proxy/*`, y el proxy adjunta el JWT desde la cookie.
+4. Las rutas privadas (`/users`, `/admin-sat`, `/platform-rfcs`, `/declaracion-config`, `/rfc-users`) se protegen con middleware.
 
 ## Produccion
 ```bash
@@ -46,3 +47,4 @@ npm run start
 - El login usa `/api/v1/auth/login` del `cfdi-api` y guarda el JWT en cookie httpOnly.
 - Las llamadas desde el cliente van a `/api/proxy/*`, que adjunta el token desde la cookie.
 - Las operaciones usan los endpoints `GET/POST/PUT/DELETE /users` y los catalogos SAT.
+- No se usa `NEXT_PUBLIC_API_TOKEN` para autenticacion de usuario en cliente.

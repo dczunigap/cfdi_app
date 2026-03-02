@@ -129,7 +129,18 @@ sequenceDiagram
 - `app/api/auth/logout/route.ts`
 - `app/api/auth/me/route.ts`
 - `app/api/proxy/[...path]/route.ts`
+- `proxy.ts` (proteccion de rutas privadas)
 - `features/users/hooks/use-users.ts`
 - `features/users/api.ts`
 - `lib/api.ts`
 - `lib/env.ts`
+
+## Endurecimiento aplicado (Sprint 1)
+- Middleware (`proxy.ts`) protege rutas privadas:
+  - `/users/*`
+  - `/admin-sat/*`
+  - `/platform-rfcs/*`
+  - `/declaracion-config/*`
+  - `/rfc-users/*`
+- El cliente ya no inyecta token via variable publica (`NEXT_PUBLIC_API_TOKEN`).
+- La autenticacion de usuario queda centralizada en cookie httpOnly + BFF (`/api/auth/*` y `/api/proxy/*`).

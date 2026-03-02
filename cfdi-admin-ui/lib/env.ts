@@ -4,10 +4,6 @@ export function getApiBaseUrl() {
   return resolved;
 }
 
-export function getApiToken() {
-  return process.env.NEXT_PUBLIC_API_TOKEN || "";
-}
-
 export function getServerApiBaseUrl() {
   const baseUrl =
     process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL;

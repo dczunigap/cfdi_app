@@ -23,5 +23,11 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/users/:path*"],
+  matcher: [
+    "/users/:path*",
+    "/admin-sat/:path*",
+    "/platform-rfcs/:path*",
+    "/declaracion-config/:path*",
+    "/rfc-users/:path*",
+  ],
 };
