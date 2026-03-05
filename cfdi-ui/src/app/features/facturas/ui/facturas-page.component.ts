@@ -5,8 +5,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideFileText, lucideTrash2 } from '@ng-icons/lucide';
-import { map } from 'rxjs';
-
+import { combineLatest, map } from 'rxjs';
 import { facturas$, facturasCount$ } from '../data/facturas.queries';
 import { FacturasRepository } from '../data/facturas.repository';
 import { XmlImportComponent } from '../../../shared/ui/imports/xml-import.component';
@@ -38,15 +37,25 @@ export class FacturasPageComponent implements OnInit {
   readonly subtotalTotal$ = this.facturas$.pipe(
     map((items) => items.reduce((acc, item) => acc + Number(item.total ?? 0), 0))
   );
+  readonly subtotalTotalTrasladados$ = this.facturas$.pipe(
+    map((items) =>
+      items.reduce((acc, item) => acc + Number(item.total_trasladados ?? 0), 0)
+    )
+  );
+  
   readonly years = this.buildYears();
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
-  readonly tipos = ['I', 'E', 'P', 'T', 'N'];
   readonly naturalezas = ['ingreso', 'gasto', 'cobro', 'pago', 'otro'];
   readonly receptorScopes = [
     { value: 'all', label: 'Todos' },
     { value: 'mine', label: 'Mi RFC' },
     { value: 'others', label: 'Otros RFC' },
   ] as const;
+  
+  subtotales$ = combineLatest([this.subtotalTotal$, this.subtotalTotalTrasladados$])
+    .pipe(
+      map(([total, total_trasladados]) => ({ total, total_trasladados }))
+    );
   filtersCollapsed = false;
   showXmlImport = false;
   deletingId: number | null = null;
@@ -54,7 +63,6 @@ export class FacturasPageComponent implements OnInit {
 
   year: number | null = null;
   month: number | null = null;
-  tipo: string | null = null;
   naturaleza: string | null = null;
   usoCfdi: string | null = null;
   receptorScope: 'all' | 'mine' | 'others' = 'all';
@@ -69,7 +77,6 @@ export class FacturasPageComponent implements OnInit {
     this.repo.setFilters({
       year: this.year,
       month: this.month,
-      tipo: this.tipo,
       naturaleza: this.naturaleza,
       uso_cfdi: this.usoCfdi,
       receptor_scope: this.receptorScope,
@@ -80,7 +87,6 @@ export class FacturasPageComponent implements OnInit {
   resetFilters(): void {
     this.year = null;
     this.month = null;
-    this.tipo = null;
     this.naturaleza = null;
     this.usoCfdi = null;
     this.receptorScope = 'all';
@@ -131,7 +137,6 @@ export class FacturasPageComponent implements OnInit {
       .exportCsv({
         year: this.year ?? undefined,
         month: this.month ?? undefined,
-        tipo: this.tipo ?? undefined,
         naturaleza: this.naturaleza ?? undefined,
         uso_cfdi: this.usoCfdi ?? undefined,
       })

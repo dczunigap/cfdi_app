@@ -76,18 +76,6 @@
           </select>
         </label>
         <label class="text-xs uppercase tracking-[0.18em] text-muted">
-          Tipo
-          <select
-            class="mt-2 w-full"
-            [(ngModel)]="tipo"
-            >
-            <option [ngValue]="null">Todos</option>
-            @for (t of tipos; track t) {
-              <option [ngValue]="t">{{ t }}</option>
-            }
-          </select>
-        </label>
-        <label class="text-xs uppercase tracking-[0.18em] text-muted">
           Naturaleza
           <select
             class="mt-2 w-full"
@@ -155,12 +143,12 @@
           <thead class="bg-bg text-xs uppercase tracking-[0.18em] text-muted">
             <tr>
               <th class="px-5 py-3">Fecha emision</th>
-              <th class="px-5 py-3">Tipo</th>
               <th class="px-5 py-3">Naturaleza</th>
               <th class="px-5 py-3">UUID</th>
               <th class="px-5 py-3">Emisor</th>
               <th class="px-5 py-3">Receptor</th>
               <th class="px-5 py-3">Uso CFDI</th>
+              <th class="px-5 py-3">Trasladados</th>
               <th class="px-5 py-3 text-right">Total</th>
               <th class="px-5 py-3 text-right">Acciones</th>
             </tr>
@@ -170,12 +158,12 @@
               @for (f of facturas; track f) {
                 <tr class="hover:bg-bg">
                   <td class="px-5 py-4">{{ f.fecha_emision ? (f.fecha_emision | date: 'yyyy-MM-dd') : '-' }}</td>
-                  <td class="px-5 py-4">{{ f.tipo_comprobante || '-' }}</td>
                   <td class="px-5 py-4">{{ f.naturaleza || '-' }}</td>
                   <td class="px-5 py-4">{{ f.uuid || '-' }}</td>
                   <td class="px-5 py-4">{{ f.emisor_rfc || '-' }}</td>
                   <td class="px-5 py-4">{{ f.receptor_rfc || '-' }}</td>
                   <td class="px-5 py-4">{{ f.uso_cfdi || '-' }}</td>
+                  <td class="px-5 py-4">{{ f.total_trasladados | number: '1.2-2' }}</td>
                   <td class="px-5 py-4 text-right">{{ f.total | number: '1.2-2' }}</td>
                   <td class="px-5 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
@@ -201,10 +189,11 @@
                   </td>
                 </tr>
               }
-              @if (subtotalTotal$ | async; as subtotalTotal) {
+              @if (subtotales$ | async; as subtotales) {
                 <tr class="bg-bg/60 font-semibold text-text">
-                  <td class="px-5 py-4" colspan="7">Subtotal</td>
-                  <td class="px-5 py-4 text-right">{{ subtotalTotal | number: '1.2-2' }}</td>
+                  <td class="px-5 py-4" colspan="6">Subtotales</td>
+                  <td class="px-5 py-4 text-right">{{ subtotales.total_trasladados | number: '1.2-2' }}</td>
+                  <td class="px-5 py-4 text-right">{{ subtotales.total | number: '1.2-2' }}</td>
                   <td class="px-5 py-4"></td>
                 </tr>
               }
