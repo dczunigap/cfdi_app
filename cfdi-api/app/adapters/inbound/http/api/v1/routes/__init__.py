@@ -13,6 +13,7 @@ from .user_rfcs import router as user_rfcs_router
 from .auth import router as auth_router
 from .users import router as users_router
 from .declaracion_config import router as declaracion_config_router
+from .deducciones import router as deducciones_router
 
 api_router = APIRouter()
 api_router.include_router(home_router)
@@ -29,3 +30,4 @@ api_router.include_router(auth_router)
 api_router.include_router(users_router)
 api_router.include_router(user_rfcs_router)
 api_router.include_router(declaracion_config_router)
+api_router.include_router(deducciones_router)

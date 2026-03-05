@@ -57,6 +57,12 @@ npm start
 - `CFDI_API_TOKEN`: Token bearer para la API (opcional)
 - `CFDI_API_TOKEN_FILE`: Ruta a archivo con el token (opcional)
 
+### Nota de contrato Facturas
+- El filtro manual `uso_cfdi` fue removido del contrato publico de `/api/v1/facturas`.
+- Los filtros soportados para deducciones son:
+  - `tipo_declaracion`: `MENSUAL` o `ANUAL`
+  - `deducibilidad`: `TODAS`, `DEDUCIBLES`, `NO_DEDUCIBLES`
+
 ### Configuracion VS Code
 Archivo `.vscode/mcp.json`:
 ```json

@@ -4,7 +4,7 @@ from typing import Optional
 import csv
 import io
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from fastapi import HTTPException
@@ -41,14 +41,15 @@ router = APIRouter(prefix="/facturas", tags=["facturas"], dependencies=[Depends(
     "/",
     response_model=list[FacturaListResponse],
     summary="Lista facturas",
-    description="Devuelve facturas filtradas por year, month, tipo y naturaleza.",
+    description="Devuelve facturas filtradas por year, month, tipo, naturaleza, deducibilidad y tipo_declaracion.",
 )
 def listar_facturas(
     year: Optional[int] = None,
     month: Optional[int] = None,
     tipo: Optional[str] = None,
     naturaleza: Optional[str] = None,
-    uso_cfdi: Optional[str] = None,
+    deducibilidad: Optional[str] = Query(default="TODAS"),
+    tipo_declaracion: Optional[str] = Query(default="MENSUAL"),
     x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> list[FacturaListResponse]:
@@ -59,24 +60,29 @@ def listar_facturas(
         month=month,
         tipo=tipo,
         naturaleza=naturaleza,
-        uso_cfdi=uso_cfdi,
+        deducibilidad=deducibilidad,
+        tipo_declaracion=tipo_declaracion,
         rfc=x_rfc,
     )
-    items = use_case.execute(data)
+    try:
+        items = use_case.execute(data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return factura_list_to_dto(items)
 
 
 @router.get(
     "/export.csv",
     summary="Exporta facturas a CSV",
-    description="Devuelve un CSV con las facturas filtradas.",
+    description="Devuelve un CSV con las facturas filtradas por year, month, tipo, naturaleza, deducibilidad y tipo_declaracion.",
 )
 def export_facturas_csv(
     year: Optional[int] = None,
     month: Optional[int] = None,
     tipo: Optional[str] = None,
     naturaleza: Optional[str] = None,
-    uso_cfdi: Optional[str] = None,
+    deducibilidad: Optional[str] = Query(default="TODAS"),
+    tipo_declaracion: Optional[str] = Query(default="MENSUAL"),
     x_rfc: str = Depends(get_required_rfc),
     db: Session = Depends(get_db),
 ) -> Response:
@@ -87,10 +93,14 @@ def export_facturas_csv(
         month=month,
         tipo=tipo,
         naturaleza=naturaleza,
-        uso_cfdi=uso_cfdi,
+        deducibilidad=deducibilidad,
+        tipo_declaracion=tipo_declaracion,
         rfc=x_rfc,
     )
-    items = use_case.execute(data)
+    try:
+        items = use_case.execute(data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     out = io.StringIO()
     w = csv.writer(out)

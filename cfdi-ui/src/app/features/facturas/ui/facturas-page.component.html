@@ -88,12 +88,26 @@
           </select>
         </label>
         <label class="text-xs uppercase tracking-[0.18em] text-muted">
-          Uso CFDI
-          <input
+          Tipo declaracion
+          <select
             class="mt-2 w-full"
-            [(ngModel)]="usoCfdi"
-            placeholder="G01, P01..."
-          />
+            [(ngModel)]="tipoDeclaracion"
+            (ngModelChange)="onTipoDeclaracionChange()"
+            >
+            <option [ngValue]="'MENSUAL'">Mensual</option>
+            <option [ngValue]="'ANUAL'">Anual</option>
+          </select>
+        </label>
+        <label class="text-xs uppercase tracking-[0.18em] text-muted">
+          Deducibilidad
+          <select
+            class="mt-2 w-full"
+            [(ngModel)]="deducibilidad"
+            >
+            <option [ngValue]="'TODAS'">Todas</option>
+            <option [ngValue]="'DEDUCIBLES'">Deducibles</option>
+            <option [ngValue]="'NO_DEDUCIBLES'">No deducibles</option>
+          </select>
         </label>
         <label class="text-xs uppercase tracking-[0.18em] text-muted">
           Receptor
@@ -120,6 +134,20 @@
             Limpiar
           </button>
         </div>
+      </div>
+      <div class="mt-4 rounded-xl border border-border bg-bg px-3 py-2 text-xs text-muted">
+        @if (deduccionesCatalogoLoading) {
+          <span>Cargando catalogo de deducciones...</span>
+        } @else if (deduccionesCatalogoError) {
+          <span class="text-rose-600">{{ deduccionesCatalogoError }}</span>
+        } @else if (deduccionesCatalogoUsos.length > 0) {
+          <span>
+            Catalogo deducible {{ tipoDeclaracion }} ({{ deduccionesCatalogoUsos.length }}):
+            {{ deduccionesCatalogoClavesText }}
+          </span>
+        } @else {
+          <span>Sin claves deducibles configuradas para este RFC/tipo de declaracion.</span>
+        }
       </div>
     }
   </div>

@@ -47,3 +47,23 @@ export interface FacturaDetail {
   conceptos: ConceptoItem[];
   pagos: PagoItem[];
 }
+
+export type TipoDeclaracion = 'MENSUAL' | 'ANUAL';
+export type Deducibilidad = 'TODAS' | 'DEDUCIBLES' | 'NO_DEDUCIBLES';
+
+export interface DeduccionesCatalogUso {
+  clave: string;
+  descripcion: string;
+  orden: number;
+}
+
+export interface DeduccionesCatalogResponse {
+  rfc: string;
+  regimen_fiscal: {
+    clave: string;
+    descripcion: string | null;
+    tipo_persona_clave: string;
+  };
+  tipo_declaracion: TipoDeclaracion;
+  usos_cfdi: DeduccionesCatalogUso[];
+}

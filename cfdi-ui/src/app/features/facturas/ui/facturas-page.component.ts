@@ -8,6 +8,7 @@ import { lucideFileText, lucideTrash2 } from '@ng-icons/lucide';
 import { combineLatest, map } from 'rxjs';
 import { facturas$, facturasCount$ } from '../data/facturas.queries';
 import { FacturasRepository } from '../data/facturas.repository';
+import { Deducibilidad, DeduccionesCatalogUso, TipoDeclaracion } from '../data/facturas.model';
 import { XmlImportComponent } from '../../../shared/ui/imports/xml-import.component';
 import { RfcService } from '../../../core/rfc/rfc.service';
 
@@ -64,11 +65,20 @@ export class FacturasPageComponent implements OnInit {
   year: number | null = null;
   month: number | null = null;
   naturaleza: string | null = null;
-  usoCfdi: string | null = null;
+  deducibilidad: Deducibilidad = 'TODAS';
+  tipoDeclaracion: TipoDeclaracion = 'MENSUAL';
   receptorScope: 'all' | 'mine' | 'others' = 'all';
+  deduccionesCatalogoUsos: DeduccionesCatalogUso[] = [];
+  deduccionesCatalogoError: string | null = null;
+  deduccionesCatalogoLoading = false;
+
+  get deduccionesCatalogoClavesText(): string {
+    return this.deduccionesCatalogoUsos.map((item) => item.clave).join(', ');
+  }
 
   ngOnInit(): void {
     this.rfcService.refreshOptions();
+    this.refreshDeduccionesCatalogo();
     this.loadFacturas();
   }
 
@@ -78,7 +88,9 @@ export class FacturasPageComponent implements OnInit {
       year: this.year,
       month: this.month,
       naturaleza: this.naturaleza,
-      uso_cfdi: this.usoCfdi,
+      deducibilidad: this.deducibilidad,
+      tipo_declaracion: this.tipoDeclaracion,
+      deducibles_usos: this.deduccionesCatalogoUsos.map((item) => item.clave),
       receptor_scope: this.receptorScope,
       mi_rfc: miRfc,
     });
@@ -88,17 +100,21 @@ export class FacturasPageComponent implements OnInit {
     this.year = null;
     this.month = null;
     this.naturaleza = null;
-    this.usoCfdi = null;
+    this.deducibilidad = 'TODAS';
+    this.tipoDeclaracion = 'MENSUAL';
     this.receptorScope = 'all';
     this.repo.setFilters({
       year: null,
       month: null,
       tipo: null,
       naturaleza: null,
-      uso_cfdi: null,
+      deducibilidad: 'TODAS',
+      tipo_declaracion: 'MENSUAL',
+      deducibles_usos: [],
       receptor_scope: 'all',
       mi_rfc: this.rfcService.selectedRfc(),
     });
+    this.refreshDeduccionesCatalogo();
   }
 
   toggleFilters(): void {
@@ -138,7 +154,8 @@ export class FacturasPageComponent implements OnInit {
         year: this.year ?? undefined,
         month: this.month ?? undefined,
         naturaleza: this.naturaleza ?? undefined,
-        uso_cfdi: this.usoCfdi ?? undefined,
+        deducibilidad: this.deducibilidad,
+        tipo_declaracion: this.tipoDeclaracion,
       })
       .subscribe({
         next: (resp) => {
@@ -180,6 +197,33 @@ export class FacturasPageComponent implements OnInit {
       return `facturas_${this.year}_${String(this.month).padStart(2, '0')}.csv`;
     }
     return 'facturas.csv';
+  }
+
+  onTipoDeclaracionChange(): void {
+    this.refreshDeduccionesCatalogo();
+  }
+
+  private refreshDeduccionesCatalogo(): void {
+    this.deduccionesCatalogoLoading = true;
+    this.deduccionesCatalogoError = null;
+    this.repo
+      .getDeduccionesCatalog(this.tipoDeclaracion)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (payload) => {
+          this.deduccionesCatalogoUsos = payload.usos_cfdi || [];
+          this.repo.setFilters({
+            deducibles_usos: this.deduccionesCatalogoUsos.map((item) => item.clave),
+          });
+          this.deduccionesCatalogoLoading = false;
+        },
+        error: () => {
+          this.deduccionesCatalogoUsos = [];
+          this.repo.setFilters({ deducibles_usos: [] });
+          this.deduccionesCatalogoError = 'No se pudo cargar el catalogo de deducciones.';
+          this.deduccionesCatalogoLoading = false;
+        },
+      });
   }
 
   private loadFacturas(): void {

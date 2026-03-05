@@ -143,6 +143,12 @@ python -m pytest -vv tests/integration/test_storage_r2.py
 - Base: `/api/v1`
 - OpenAPI: `GET /openapi.json`
 - Header `X-RFC` requerido en endpoints SAT (auth) y reportes.
+- Facturas:
+  - `GET /facturas` y `GET /facturas/export.csv`
+  - filtros: `year`, `month`, `tipo`, `naturaleza`, `tipo_declaracion`, `deducibilidad`
+  - `tipo_declaracion`: `MENSUAL|ANUAL`
+  - `deducibilidad`: `TODAS|DEDUCIBLES|NO_DEDUCIBLES`
+  - `uso_cfdi` se mantiene como dato en respuesta/CSV, pero ya no como filtro manual de entrada.
 - Telefonos/RFC: `GET /rfc-phones/resolve?phone=...`, `POST /rfc-phones` para registrar.
 - Auth: `POST /auth/login`, `POST /auth/refresh`, `GET /auth/token-status`, `POST /auth/logout`, `GET /auth/me`.
 - Usuarios: `GET /users`, `POST /users`, `PUT /users/{id}`, `DELETE /users/{id}`.

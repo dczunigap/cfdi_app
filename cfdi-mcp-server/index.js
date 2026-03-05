@@ -14,6 +14,8 @@ const server = new McpServer({ name: "cfdi-mcp-server_v1", version: "0.1.0" });
 const rfcSchema = z.string();
 const monthSchema = z.number().int().min(1).max(12);
 const yearSchema = z.number().int();
+const tipoDeclaracionSchema = z.enum(["MENSUAL", "ANUAL"]);
+const deducibilidadSchema = z.enum(["TODAS", "DEDUCIBLES", "NO_DEDUCIBLES"]);
 
 const tools = [
   {
@@ -23,13 +25,24 @@ const tools = [
   },
   {
     name: "facturas_list",
-    description: "Lista facturas (opcional: year, month, tipo, naturaleza).",
+    description:
+      "Lista facturas (opcional: year, month, tipo, naturaleza, tipo_declaracion, deducibilidad).",
     inputSchema: z.object({
       rfc: rfcSchema,
       year: yearSchema.optional(),
       month: monthSchema.optional(),
       tipo: z.string().optional(),
       naturaleza: z.string().optional(),
+      tipo_declaracion: tipoDeclaracionSchema.optional(),
+      deducibilidad: deducibilidadSchema.optional(),
+    }),
+  },
+  {
+    name: "deducciones_catalogo",
+    description: "Catalogo de deducciones por RFC y tipo de declaracion.",
+    inputSchema: z.object({
+      rfc: rfcSchema,
+      tipo_declaracion: tipoDeclaracionSchema,
     }),
   },
   {
@@ -164,6 +177,8 @@ async function handleTool(name, args) {
       return await fetchJson("/api/v1/");
     case "facturas_list":
       return await fetchJson("/api/v1/facturas", cleanArgs, args.rfc);
+    case "deducciones_catalogo":
+      return await fetchJson("/api/v1/deducciones/catalogo", cleanArgs, args.rfc);
     case "facturas_detail":
       return await fetchJson(`/api/v1/facturas/${args.factura_id}`, null, args.rfc);
     case "facturas_xml":

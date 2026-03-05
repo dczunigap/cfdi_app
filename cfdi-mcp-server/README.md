@@ -83,6 +83,7 @@ En `%AppData%\\Claude\\claude_desktop_config.json`:
 
 - `cfdi_health`
 - `facturas_list`, `facturas_detail`, `facturas_xml` (requieren `rfc`)
+- `deducciones_catalogo` (requiere `rfc` y `tipo_declaracion`)
 - `retenciones_list`, `retenciones_detail` (requieren `rfc`)
 - `declaraciones_list`, `declaraciones_detail`, `declaraciones_pdf`, `declaraciones_resumen` (requieren `rfc`)
 - `reportes_summary`, `reportes_summary_details`, `reportes_declaracion_mode` (requieren `rfc`)
@@ -97,7 +98,20 @@ En `%AppData%\\Claude\\claude_desktop_config.json`:
   "arguments": {
     "rfc": "XAXX010101000",
     "year": 2024,
-    "month": 12
+    "month": 12,
+    "naturaleza": "gasto",
+    "tipo_declaracion": "MENSUAL",
+    "deducibilidad": "DEDUCIBLES"
+  }
+}
+```
+
+```json
+{
+  "name": "deducciones_catalogo",
+  "arguments": {
+    "rfc": "XAXX010101000",
+    "tipo_declaracion": "MENSUAL"
   }
 }
 ```

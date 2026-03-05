@@ -6,6 +6,7 @@ import { RfcService } from '../rfc/rfc.service';
 
 const RFC_ENDPOINTS = [
   '/facturas',
+  '/deducciones',
   '/retenciones',
   '/declaraciones',
   '/sat',

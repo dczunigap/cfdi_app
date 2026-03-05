@@ -27,6 +27,14 @@ Once the server is running, open your browser and navigate to `http://localhost:
 - Los `repository` devuelven `Observable` (sin `subscribe` interno).
 - La suscripción se maneja en `facade` o `component`, con control explícito de errores y ciclo de vida.
 
+## Filtros de Facturas
+
+- El modulo de facturas ya no usa filtro manual `uso_cfdi`.
+- El UI filtra deducibilidad en memoria, usando el catalogo de `/deducciones/catalogo`.
+- Parametros de deduccion usados en API/MCP:
+  - `tipo_declaracion`: `MENSUAL|ANUAL`
+  - `deducibilidad`: `TODAS|DEDUCIBLES|NO_DEDUCIBLES`
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:

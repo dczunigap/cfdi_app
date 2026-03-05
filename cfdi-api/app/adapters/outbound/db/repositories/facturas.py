@@ -2,11 +2,18 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import or_, select
+from sqlalchemy import not_, or_, select
 from sqlalchemy.orm import Session
 
 from app.adapters.outbound.db.mappers import factura_to_list_item
-from app.adapters.outbound.db.models import ConceptoModel, FacturaModel, PagoModel
+from app.adapters.outbound.db.models import (
+    ConceptoModel,
+    FacturaModel,
+    PagoModel,
+    RegimenFiscalCatalogModel,
+    RfcModel,
+)
+from app.adapters.outbound.db.repositories.declaracion_config import SqlDeclaracionConfigRepository
 from app.adapters.outbound.db.repositories.utils import apply_optional_filters, exists_by_field
 from app.ports.facturas_repo import FacturaRepository
 from app.application.facturas.dto import FacturaListItem
@@ -23,7 +30,8 @@ class SqlFacturaRepository(FacturaRepository):
         month: Optional[int] = None,
         tipo: Optional[str] = None,
         naturaleza: Optional[str] = None,
-        uso_cfdi: Optional[str] = None,
+        deducibilidad: Optional[str] = None,
+        tipo_declaracion: Optional[str] = None,
         rfc: Optional[str] = None,
     ) -> list[FacturaListItem]:
         q = apply_optional_filters(
@@ -32,9 +40,26 @@ class SqlFacturaRepository(FacturaRepository):
             (FacturaModel.month_emision, month),
             (FacturaModel.naturaleza, naturaleza),
             (FacturaModel.tipo_comprobante, tipo.upper() if tipo else None),
-            (FacturaModel.uso_cfdi, uso_cfdi.upper() if uso_cfdi else None),
         )
         rfc_value = (rfc or "").strip().upper()
+        deducibilidad_value = (deducibilidad or "TODAS").strip().upper()
+        tipo_decl_value = (tipo_declaracion or "MENSUAL").strip().upper()
+        if deducibilidad_value not in {"TODAS", "DEDUCIBLES", "NO_DEDUCIBLES"}:
+            raise ValueError("deducibilidad invalida. Use TODAS, DEDUCIBLES o NO_DEDUCIBLES")
+        if tipo_decl_value not in {"MENSUAL", "ANUAL"}:
+            raise ValueError("tipo_declaracion invalido. Use MENSUAL o ANUAL")
+        if deducibilidad_value != "TODAS":
+            deducibles = self._resolve_deducibles_usos(rfc_value, tipo_decl_value)
+            if deducibilidad_value == "DEDUCIBLES":
+                q = q.where(FacturaModel.uso_cfdi.in_(sorted(deducibles)))
+            else:
+                q = q.where(
+                    or_(
+                        FacturaModel.uso_cfdi.is_(None),
+                        FacturaModel.uso_cfdi == "",
+                        not_(FacturaModel.uso_cfdi.in_(sorted(deducibles))),
+                    )
+                )
         if rfc_value:
             q = q.where(
                 or_(
@@ -44,6 +69,32 @@ class SqlFacturaRepository(FacturaRepository):
             )
         rows = self._db.execute(q).scalars().all()
         return [factura_to_list_item(r) for r in rows]
+
+    def _resolve_deducibles_usos(self, rfc: str, tipo_declaracion: str) -> set[str]:
+        if not rfc:
+            raise ValueError("Header X-RFC requerido")
+        regimen = self._db.execute(
+            select(RegimenFiscalCatalogModel)
+            .select_from(RfcModel)
+            .join(RegimenFiscalCatalogModel, RfcModel.regimen_fiscal_id == RegimenFiscalCatalogModel.id)
+            .where(RfcModel.rfc == rfc)
+        ).scalar_one_or_none()
+        if not regimen:
+            raise ValueError("RFC no registrado o sin regimen fiscal")
+
+        repo = SqlDeclaracionConfigRepository(self._db)
+        config = repo.get_config(regimen_fiscal_clave=regimen.clave, tipo_declaracion_clave=tipo_declaracion)
+        if not config or not bool(config.get("activo")):
+            raise ValueError(f"No existe configuracion activa para regimen {regimen.clave}, tipo {tipo_declaracion}")
+
+        usos = {
+            str(item.get("clave") or "").strip().upper()
+            for item in (config.get("usos_cfdi") or [])
+            if str(item.get("clave") or "").strip()
+        }
+        if not usos:
+            raise ValueError(f"La configuracion no tiene usos CFDI activos para regimen {regimen.clave}, tipo {tipo_declaracion}")
+        return usos
 
     def exists_uuid(self, uuid: str) -> bool:
         return exists_by_field(self._db, FacturaModel, FacturaModel.uuid, uuid)
