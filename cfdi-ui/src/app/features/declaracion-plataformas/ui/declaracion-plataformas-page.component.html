@@ -29,7 +29,7 @@
       </button>
     </div>
     @if (filtersOpen) {
-      <div class="grid gap-4 md:grid-cols-6">
+      <div class="grid gap-4 md:grid-cols-5">
         <label class="text-xs uppercase tracking-[0.18em] text-muted">
           Tipo
           <select
@@ -103,28 +103,6 @@
           >
             <ng-icon name="lucideEraser" class="h-4 w-4"></ng-icon>
           </button>
-          @if (tipoDeclaracion === 'MENSUAL') {
-            <button
-              class="btn btn-icon-square w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
-              type="button"
-              (click)="downloadCsv()"
-              [disabled]="!csvUrl"
-              title="Exportar CSV SAT"
-              aria-label="Exportar CSV SAT"
-            >
-              <ng-icon name="lucideDownload" class="h-4 w-4"></ng-icon>
-            </button>
-            <button
-              class="btn btn-icon-square w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-bg"
-              type="button"
-              (click)="downloadHoja()"
-              [disabled]="!hojaUrl"
-              title="Generar hoja SAT"
-              aria-label="Generar hoja SAT"
-            >
-              <ng-icon name="lucideFileText" class="h-4 w-4"></ng-icon>
-            </button>
-          }
         </div>
       </div>
     }
@@ -132,234 +110,316 @@
 
   @if (summary) {   
     <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-      <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div class="text-xs uppercase tracking-[0.2em] text-muted">Tipo de ingreso</div>
-          <div class="mt-1 flex max-w-3xl items-center gap-2 text-sm text-muted">
-            <span class="platform-check" aria-hidden="true">✓</span>
-            <b class="p-2">
-              Ingresos por servicios terrestres de pasajeros y entrega de bienes
-            </b>
-          </div>
+          <div class="text-xs uppercase tracking-[0.18em] text-muted">Presentacion</div>
+          <h3 class="mt-2 font-display text-lg text-text">Validaciones y conciliacion</h3>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button
+            class="presentation-tab"
+            type="button"
+            [class.presentation-tab-active]="presentationView === 'timeline'"
+            (click)="setPresentationView('timeline')"
+          >
+            Resumen por pasos
+          </button>
+          <button
+            class="presentation-tab"
+            type="button"
+            [class.presentation-tab-active]="presentationView === 'ejecutiva'"
+            (click)="setPresentationView('ejecutiva')"
+          >
+            Que capturar
+          </button>          
+          <button
+            class="presentation-tab"
+            type="button"
+            [class.presentation-tab-active]="presentationView === 'detalle'"
+            (click)="setPresentationView('detalle')"
+          >
+            Conciliacion detallada
+          </button>
         </div>
       </div>
     </section>
-    
-    <section class="grid gap-6 xl:grid-cols-2">
-      <article class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <div class="text-xs uppercase tracking-[0.18em] text-muted">Captura los datos de las celdas en rojo</div>
-            <h2 class="mt-2 font-display text-xl text-text">ISR personas fisicas plataformas tecnológicas</h2>
-          </div>
-        </div>
 
-        <div class="mt-4 rounded-2xl border border-border">
-          <div class="px-5">
-            <div class="space-y-3">
-              <label class="platform-row">
-                <span>*Ingresos obtenidos mediante intermediarios por servicios terrestres de pasajeros</span>
-                <div class="platform-source-box">{{ isrIngresosIntermediariosPasajeros | number: '1.0-0' }}</div>
-              </label>
-              <label class="platform-row">
-                <span>*Ingresos obtenidos mediante intermediarios por entrega de bienes</span>
-                <div class="platform-source-box">{{ isrIngresosIntermediariosEntrega | number: '1.0-0' }}</div>
-              </label>
-              <label class="platform-row">
-                <span>*Ingresos obtenidos directamente del usuario por servicios terrestres de pasajeros</span>
-                <div class="platform-source-box">{{ isrIngresosDirectosPasajeros | number: '1.0-0' }}</div>
-              </label>
-              <label class="platform-row">
-                <span>*Ingresos obtenidos directamente del usuario por entrega de bienes</span>
-                <div class="platform-source-box">{{ isrIngresosDirectosEntrega | number: '1.0-0' }}</div>
-              </label>
-              <div class="platform-result-row">
-                <span>Ingresos totales del mes</span>
-                <div>{{ isrIngresosTotalesMes | number: '1.0-0' }}</div>
+    @if (presentationView === 'ejecutiva') {
+      <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+          <div class="grid gap-4 md:grid-cols-2">
+            <div>
+              <div class="text-xs uppercase tracking-[0.2em] text-muted">Tipo de ingreso</div>
+              <div class="mt-1 flex max-w-3xl items-center gap-2 text-sm text-muted">
+                <span class="platform-check" aria-hidden="true">✓</span>
+                <b class="p-2">
+                  Ingresos por servicios terrestres de pasajeros y entrega de bienes
+                </b>
               </div>
-              <div class="platform-result-row">
-                <span>Tasa %</span>
-                <div>{{ isrTasa | number: '1.2-2' }}</div>
+            </div>
+
+            @if (tipoDeclaracion === 'MENSUAL') {
+              <div class="flex items-end justify-end gap-2">
+                <button
+                  class="btn btn-icon-square w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
+                  type="button"
+                  (click)="downloadCsv()"
+                  [disabled]="!csvUrl"
+                  title="Exportar CSV SAT"
+                  aria-label="Exportar CSV SAT"
+                >
+                  <ng-icon name="lucideDownload" class="h-4 w-4"></ng-icon>
+                </button>
+                <button
+                  class="btn btn-icon-square w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-bg"
+                  type="button"
+                  (click)="downloadHoja()"
+                  [disabled]="!hojaUrl"
+                  title="Generar hoja SAT"
+                  aria-label="Generar hoja SAT"
+                >
+                  <ng-icon name="lucideFileText" class="h-4 w-4"></ng-icon>
+                </button>
               </div>
-              <div class="platform-result-row">
-                <span>ISR causado</span>
-                <div>{{ isrCausado | number: '1.0-0' }}</div>
-              </div>
-              <label class="platform-row">
-                <span>*Retenciones por plataformas tecnologicas</span>
-                <div class="platform-source-box">{{ isrRetencionesPlataformas | number: '1.0-0' }}</div>
-              </label>
-              <div class="platform-result-row">
-                <span>ISR a cargo</span>
-                <div>{{ isrCargo | number: '1.0-0' }}</div>
+            }
+        </div>        
+      </section>
+      
+      <section class="grid gap-6 xl:grid-cols-2">
+        <article class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-xs uppercase tracking-[0.18em] text-muted">Captura los datos de las celdas en rojo</div>
+              <h2 class="mt-2 font-display text-xl text-text">ISR personas fisicas plataformas tecnológicas</h2>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded-2xl border border-border">
+            <div class="px-5">
+              <div class="space-y-3">
+                <label class="platform-row">
+                  <span>*Ingresos obtenidos mediante intermediarios por servicios terrestres de pasajeros</span>
+                  <div class="platform-source-box">{{ isrIngresosIntermediariosPasajeros | number: '1.0-0' }}</div>
+                </label>
+                <label class="platform-row">
+                  <span>*Ingresos obtenidos mediante intermediarios por entrega de bienes</span>
+                  <div class="platform-source-box">{{ isrIngresosIntermediariosEntrega | number: '1.0-0' }}</div>
+                </label>
+                <label class="platform-row">
+                  <span>*Ingresos obtenidos directamente del usuario por servicios terrestres de pasajeros</span>
+                  <div class="platform-source-box">{{ isrIngresosDirectosPasajeros | number: '1.0-0' }}</div>
+                </label>
+                <label class="platform-row">
+                  <span>*Ingresos obtenidos directamente del usuario por entrega de bienes</span>
+                  <div class="platform-source-box">{{ isrIngresosDirectosEntrega | number: '1.0-0' }}</div>
+                </label>
+                <div class="platform-result-row">
+                  <span>Ingresos totales del mes</span>
+                  <div>{{ isrIngresosTotalesMes | number: '1.0-0' }}</div>
+                </div>
+                <div class="platform-result-row">
+                  <span>Tasa %</span>
+                  <div>{{ isrTasa | number: '1.2-2' }}</div>
+                </div>
+                <div class="platform-result-row">
+                  <span>ISR causado</span>
+                  <div>{{ isrCausado | number: '1.0-0' }}</div>
+                </div>
+                <label class="platform-row">
+                  <span>*Retenciones por plataformas tecnologicas</span>
+                  <div class="platform-source-box">{{ isrRetencionesPlataformas | number: '1.0-0' }}</div>
+                </label>
+                <div class="platform-result-row">
+                  <span>ISR a cargo</span>
+                  <div>{{ isrCargo | number: '1.0-0' }}</div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </article>
+        </article>
 
-      <article class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <div class="text-xs uppercase tracking-[0.18em] text-muted">Captura los datos de las celdas en rojo</div>
-            <h2 class="mt-2 font-display text-xl text-text">IVA personas fisicas plataformas tecnológicas</h2>
-          </div>
-        </div>
-
-        <div class="mt-4 rounded-2xl border border-border">
-          <div class="px-5">
-            <div class="space-y-3">
-              <label class="platform-row">
-                <span>*Ingresos obtenidos mediante intermediarios</span>
-                <div class="platform-source-box">{{ ivaIngresosIntermediarios | number: '1.0-0' }}</div>
-              </label>
-              <label class="platform-row">
-                <span>*Ingresos obtenidos directamente del usuario</span>
-                <div class="platform-source-box">{{ ivaIngresosDirectos | number: '1.0-0' }}</div>
-              </label>
-              <div class="platform-result-row">
-                <span>Ingresos totales del mes</span>
-                <div>{{ ivaIngresosTotalesMes | number: '1.0-0' }}</div>
-              </div>
-              <div class="platform-result-row">
-                <span>Tasa %</span>
-                <div>{{ ivaTasa | number: '1.2-2' }}</div>
-              </div>
-              <div class="platform-result-row">
-                <span>IVA a cargo a la tasa del 16%</span>
-                <div>{{ ivaACargoTasa16 | number: '1.0-0' }}</div>
-              </div>
-              <div class="platform-row">
-                <span>IVA acreditable</span>
-                <div class="platform-source-box">{{ ivaAcreditable | number: '1.0-0' }}</div>
-              </div>
-              <label class="platform-row">
-                <span>*IVA retenido</span>
-                <div class="platform-source-box">{{ ivaRetenido | number: '1.0-0' }}</div>
-              </label>
-              @if (ivaImpuestoCargo > 0) {
-                <div class="platform-result-row">
-                  <span>Cantidad a cargo</span>
-                  <div>{{ ivaImpuestoCargo | number: '1.0-0' }}</div>
-                </div>
-                <div class="platform-result-row">
-                  <span>Impuesto a cargo</span>
-                  <div>{{ ivaImpuestoCargo | number: '1.0-0' }}</div>
-                </div>
-              } @else {
-                <div class="platform-result-row">
-                  <span>Saldo a favor</span>
-                  <div>{{ ivaSaldoFavor | number: '1.0-0' }}</div>
-                </div>
-              }
+        <article class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-xs uppercase tracking-[0.18em] text-muted">Captura los datos de las celdas en rojo</div>
+              <h2 class="mt-2 font-display text-xl text-text">IVA personas fisicas plataformas tecnológicas</h2>
             </div>
           </div>
-        </div>
-      </article>
-    </section>
 
-    <section class="grid gap-4 md:grid-cols-2">
-      <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-        <div class="text-xs uppercase tracking-[0.18em] text-muted">Checklist automatico</div>
-        <div class="mt-3 space-y-3">
-          @for (check of summary.checks; track check) {
-            <div class="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-text">
-              <span class="badge" [ngClass]="checkBadgeClass(check)">
-                {{ check.level | uppercase }}
-              </span>
-              <div class="mt-2 font-semibold">{{ check.title }}</div>
-              <div class="text-xs text-muted">{{ check.detail }}</div>
+          <div class="mt-4 rounded-2xl border border-border">
+            <div class="px-5">
+              <div class="space-y-3">
+                <label class="platform-row">
+                  <span>*Ingresos obtenidos mediante intermediarios</span>
+                  <div class="platform-source-box">{{ ivaIngresosIntermediarios | number: '1.0-0' }}</div>
+                </label>
+                <label class="platform-row">
+                  <span>*Ingresos obtenidos directamente del usuario</span>
+                  <div class="platform-source-box">{{ ivaIngresosDirectos | number: '1.0-0' }}</div>
+                </label>
+                <div class="platform-result-row">
+                  <span>Ingresos totales del mes</span>
+                  <div>{{ ivaIngresosTotalesMes | number: '1.0-0' }}</div>
+                </div>
+                <div class="platform-result-row">
+                  <span>Tasa %</span>
+                  <div>{{ ivaTasa | number: '1.2-2' }}</div>
+                </div>
+                <div class="platform-result-row">
+                  <span>IVA a cargo a la tasa del 16%</span>
+                  <div>{{ ivaACargoTasa16 | number: '1.0-0' }}</div>
+                </div>
+                <div class="platform-row">
+                  <span>IVA acreditable</span>
+                  <div class="platform-source-box">{{ ivaAcreditable | number: '1.0-0' }}</div>
+                </div>
+                <label class="platform-row">
+                  <span>*IVA retenido</span>
+                  <div class="platform-source-box">{{ ivaRetenido | number: '1.0-0' }}</div>
+                </label>
+                @if (ivaImpuestoCargo > 0) {
+                  <div class="platform-result-row">
+                    <span>Cantidad a cargo</span>
+                    <div>{{ ivaImpuestoCargo | number: '1.0-0' }}</div>
+                  </div>
+                  <div class="platform-result-row">
+                    <span>Impuesto a cargo</span>
+                    <div>{{ ivaImpuestoCargo | number: '1.0-0' }}</div>
+                  </div>
+                } @else {
+                  <div class="platform-result-row">
+                    <span>Saldo a favor</span>
+                    <div>{{ ivaSaldoFavor | number: '1.0-0' }}</div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+    }
+
+    @if (presentationView === 'timeline') {
+      <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+        <div class="text-xs uppercase tracking-[0.18em] text-muted">Vista timeline</div>
+        <h3 class="mt-2 font-display text-lg text-text">Linea de validacion por pasos</h3>
+        <div class="mt-5 grid gap-3 md:grid-cols-4">
+          @for (step of validationSteps; track step.label) {
+            <div class="rounded-2xl border border-border bg-bg p-4">
+              <div class="flex items-center gap-3">
+                <span class="status-dot" [ngClass]="statusBadgeClass(step.status)"></span>
+                <div class="text-sm font-semibold text-text">{{ step.label }}</div>
+              </div>
+              <div class="mt-3 text-xs uppercase tracking-[0.18em] text-muted">{{ step.status }}</div>
             </div>
           }
         </div>
-      </div>
+      </section>
+    }
 
-      @if (showAcuseSection(summary)) {
+    @if (presentationView === 'detalle') {
+      <section class="grid gap-4 md:grid-cols-2">
         <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-          <div class="text-xs uppercase tracking-[0.18em] text-muted">Conciliacion con acuse SAT (PDF)</div>
-          @if (summary.acuse_payload) {
-            <div class="mt-3 text-sm text-muted">
-              <strong>Operacion:</strong>
-              <span class="text-text">{{ summary.acuse_payload.numero_operacion || '-' }}</span>
-              @if (summary.acuse_payload.fecha_presentacion) {
-                <span>
-                  · <strong>Presentacion:</strong>
-                  {{ summary.acuse_payload.fecha_presentacion | date: 'yyyy-MM-dd' }}
+          <div class="text-xs uppercase tracking-[0.18em] text-muted">Checklist automatico</div>
+          <div class="mt-3 space-y-3">
+            @for (check of summary.checks; track check) {
+              <div class="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-text">
+                <span class="badge" [ngClass]="checkBadgeClass(check)">
+                  {{ check.level | uppercase }}
                 </span>
-              }
-            </div>
-            <div class="mt-4 space-y-3">
-              @for (item of summary.acuse_checks; track item) {
-                <div class="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-text">
-                  <span class="badge" [ngClass]="statusBadgeClass(item.status)">
-                    {{ item.status | uppercase }}
+                <div class="mt-2 font-semibold">{{ check.title }}</div>
+                <div class="text-xs text-muted">{{ check.detail }}</div>
+              </div>
+            }
+          </div>
+        </div>
+
+        @if (showAcuseSection(summary)) {
+          <div class="rounded-2xl border border-border bg-surface p-5 shadow-card">
+            <div class="text-xs uppercase tracking-[0.18em] text-muted">Conciliacion con acuse SAT (PDF)</div>
+            @if (summary.acuse_payload) {
+              <div class="mt-3 text-sm text-muted">
+                <strong>Operacion:</strong>
+                <span class="text-text">{{ summary.acuse_payload.numero_operacion || '-' }}</span>
+                @if (summary.acuse_payload.fecha_presentacion) {
+                  <span>
+                    · <strong>Presentacion:</strong>
+                    {{ summary.acuse_payload.fecha_presentacion | date: 'yyyy-MM-dd' }}
                   </span>
-                  <div class="mt-2 font-semibold">{{ item.label }}</div>
-                  <div class="text-xs text-muted">
-                    SAT: {{ item.sat ?? '-' }} · App: {{ item.app ?? '-' }}
-                    @if (item.diff !== null) {
-                      <span>· Dif: {{ item.diff | number: '1.0-0' }}</span>
+                }
+              </div>
+              <div class="mt-4 space-y-3">
+                @for (item of summary.acuse_checks; track item) {
+                  <div class="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-text">
+                    <span class="badge" [ngClass]="statusBadgeClass(item.status)">
+                      {{ item.status | uppercase }}
+                    </span>
+                    <div class="mt-2 font-semibold">{{ item.label }}</div>
+                    <div class="text-xs text-muted">
+                      SAT: {{ item.sat ?? '-' }} · App: {{ item.app ?? '-' }}
+                      @if (item.diff !== null) {
+                        <span>· Dif: {{ item.diff | number: '1.0-0' }}</span>
+                      }
+                    </div>
+                    @if (item.note) {
+                      <div class="text-xs text-muted">{{ item.note }}</div>
                     }
                   </div>
-                  @if (item.note) {
-                    <div class="text-xs text-muted">{{ item.note }}</div>
-                  }
+                }
+              </div>
+            } @else {
+              <div class="mt-3 text-sm text-muted">No hay acuse con texto extraible para conciliar.</div>
+            }
+          </div>
+        }
+
+        @if (showDeclaracionPdfSection(summary)) {
+          <div class="rounded-2xl border border-border bg-surface p-5 shadow-card md:col-span-2">
+            <div class="text-xs uppercase tracking-[0.18em] text-muted">Declaracion presentada (PDF)</div>
+            @if (summary.declaracion_pdf) {
+              <div class="mt-3 text-sm text-text">
+                Archivo: <span class="text-muted">{{ pdfLabel(summary.declaracion_pdf) }}</span>
+              </div>
+              @if (summary.declaracion_pdf.fecha_presentacion) {
+                <div class="text-sm text-text">
+                  Fecha presentacion:
+                  <span class="text-muted">{{ summary.declaracion_pdf.fecha_presentacion | date: 'yyyy-MM-dd' }}</span>
                 </div>
               }
-            </div>
-          } @else {
-            <div class="mt-3 text-sm text-muted">No hay acuse con texto extraible para conciliar.</div>
-          }
-        </div>
-      }
-
-      @if (showDeclaracionPdfSection(summary)) {
-        <div class="rounded-2xl border border-border bg-surface p-5 shadow-card md:col-span-2">
-          <div class="text-xs uppercase tracking-[0.18em] text-muted">Declaracion presentada (PDF)</div>
-          @if (summary.declaracion_pdf) {
-            <div class="mt-3 text-sm text-text">
-              Archivo: <span class="text-muted">{{ pdfLabel(summary.declaracion_pdf) }}</span>
-            </div>
-            @if (summary.declaracion_pdf.fecha_presentacion) {
               <div class="text-sm text-text">
-                Fecha presentacion:
-                <span class="text-muted">{{ summary.declaracion_pdf.fecha_presentacion | date: 'yyyy-MM-dd' }}</span>
+                Folio/Operacion: <span class="text-muted">{{ summary.declaracion_pdf.folio || '-' }}</span>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-3 text-sm">
+                <a
+                  class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
+                  [routerLink]="['/declaraciones', summary.declaracion_pdf.id]"
+                >
+                  Ver detalle
+                </a>
+                <button
+                  class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
+                  type="button"
+                  (click)="openPdf(summary.declaracion_pdf)"
+                >
+                  Abrir PDF
+                </button>
+              </div>
+              @if (summary.declaracion_pdf.text_excerpt) {
+                <div class="mt-4 text-xs text-muted">
+                  <strong>Resumen (texto detectado):</strong>
+                  {{ summary.declaracion_pdf.text_excerpt }}
+                </div>
+              }
+              @if (!summary.declaracion_pdf.text_excerpt) {
+                <div class="mt-4 text-xs text-muted">No se pudo extraer texto (posible PDF escaneado).</div>
+              }
+            } @else {
+              <div class="mt-3 text-sm text-muted">
+                No hay PDF importado para este periodo. Puedes importarlo desde la pantalla principal.
               </div>
             }
-            <div class="text-sm text-text">
-              Folio/Operacion: <span class="text-muted">{{ summary.declaracion_pdf.folio || '-' }}</span>
-            </div>
-            <div class="mt-3 flex flex-wrap gap-3 text-sm">
-              <a
-                class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
-                [routerLink]="['/declaraciones', summary.declaracion_pdf.id]"
-              >
-                Ver detalle
-              </a>
-              <button
-                class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
-                type="button"
-                (click)="openPdf(summary.declaracion_pdf)"
-              >
-                Abrir PDF
-              </button>
-            </div>
-            @if (summary.declaracion_pdf.text_excerpt) {
-              <div class="mt-4 text-xs text-muted">
-                <strong>Resumen (texto detectado):</strong>
-                {{ summary.declaracion_pdf.text_excerpt }}
-              </div>
-            }
-            @if (!summary.declaracion_pdf.text_excerpt) {
-              <div class="mt-4 text-xs text-muted">No se pudo extraer texto (posible PDF escaneado).</div>
-            }
-          } @else {
-            <div class="mt-3 text-sm text-muted">
-              No hay PDF importado para este periodo. Puedes importarlo desde la pantalla principal.
-            </div>
-          }
-        </div>
-      }
-    </section>
+          </div>
+        }
+      </section>
+    }
   }
 </div>

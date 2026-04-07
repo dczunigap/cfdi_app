@@ -9,6 +9,8 @@ import { buildRecentYears } from '../../../shared/utils/ui-helpers';
 import { DeclaracionCheck, DeclaracionPdf, DeclaracionSummary } from '../../declaracion/data/declaracion.model';
 import { DeclaracionFacade, DeclaracionTipo } from '../../declaracion/data/declaracion.facade';
 
+type PresentationView = 'detalle' | 'ejecutiva' | 'timeline';
+
 // type IncomeSourceOption = {
 //   value: string;
 //   label: string;
@@ -34,6 +36,7 @@ export class DeclaracionPlataformasPageComponent {
   month: number | null = null;
   tipoDeclaracion: DeclaracionTipo = 'MENSUAL';
   incomeSource = 'auto';
+  presentationView: PresentationView = 'timeline';
 
   readonly years = buildRecentYears();
   readonly months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -185,6 +188,60 @@ export class DeclaracionPlataformasPageComponent {
 
   get totalPagar(): number {
     return this.round2(this.isrCargo + this.ivaImpuestoCargo);
+  }
+
+  get okChecksCount(): number {
+    return this.summary?.checks.filter((check) => check.level === 'ok').length ?? 0;
+  }
+
+  get warnChecksCount(): number {
+    return this.summary?.checks.filter((check) => check.level === 'warn').length ?? 0;
+  }
+
+  get errorChecksCount(): number {
+    return this.summary?.checks.filter((check) => check.level === 'error').length ?? 0;
+  }
+
+  get infoChecksCount(): number {
+    return this.summary?.checks.filter((check) => check.level === 'info').length ?? 0;
+  }
+
+  get highlightChecks(): DeclaracionCheck[] {
+    return (this.summary?.checks ?? []).slice(0, 4);
+  }
+
+  get highlightAcuseChecks() {
+    return (this.summary?.acuse_checks ?? []).slice(0, 4);
+  }
+
+  get validationSteps(): Array<{ label: string; status: 'ok' | 'warn' | 'error' | 'info' }> {
+    if (!this.summary) return [];
+
+    const checklistStatus: 'ok' | 'warn' | 'error' | 'info' =
+      this.errorChecksCount > 0 ? 'error' : this.warnChecksCount > 0 ? 'warn' : this.infoChecksCount > 0 ? 'info' : 'ok';
+
+    const acuseItems = this.summary.acuse_checks ?? [];
+    const acuseStatus: 'ok' | 'warn' | 'error' | 'info' =
+      acuseItems.some((item) => item.status === 'error')
+        ? 'error'
+        : acuseItems.some((item) => item.status === 'warn')
+          ? 'warn'
+          : this.summary.acuse_payload
+            ? 'ok'
+            : 'info';
+
+    const pdfStatus: 'ok' | 'warn' | 'error' | 'info' = this.summary.declaracion_pdf ? 'ok' : 'info';
+
+    return [
+      { label: 'Datos calculados', status: 'ok' },
+      { label: 'Checklist automatico', status: checklistStatus },
+      { label: 'Conciliacion SAT', status: acuseStatus },
+      { label: 'Declaracion presentada', status: pdfStatus },
+    ];
+  }
+
+  setPresentationView(view: PresentationView): void {
+    this.presentationView = view;
   }
 
   periodLabel(data: DeclaracionSummary): string {
