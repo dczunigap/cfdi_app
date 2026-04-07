@@ -81,45 +81,51 @@
         </label> -->
         <div class="flex items-end">
           <button
-            class="btn btn-s w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+            class="btn btn-icon-square w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
             type="button"
             (click)="load()"
             [disabled]="loading || !year || (tipoDeclaracion === 'MENSUAL' && !month)"
+            title="Cargar"
+            aria-label="Cargar"
           >
-            {{ loading ? 'Cargando...' : 'Cargar' }}
+            @if (loading) {
+              <ng-icon name="lucideSearch" class="h-4 w-4 animate-spin"></ng-icon>
+            } @else {
+              <ng-icon name="lucideSearch" class="h-4 w-4"></ng-icon>
+            }
           </button>
-        </div>
-        <div class="flex items-end">
           <button
-            class="btn btn-s w-full rounded-xl border border-border bg-bg text-text hover:bg-bg"
+            class="btn btn-icon-square w-full rounded-xl border border-border bg-bg text-text hover:bg-bg"
             type="button"
             (click)="clear()"
+            title="Quitar filtros"
+            aria-label="Quitar filtros"
           >
-            Quitar filtros
+            <ng-icon name="lucideEraser" class="h-4 w-4"></ng-icon>
           </button>
-        </div>
-        @if (tipoDeclaracion === 'MENSUAL') {
-          <div class="flex items-end">
+          @if (tipoDeclaracion === 'MENSUAL') {
             <button
-              class="btn btn-s w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
+              class="btn btn-icon-square w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
               type="button"
               (click)="downloadCsv()"
               [disabled]="!csvUrl"
+              title="Exportar CSV SAT"
+              aria-label="Exportar CSV SAT"
             >
-              Exportar CSV SAT
+              <ng-icon name="lucideDownload" class="h-4 w-4"></ng-icon>
             </button>
-          </div>
-          <div class="flex items-end">
             <button
-              class="btn btn-s w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-bg"
+              class="btn btn-icon-square w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-bg"
               type="button"
               (click)="downloadHoja()"
               [disabled]="!hojaUrl"
+              title="Generar hoja SAT"
+              aria-label="Generar hoja SAT"
             >
-              Generar hoja SAT
+              <ng-icon name="lucideFileText" class="h-4 w-4"></ng-icon>
             </button>
-          </div>
-        }
+          }
+        </div>
       </div>
     }
   </section>

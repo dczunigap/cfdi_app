@@ -2,6 +2,8 @@ import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { DatePipe, DecimalPipe, NgClass, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideDownload, lucideEraser, lucideFileText, lucideSearch } from '@ng-icons/lucide';
 
 import { buildRecentYears } from '../../../shared/utils/ui-helpers';
 import { DeclaracionCheck, DeclaracionPdf, DeclaracionSummary } from '../../declaracion/data/declaracion.model';
@@ -15,7 +17,8 @@ import { DeclaracionFacade, DeclaracionTipo } from '../../declaracion/data/decla
 @Component({
   selector: 'app-declaracion-plataformas-page',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, FormsModule, NgClass, RouterLink, UpperCasePipe],
+  imports: [DatePipe, DecimalPipe, FormsModule, NgClass, RouterLink, UpperCasePipe, NgIcon],
+  providers: [provideIcons({ lucideDownload, lucideEraser, lucideFileText, lucideSearch })],
   templateUrl: './declaracion-plataformas-page.component.html',
   styleUrl: './declaracion-plataformas-page.component.css',
 })
