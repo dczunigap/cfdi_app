@@ -163,10 +163,28 @@
           [attr.title]="sidebarCollapsed() ? 'Modo declaracion' : null"
           >
           @if (!sidebarCollapsed()) {
-            <span>Modo declaracion</span>
+            <span>Modo declaracion (Old)</span>
           }
           @if (sidebarCollapsed()) {
             <span class="text-xs uppercase tracking-[0.2em]">Decl</span>
+          }
+        </a>
+        <a
+          class="flex items-center gap-3 rounded-xl py-3 text-text/80 hover:bg-bg"
+          routerLink="/declaracion-plataformas"
+          (click)="onNavClick($event)"
+          routerLinkActive="bg-primary/10 text-primary"
+          [routerLinkActiveOptions]="{ exact: true }"
+          [class.justify-center]="sidebarCollapsed()"
+          [class.px-2]="sidebarCollapsed()"
+          [class.px-4]="!sidebarCollapsed()"
+          [attr.title]="sidebarCollapsed() ? 'Declaración plataformas' : null"
+          >
+          @if (!sidebarCollapsed()) {
+            <span>Declaración plataformas</span>
+          }
+          @if (sidebarCollapsed()) {
+            <span class="text-xs uppercase tracking-[0.2em]">Plat</span>
           }
         </a>
       </nav>

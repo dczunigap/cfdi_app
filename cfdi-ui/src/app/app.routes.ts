@@ -56,6 +56,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'declaracion-plataformas',
+        loadComponent: () =>
+          import('./features/declaracion-plataformas/ui/declaracion-plataformas-page.component').then(
+            (m) => m.DeclaracionPlataformasPageComponent,
+          ),
+      },
+      {
         path: 'facturas',
         loadComponent: () =>
           import('./features/facturas/ui/facturas-page.component').then(
