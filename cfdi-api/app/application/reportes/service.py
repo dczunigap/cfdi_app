@@ -5,7 +5,7 @@ import io
 from typing import Optional
 
 from fastapi import HTTPException
-from sqlalchemy import desc, select
+from sqlalchemy import asc, desc, select
 from sqlalchemy.orm import Session
 
 from app.adapters.outbound.db.models import DeclaracionModel, RegimenFiscalCatalogModel, RfcModel
@@ -205,6 +205,66 @@ def fetch_saldos(db: Session, year: int, month: int, rfc: str | None) -> tuple[f
         return saldo_a_favor, saldo_a_pagar
     except Exception:
         return 0.0, 0.0
+
+
+def fetch_saldos_acumulados_ejercicio(
+    db: Session,
+    *,
+    year: int,
+    month: int,
+    rfc: str | None,
+) -> tuple[float, float]:
+    """
+    Calcula el saldo disponible arrastrable dentro del mismo ejercicio antes del
+    mes consultado, descontando meses previos con saldo a pagar.
+    """
+    if month <= 1:
+        return 0.0, 0.0
+
+    rfc_value = (rfc or "").strip()
+    q = (
+        select(DeclaracionModel)
+        .where(
+            DeclaracionModel.year == year,
+            DeclaracionModel.month < month,
+        )
+        .order_by(
+            asc(DeclaracionModel.month),
+            desc(DeclaracionModel.fecha_presentacion).nullslast(),
+            desc(DeclaracionModel.id),
+        )
+    )
+    if rfc_value:
+        q = q.where(DeclaracionModel.rfc == rfc_value)
+
+    rows = db.execute(q).scalars().all()
+    if not rows:
+        return 0.0, 0.0
+
+    latest_by_month: dict[int, DeclaracionModel] = {}
+    for row in rows:
+        row_month = int(row.month)
+        if row_month not in latest_by_month:
+            latest_by_month[row_month] = row
+
+    saldo_disponible = 0.0
+    saldo_a_pagar_ultimo = 0.0
+
+    for current_month in sorted(latest_by_month):
+        row = latest_by_month[current_month]
+        try:
+            saldo_favor_mes = float(row.saldo_a_favor) if row.saldo_a_favor is not None else 0.0
+            saldo_pagar_mes = float(row.saldo_a_pagar) if row.saldo_a_pagar is not None else 0.0
+        except Exception:
+            saldo_favor_mes = 0.0
+            saldo_pagar_mes = 0.0
+
+        saldo_disponible += saldo_favor_mes
+        saldo_disponible -= saldo_pagar_mes
+        saldo_disponible = max(saldo_disponible, 0.0)
+        saldo_a_pagar_ultimo = saldo_pagar_mes
+
+    return saldo_disponible, saldo_a_pagar_ultimo
 
 
 def get_latest_declaracion_pdf(db: Session, year: int, month: int):

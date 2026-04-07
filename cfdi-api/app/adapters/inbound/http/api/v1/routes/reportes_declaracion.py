@@ -14,11 +14,10 @@ from app.application.reportes.service import (
     TIPO_DECL_MENSUAL,
     build_acuse_payload_and_checks,
     compute_year_data,
-    fetch_saldos,
+    fetch_saldos_acumulados_ejercicio,
     get_latest_declaracion_pdf,
     load_config_for_rfc,
     normalize_tipo_declaracion,
-    previous_period,
     resolve_mi_rfc,
     resolve_period_or_404,
 )
@@ -167,8 +166,12 @@ def declaracion_mode(
         iva_trasladado_total=iva_trasladado_total,
     )
 
-    prev_year, prev_month = previous_period(year, month)
-    saldo_a_favor_anterior, saldo_a_pagar_anterior = fetch_saldos(db, prev_year, prev_month, mi_rfc)
+    saldo_a_favor_anterior, saldo_a_pagar_anterior = fetch_saldos_acumulados_ejercicio(
+        db,
+        year=year,
+        month=month,
+        rfc=mi_rfc,
+    )
 
     return declaracion_mode_to_payload(
         year=year,

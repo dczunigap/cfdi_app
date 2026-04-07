@@ -3,7 +3,7 @@ import { DatePipe, DecimalPipe, NgClass, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideDownload, lucideEraser, lucideFileText, lucideSearch } from '@ng-icons/lucide';
+import { lucideDownload, lucideEraser, lucideFileText, lucideInfo, lucideSearch } from '@ng-icons/lucide';
 
 import { buildRecentYears } from '../../../shared/utils/ui-helpers';
 import { DeclaracionCheck, DeclaracionPdf, DeclaracionSummary } from '../../declaracion/data/declaracion.model';
@@ -20,7 +20,7 @@ type PresentationView = 'detalle' | 'ejecutiva' | 'timeline';
   selector: 'app-declaracion-plataformas-page',
   standalone: true,
   imports: [DatePipe, DecimalPipe, FormsModule, NgClass, RouterLink, UpperCasePipe, NgIcon],
-  providers: [provideIcons({ lucideDownload, lucideEraser, lucideFileText, lucideSearch })],
+  providers: [provideIcons({ lucideDownload, lucideEraser, lucideFileText, lucideInfo, lucideSearch })],
   templateUrl: './declaracion-plataformas-page.component.html',
   styleUrl: './declaracion-plataformas-page.component.css',
 })
@@ -178,8 +178,31 @@ export class DeclaracionPlataformasPageComponent {
     return this.round2(this.ivaACargoTasa16 - this.ivaAcreditable - this.ivaRetenido);
   }
 
-  get ivaImpuestoCargo(): number {
+  get ivaCantidadCargo(): number {
     return this.ivaResultado > 0 ? this.ivaResultado : 0;
+  }
+
+  get ivaSaldoFavorAnteriorAplicable(): number {
+    return this.summary?.saldo_a_favor_anterior ?? 0;
+  }
+
+  get ivaAcreditamientoSaldoAnterior(): number {
+    return this.round2(Math.min(this.ivaSaldoFavorAnteriorAplicable, this.ivaCantidadCargo));
+  }
+
+  get showIvaAcreditamientoSaldoAnterior(): boolean {
+    return this.ivaCantidadCargo > 0 && this.ivaSaldoFavorAnteriorAplicable > 0;
+  }
+
+  get ivaSaldoFavorAnteriorTooltip(): string {
+    return `Saldo a favor disponible de periodos anteriores: ${this.ivaSaldoFavorAnteriorAplicable.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })}`;
+  }
+
+  get ivaImpuestoCargo(): number {
+    return this.round2(Math.max(this.ivaCantidadCargo - this.ivaAcreditamientoSaldoAnterior, 0));
   }
 
   get ivaSaldoFavor(): number {

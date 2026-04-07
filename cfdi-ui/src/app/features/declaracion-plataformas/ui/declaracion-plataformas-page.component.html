@@ -8,11 +8,6 @@
           Ingresos + retenciones para captura en SAT.
         </p>
       </div>
-      @if (summary) {
-        <div class="text-sm text-muted">
-          Periodo: <span class="text-text">{{ periodLabel(summary) }}</span>
-        </div>
-      }
     </div>
   </section>
 
@@ -112,7 +107,12 @@
     <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div class="text-xs uppercase tracking-[0.18em] text-muted">Presentacion</div>
+          <div class="text-xs uppercase tracking-[0.18em] text-muted">
+            Presentacion 
+              @if (summary) {
+                Periodo: <span class="text-text">{{ periodLabel(summary) }}</span>
+              }
+          </div>
           <h3 class="mt-2 font-display text-lg text-text">Validaciones y conciliacion</h3>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -198,38 +198,47 @@
               <div class="space-y-3">
                 <label class="platform-row">
                   <span>*Ingresos obtenidos mediante intermediarios por servicios terrestres de pasajeros</span>
+                  <span class="platform-operator"></span>
                   <div class="platform-source-box">{{ isrIngresosIntermediariosPasajeros | number: '1.0-0' }}</div>
                 </label>
                 <label class="platform-row">
                   <span>*Ingresos obtenidos mediante intermediarios por entrega de bienes</span>
+                  <span class="platform-operator">(+)</span>
                   <div class="platform-source-box">{{ isrIngresosIntermediariosEntrega | number: '1.0-0' }}</div>
                 </label>
                 <label class="platform-row">
                   <span>*Ingresos obtenidos directamente del usuario por servicios terrestres de pasajeros</span>
+                  <span class="platform-operator">(+)</span>
                   <div class="platform-source-box">{{ isrIngresosDirectosPasajeros | number: '1.0-0' }}</div>
                 </label>
                 <label class="platform-row">
                   <span>*Ingresos obtenidos directamente del usuario por entrega de bienes</span>
+                  <span class="platform-operator">(+)</span>
                   <div class="platform-source-box">{{ isrIngresosDirectosEntrega | number: '1.0-0' }}</div>
                 </label>
                 <div class="platform-result-row">
                   <span>Ingresos totales del mes</span>
+                  <span class="platform-operator">(=)</span>
                   <div>{{ isrIngresosTotalesMes | number: '1.0-0' }}</div>
                 </div>
                 <div class="platform-result-row">
                   <span>Tasa %</span>
+                  <span class="platform-operator">(x)</span>
                   <div>{{ isrTasa | number: '1.2-2' }}</div>
                 </div>
                 <div class="platform-result-row">
                   <span>ISR causado</span>
+                  <span class="platform-operator">(=)</span>
                   <div>{{ isrCausado | number: '1.0-0' }}</div>
                 </div>
                 <label class="platform-row">
                   <span>*Retenciones por plataformas tecnologicas</span>
+                  <span class="platform-operator">(-)</span>
                   <div class="platform-source-box">{{ isrRetencionesPlataformas | number: '1.0-0' }}</div>
                 </label>
-                <div class="platform-result-row">
+                <div class="platform-result-row platform-result-row-highlight">
                   <span>ISR a cargo</span>
+                  <span class="platform-operator">(=)</span>
                   <div>{{ isrCargo | number: '1.0-0' }}</div>
                 </div>
               </div>
@@ -250,44 +259,71 @@
               <div class="space-y-3">
                 <label class="platform-row">
                   <span>*Ingresos obtenidos mediante intermediarios</span>
+                  <span class="platform-operator"></span>
                   <div class="platform-source-box">{{ ivaIngresosIntermediarios | number: '1.0-0' }}</div>
                 </label>
                 <label class="platform-row">
                   <span>*Ingresos obtenidos directamente del usuario</span>
+                  <span class="platform-operator">(+)</span>
                   <div class="platform-source-box">{{ ivaIngresosDirectos | number: '1.0-0' }}</div>
                 </label>
                 <div class="platform-result-row">
                   <span>Ingresos totales del mes</span>
+                  <span class="platform-operator">(=)</span>
                   <div>{{ ivaIngresosTotalesMes | number: '1.0-0' }}</div>
                 </div>
                 <div class="platform-result-row">
                   <span>Tasa %</span>
+                  <span class="platform-operator">(x)</span>
                   <div>{{ ivaTasa | number: '1.2-2' }}</div>
                 </div>
                 <div class="platform-result-row">
                   <span>IVA a cargo a la tasa del 16%</span>
+                  <span class="platform-operator">(=)</span>
                   <div>{{ ivaACargoTasa16 | number: '1.0-0' }}</div>
                 </div>
-                <div class="platform-row">
-                  <span>IVA acreditable</span>
-                  <div class="platform-source-box">{{ ivaAcreditable | number: '1.0-0' }}</div>
+              <div class="platform-row">
+                <span>IVA acreditable</span>
+                <span class="platform-operator"></span>
+                <div class="platform-source-box">{{ ivaAcreditable | number: '1.0-0' }}</div>
+              </div>
+              <label class="platform-row">
+                <span>*IVA retenido</span>
+                <span class="platform-operator">(-)</span>
+                <div class="platform-source-box">{{ ivaRetenido | number: '1.0-0' }}</div>
+              </label>
+              @if (ivaCantidadCargo > 0) {
+                <div class="platform-result-row">
+                  <span>Cantidad a cargo</span>
+                  <span class="platform-operator">(=)</span>
+                  <div>{{ ivaCantidadCargo | number: '1.0-0' }}</div>
                 </div>
-                <label class="platform-row">
-                  <span>*IVA retenido</span>
-                  <div class="platform-source-box">{{ ivaRetenido | number: '1.0-0' }}</div>
-                </label>
-                @if (ivaImpuestoCargo > 0) {
-                  <div class="platform-result-row">
-                    <span>Cantidad a cargo</span>
-                    <div>{{ ivaImpuestoCargo | number: '1.0-0' }}</div>
+                @if (showIvaAcreditamientoSaldoAnterior) {
+                  <div class="platform-row">
+                    <span class="platform-label-with-icon">
+                      <span>
+                        *Acreditamiento de saldo a favor de periodos anteriores (sin exceder de cantidad a cargo)
+                        <ng-icon
+                        name="lucideInfo"
+                        class="platform-info-icon"
+                        [attr.title]="ivaSaldoFavorAnteriorTooltip"
+                        aria-label="Informacion de saldo a favor de periodos anteriores"
+                      ></ng-icon>
+                      </span>                      
+                    </span>
+                    <span class="platform-operator">(-)</span>
+                    <div class="platform-source-box">{{ ivaAcreditamientoSaldoAnterior | number: '1.0-0' }}</div>
                   </div>
-                  <div class="platform-result-row">
-                    <span>Impuesto a cargo</span>
-                    <div>{{ ivaImpuestoCargo | number: '1.0-0' }}</div>
-                  </div>
-                } @else {
-                  <div class="platform-result-row">
+                }
+                <div class="platform-result-row platform-result-row-highlight">
+                  <span>Impuesto a cargo</span>
+                  <span class="platform-operator">(=)</span>
+                  <div>{{ ivaImpuestoCargo | number: '1.0-0' }}</div>
+                </div>
+              } @else {
+                  <div class="platform-result-row platform-result-row-highlight">
                     <span>Saldo a favor</span>
+                    <span class="platform-operator">(=)</span>
                     <div>{{ ivaSaldoFavor | number: '1.0-0' }}</div>
                   </div>
                 }
@@ -300,7 +336,7 @@
 
     @if (presentationView === 'timeline') {
       <section class="rounded-2xl border border-border bg-surface p-5 shadow-card">
-        <div class="text-xs uppercase tracking-[0.18em] text-muted">Vista timeline</div>
+        <div class="text-xs uppercase tracking-[0.18em] text-muted">Resumen por pasos</div>
         <h3 class="mt-2 font-display text-lg text-text">Linea de validacion por pasos</h3>
         <div class="mt-5 grid gap-3 md:grid-cols-4">
           @for (step of validationSteps; track step.label) {
