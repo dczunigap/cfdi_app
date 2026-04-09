@@ -35,7 +35,23 @@ pip install -r requirements.txt
 
 ## Ejecutar
 ```
-uvicorn app.main:app --reload
+py -m uvicorn app.main:app --reload
+```
+
+## Ejecutar en modo debug
+```
+py -m uvicorn app.main:app --reload --log-level debug
+```
+
+## Ejecución abreviada (Windows PowerShell)
+Desde `cfdi-api` puedes usar:
+```
+.\run-dev.ps1
+```
+
+`run-dev.ps1` activa el entorno virtual local y ejecuta:
+```
+py -m uvicorn app.main:app --reload --log-level debug
 ```
 
 ## Check rapido de endpoints SAT
