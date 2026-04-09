@@ -15,7 +15,7 @@
     <div class="mb-4 flex items-center justify-between text-sm font-medium text-text">
       <span class="text-xs uppercase tracking-[0.2em] text-muted">Filtros</span>
       <button
-        class="btn btn-xs rounded-lg border border-border text-xs text-text hover:bg-bg"
+        class="btn btn-xs rounded-full border border-border text-xs text-text hover:bg-bg"
         type="button"
         (click)="toggleFilters()"
         [attr.aria-expanded]="filtersOpen"
@@ -28,7 +28,7 @@
         <label class="text-xs uppercase tracking-[0.18em] text-muted">
           Tipo
           <select
-            class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+            class="mt-2 w-full rounded-full border border-border bg-bg px-3 py-2 text-sm text-text"
             [(ngModel)]="tipoDeclaracion"
             (ngModelChange)="onTipoDeclaracionChange()"
           >
@@ -40,7 +40,7 @@
         <label class="text-xs uppercase tracking-[0.18em] text-muted">
           Año
           <select
-            class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+            class="mt-2 w-full rounded-full border border-border bg-bg px-3 py-2 text-sm text-text"
             [(ngModel)]="year"
           >
             <option [ngValue]="null">Selecciona</option>
@@ -53,7 +53,7 @@
           <label class="text-xs uppercase tracking-[0.18em] text-muted">
             Mes
             <select
-              class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+              class="mt-2 w-full rounded-full border border-border bg-bg px-3 py-2 text-sm text-text"
               [(ngModel)]="month"
             >
               <option [ngValue]="null">Selecciona</option>
@@ -66,7 +66,7 @@
         <!-- <label class="text-xs uppercase tracking-[0.18em] text-muted md:col-span-2">
           Fuente
           <select
-            class="mt-2 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text"
+            class="mt-2 w-full rounded-full border border-border bg-bg px-3 py-2 text-sm text-text"
             [(ngModel)]="incomeSource"
           >
             @for (option of incomeSources; track option.value) {
@@ -76,7 +76,7 @@
         </label> -->
         <div class="flex items-end">
           <button
-            class="btn btn-icon-square w-full rounded-xl bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+            class="btn btn-icon-square w-full rounded-full bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
             type="button"
             (click)="load()"
             [disabled]="loading || !year || (tipoDeclaracion === 'MENSUAL' && !month)"
@@ -90,7 +90,7 @@
             }
           </button>
           <button
-            class="btn btn-icon-square w-full rounded-xl border border-border bg-bg text-text hover:bg-bg"
+            class="btn btn-icon-square w-full rounded-full border border-border bg-bg text-text hover:bg-bg"
             type="button"
             (click)="clear()"
             title="Quitar filtros"
@@ -122,7 +122,7 @@
             [class.presentation-tab-active]="presentationView === 'timeline'"
             (click)="setPresentationView('timeline')"
           >
-            Resumen por pasos
+            Resumen
           </button>
           <button
             class="presentation-tab"
@@ -130,7 +130,7 @@
             [class.presentation-tab-active]="presentationView === 'ejecutiva'"
             (click)="setPresentationView('ejecutiva')"
           >
-            Que capturar
+            Captura SAT
           </button>          
           <button
             class="presentation-tab"
@@ -138,7 +138,7 @@
             [class.presentation-tab-active]="presentationView === 'detalle'"
             (click)="setPresentationView('detalle')"
           >
-            Conciliacion detallada
+            Conciliación
           </button>
         </div>
       </div>
@@ -160,7 +160,7 @@
             @if (tipoDeclaracion === 'MENSUAL') {
               <div class="flex items-end justify-end gap-2">
                 <button
-                  class="btn btn-icon-square w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-surface"
+                  class="btn btn-icon-square w-full rounded-full border border-border bg-bg text-sm text-text hover:bg-surface"
                   type="button"
                   (click)="downloadCsv()"
                   [disabled]="!csvUrl"
@@ -170,7 +170,7 @@
                   <ng-icon name="lucideDownload" class="h-4 w-4"></ng-icon>
                 </button>
                 <button
-                  class="btn btn-icon-square w-full rounded-xl border border-border bg-bg text-sm text-text hover:bg-bg"
+                  class="btn btn-icon-square w-full rounded-full border border-border bg-bg text-sm text-text hover:bg-bg"
                   type="button"
                   (click)="downloadHoja()"
                   [disabled]="!hojaUrl"
@@ -358,7 +358,7 @@
           <div class="text-xs uppercase tracking-[0.18em] text-muted">Checklist automatico</div>
           <div class="mt-3 space-y-3">
             @for (check of summary.checks; track check) {
-              <div class="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-text">
+              <div class="rounded-full border border-border bg-bg px-3 py-3 text-sm text-text">
                 <span class="badge" [ngClass]="checkBadgeClass(check)">
                   {{ check.level | uppercase }}
                 </span>
@@ -385,7 +385,7 @@
               </div>
               <div class="mt-4 space-y-3">
                 @for (item of summary.acuse_checks; track item) {
-                  <div class="rounded-xl border border-border bg-bg px-3 py-3 text-sm text-text">
+                  <div class="rounded-full border border-border bg-bg px-3 py-3 text-sm text-text">
                     <span class="badge" [ngClass]="statusBadgeClass(item.status)">
                       {{ item.status | uppercase }}
                     </span>

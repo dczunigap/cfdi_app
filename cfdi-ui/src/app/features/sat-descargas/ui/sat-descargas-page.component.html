@@ -136,6 +136,7 @@
           <tr>
             <th class="px-5 py-3">ID</th>
             <th class="px-5 py-3">ID Solicitud</th>
+            <th class="px-5 py-3">Periodo</th>
             <th class="px-5 py-3">Estado</th>
             <th class="px-5 py-3">Tipo</th>
             <th class="px-5 py-3">Paquetes</th>
@@ -149,6 +150,7 @@
               <tr>
                 <td class="px-5 py-4 font-medium text-text">{{ row.id }}</td>
                 <td class="px-5 py-4 text-muted">{{ row.id_solicitud || '-' }}</td>
+                <td class="px-5 py-4 text-muted">{{ row.anio_filtro }} - {{ row.mes_filtro }}</td>
                 <td class="px-5 py-4">
                   <span class="rounded-full border border-border bg-bg px-3 py-1 text-xs text-muted">
                     {{ row.estado }}
@@ -162,7 +164,7 @@
                 <td class="px-5 py-4 text-right">
                   <div class="flex flex-wrap justify-end gap-2">
                     <button
-                      class="btn btn-xs rounded-lg border border-border bg-bg text-text/80 hover:bg-surface"
+                      class="btn btn-xs rounded-full border border-border bg-bg text-text/80 hover:bg-surface"
                       type="button"
                       (click)="verify(row.id)"
                       [disabled]="verifyingId === row.id"
@@ -173,7 +175,7 @@
                       <span class="sr-only">Verificar</span>
                     </button>
                     <button
-                      class="btn btn-xs rounded-lg bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
+                      class="btn btn-xs rounded-full bg-primary text-white shadow-sm shadow-primary/20 hover:shadow-md"
                       type="button"
                       (click)="process(row.id)"
                       [disabled]="processingId === row.id"
@@ -184,7 +186,7 @@
                       <span class="sr-only">Procesar ZIP</span>
                     </button>
                     <button
-                      class="btn btn-xs rounded-lg border border-border bg-rose-50 text-rose-700 hover:bg-rose-100"
+                      class="btn btn-xs rounded-full border border-border bg-rose-50 text-rose-700 hover:bg-rose-100"
                       type="button"
                       (click)="delete(row.id)"
                       [disabled]="deletingId === row.id"
@@ -208,7 +210,7 @@
       <span>Mostrando {{ lastCount }} registros</span>
       <div class="flex gap-2">
         <button
-          class="btn btn-xs rounded-lg border border-border bg-bg text-text/80 hover:bg-surface"
+          class="btn btn-xs rounded-full border border-border bg-bg text-text/80 hover:bg-surface"
           type="button"
           (click)="prevPage()"
           [disabled]="page <= 0"
@@ -216,7 +218,7 @@
           Anterior
         </button>
         <button
-          class="btn btn-xs rounded-lg border border-border bg-bg text-text/80 hover:bg-surface"
+          class="btn btn-xs rounded-full border border-border bg-bg text-text/80 hover:bg-surface"
           type="button"
           (click)="nextPage()"
           [disabled]="lastCount < pageSize"

@@ -36,8 +36,10 @@ export class SatDescargasPageComponent implements OnInit {
   private readonly rfcService = inject(RfcService);
 
   readonly descargas$ = satDescargas$.pipe(
-    map((items) =>
-      [...items].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+    map((items) => {
+      console.log("🚀 ~ SatDescargasPageComponent ~ items:", items);
+      return [...items].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    }
     )
   );
 
