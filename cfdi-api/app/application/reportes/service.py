@@ -255,12 +255,15 @@ def fetch_saldos_acumulados_ejercicio(
         try:
             saldo_favor_mes = float(row.saldo_a_favor) if row.saldo_a_favor is not None else 0.0
             saldo_pagar_mes = float(row.saldo_a_pagar) if row.saldo_a_pagar is not None else 0.0
+            cantidad_cargo_mes = float(row.cantidad_a_cargo) if row.cantidad_a_cargo is not None else 0.0
         except Exception:
             saldo_favor_mes = 0.0
             saldo_pagar_mes = 0.0
+            cantidad_cargo_mes = 0.0
 
         saldo_disponible += saldo_favor_mes
         saldo_disponible -= saldo_pagar_mes
+        saldo_disponible -= cantidad_cargo_mes
         saldo_disponible = max(saldo_disponible, 0.0)
         saldo_a_pagar_ultimo = saldo_pagar_mes
 

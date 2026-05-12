@@ -12,6 +12,7 @@ class DeclaracionPDF:
     rfc: Optional[str] = None
     folio: Optional[str] = None
     fecha_presentacion: Optional[datetime] = None
+    cantidad_a_cargo: Optional[float] = None
     saldo_a_favor: Optional[float] = None
     saldo_a_pagar: Optional[float] = None
     sha256: Optional[str] = None

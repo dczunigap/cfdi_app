@@ -259,6 +259,11 @@ async def importar_pdf(
                     if isinstance(summary, dict) and summary.get("saldo_a_pagar") is not None
                     else 0.0
                 ),
+                cantidad_a_cargo=(
+                    summary.get("cantidad_a_cargo")                    
+                    if isinstance(summary, dict) and summary.get("cantidad_a_cargo") is not None
+                    else 0.0    
+                ),
                 sha256=sha,
                 filename=filename,
                 original_name=getattr(file, "filename", None),
@@ -276,6 +281,9 @@ async def importar_pdf(
                 )
                 existing.saldo_a_pagar = (
                     dec.saldo_a_pagar if dec.saldo_a_pagar is not None else 0.0
+                )
+                existing.cantidad_a_cargo = (
+                    dec.cantidad_a_cargo if dec.cantidad_a_cargo is not None else 0.0
                 )
                 existing.filename = dec.filename
                 existing.original_name = dec.original_name

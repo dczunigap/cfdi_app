@@ -134,6 +134,7 @@ class DeclaracionModel(Base):
     rfc: Mapped[str | None] = mapped_column(String(20), index=True, nullable=True)
     folio: Mapped[str | None] = mapped_column(String(80), index=True, nullable=True)
     fecha_presentacion: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    cantidad_a_cargo: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False, default=0)
     saldo_a_favor: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False, default=0)
     saldo_a_pagar: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False, default=0)
     sha256: Mapped[str] = mapped_column(String(64), unique=True, index=True)

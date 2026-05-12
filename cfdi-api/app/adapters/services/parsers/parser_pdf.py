@@ -44,49 +44,110 @@ def _parse_amount(raw: str | None) -> float | None:
         return None
 
 
-def _extract_detalle_pagos(lines: list[str]) -> tuple[float | None, float | None]:
+def _extract_detalle_pagos(lines: list[str]) -> tuple[float | None, float | None, float | None]:
+    """Extrae CANTIDAD A CARGO, SALDO A FAVOR y SALDO A PAGAR.
+    
+    Estrategia:
+      - CANTIDAD A CARGO: se busca primero en "DETERMINACIÓN", si no existe, en "DETALLE DEL PAGO IVA"
+      - SALDO A FAVOR y SALDO A PAGAR: se buscan en "DETALLE DEL PAGO IVA"
+    
+    Retorna:
+      - saldo_a_favor
+      - saldo_a_pagar  
+      - cantidad_a_cargo
+    """
     if not lines:
-        return None, None
-    target = "DETALLE DEL PAGO IVA PERSONAS FISICAS PLATAFORMAS TECNOLOGICAS"
+        return None, None, None
+    
     norm_lines = [_norm(ln).upper() for ln in lines]
-    start_idx = None
-    for i, nln in enumerate(norm_lines):
-        if target in nln:
-            start_idx = i
-            break
-
-    if start_idx is None:
-        return None, None
-
+    
+    cantidad_a_cargo = None
     saldo_a_favor = None
     saldo_a_pagar = None
-    search_end = min(start_idx + 50, len(lines))
-    for i in range(start_idx + 1, search_end):
-        nln = norm_lines[i]
-        if "A FAVOR" in nln:
-            line = lines[i]
-            m = re.search(
-                r"A\s*FAVOR\s*:?\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)",
-                line,
-                flags=re.IGNORECASE,
-            )
-            if not m and i + 1 < len(lines):
-                m = re.search(r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)", lines[i + 1])
-            saldo_a_favor = _parse_amount(m.group(1)) if m else None
-            continue
-        if "A PAGAR" in nln:
-            line = lines[i]
-            m = re.search(
-                r"A\s*PAGAR\s*:?\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)",
-                line,
-                flags=re.IGNORECASE,
-            )
-            if not m and i + 1 < len(lines):
-                m = re.search(r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)", lines[i + 1])
-            saldo_a_pagar = _parse_amount(m.group(1)) if m else None
-            continue
+    
+    # 1. Buscar CANTIDAD A CARGO en la sección DETERMINACIÓN
+    determinacion_idx = None
+    for i, nln in enumerate(norm_lines):
+        if "DETERMINACION" in nln:
+            determinacion_idx = i
+            break
+    
+    if determinacion_idx is not None:
+        search_end = min(determinacion_idx + 50, len(lines))
+        for i in range(determinacion_idx + 1, search_end):
+            nln = norm_lines[i]
+            if "CANTIDAD A CARGO" in nln:
+                line = lines[i]
+                m = re.search(
+                    r"CANTIDAD\s*A\s*CARGO\s*:?\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)",
+                    line,
+                    flags=re.IGNORECASE,
+                )
+                if not m and i + 1 < len(lines):
+                    m = re.search(r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)", lines[i + 1])
+                if m:
+                    cantidad_a_cargo = _parse_amount(m.group(1))
+                    break
+    
+    # 2. Si no encontró CANTIDAD A CARGO en DETERMINACIÓN, buscar en DETALLE DEL PAGO IVA
+    if cantidad_a_cargo is None:
+        for i, nln in enumerate(norm_lines):
+            if "DETALLE DEL PAGO" in nln and "IVA" in nln:
+                search_end = min(i + 50, len(lines))
+                for j in range(i + 1, search_end):
+                    nln_search = norm_lines[j]
+                    
+                    # Buscar CANTIDAD A CARGO
+                    if "CANTIDAD A CARGO" in nln_search:
+                        line = lines[j]
+                        m = re.search(
+                            r"CANTIDAD\s*A\s*CARGO\s*:?\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)",
+                            line,
+                            flags=re.IGNORECASE,
+                        )
+                        if not m and j + 1 < len(lines):
+                            m = re.search(r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)", lines[j + 1])
+                        if m:
+                            cantidad_a_cargo = _parse_amount(m.group(1))
+                        break
+                if cantidad_a_cargo is not None:
+                    break
+    
+    # 3. Buscar SALDO A FAVOR y SALDO A PAGAR en DETALLE DEL PAGO IVA
+    for i, nln in enumerate(norm_lines):
+        if "DETALLE DEL PAGO" in nln and "IVA" in nln:
+            search_end = min(i + 50, len(lines))
+            for j in range(i + 1, search_end):
+                nln_search = norm_lines[j]
+                
+                # Buscar A FAVOR
+                if "A FAVOR" in nln_search and "ACREDITAMIENTO" not in nln_search:
+                    line = lines[j]
+                    m = re.search(
+                        r"A\s*FAVOR\s*:?\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)",
+                        line,
+                        flags=re.IGNORECASE,
+                    )
+                    if not m and j + 1 < len(lines):
+                        m = re.search(r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)", lines[j + 1])
+                    if m:
+                        saldo_a_favor = _parse_amount(m.group(1))
+                
+                # Buscar A PAGAR (pero no CANTIDAD A PAGAR)
+                elif "A PAGAR" in nln_search and "CANTIDAD" not in nln_search:
+                    line = lines[j]
+                    m = re.search(
+                        r"A\s*PAGAR\s*:?\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)",
+                        line,
+                        flags=re.IGNORECASE,
+                    )
+                    if not m and j + 1 < len(lines):
+                        m = re.search(r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)", lines[j + 1])
+                    if m:
+                        saldo_a_pagar = _parse_amount(m.group(1))
+            break
 
-    return saldo_a_favor, saldo_a_pagar
+    return saldo_a_favor, saldo_a_pagar, cantidad_a_cargo
 
 
 def extract_pdf_text(pdf_path: str, max_chars: int = 20000) -> tuple[str, int]:
@@ -202,6 +263,7 @@ def parse_sat_declaracion_summary(text: str) -> dict[str, Any]:
         "fecha_presentacion": None,  # datetime
         "linea_captura": None,
         "secciones": [],
+        "cantidad_a_cargo": None,
         "saldo_a_favor": None,
         "saldo_a_pagar": None,
     }
@@ -370,7 +432,8 @@ def parse_sat_declaracion_summary(text: str) -> dict[str, Any]:
     out["iva_acreditable"] = _extract_after("IVA ACREDITABLE")
     out["iva_retenido"] = _extract_after("IVA RETENIDO")
     all_lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
-    saldo_a_favor, saldo_a_pagar = _extract_detalle_pagos(all_lines)
+    saldo_a_favor, saldo_a_pagar, cantidad_a_cargo = _extract_detalle_pagos(all_lines)
+    out["cantidad_a_cargo"] = cantidad_a_cargo
     out["saldo_a_favor"] = saldo_a_favor
     out["saldo_a_pagar"] = saldo_a_pagar
 
